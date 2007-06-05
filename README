@@ -1,0 +1,39 @@
+Copyright © 2001 - 2007, The Board of Trustees of the University of Illinois.
+All Rights Reserved.
+
+Please read the COPYRIGHT information in the current directory carefully.
+
+Visit http://udt.sf.net or http://sourceforge.net/projects/udt/ 
+for most recent news about UDT.
+
+
+CONTENT: 
+./src:     UDT source code 
+./app:     Example programs 
+./doc:     UDT documentation (HTML) and Internet Draft 
+./win:     VS.Net project files for the Windows version of UDT 
+
+
+To make: 
+     make -e os=XXX arch=YYY 
+
+XXX: [LINUX(default), BSD, OSX] 
+YYY: [IA32(default), POWERPC, IA64, AMD64] 
+
+For example, on OS X, you need to do "make -e os=OSX arch=POWERPC"; on 32-bit 
+Linux system, simply use "make".
+
+On Windows systems, use the Visual Studio .NET project files in ./win directory.
+
+For more compile options (NO_BUSY_WAITING and CUSTOM_CC), please see UDT 
+documenation: Installation.
+
+
+To use UDT in your application: 
+Read index.htm in ./doc. The documentation is in HTML format and requires your
+browser to support JavaScript.
+
+
+Questions? please post to the udt-help forum or the udt-general mailing list:
+http://sourceforge.net/forum/forum.php?forum_id=393037
+http://sourceforge.net/mailarchive/forum.php?forum_id=44580
