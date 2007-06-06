@@ -29,7 +29,7 @@ This file contains the implementation of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/05/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -136,11 +136,14 @@ int CUnitQueue::increase()
    CUnit* tempu = NULL;
    char* tempb = NULL;
 
+   // all queues have the same size
+   int size = m_pQEntry->m_iSize;
+
    try
    {
       tempq = new CQEntry;
-      tempu = new CUnit [m_iSize];
-      tempb = new char [m_iSize * m_iMSS];
+      tempu = new CUnit [size];
+      tempb = new char [size * m_iMSS];
    }
    catch (...)
    {
@@ -151,20 +154,21 @@ int CUnitQueue::increase()
       return -1;
    }
 
-   for (int i = 0; i < m_iSize; ++ i)
+   for (int i = 0; i < size; ++ i)
    {
       tempu[i].m_bValid = false;
       tempu[i].m_Packet.m_pcData = tempb + i * m_iMSS;
    }
    tempq->m_pUnit = tempu;
    tempq->m_pBuffer = tempb;
-   tempq->m_iSize = m_iSize;
+   tempq->m_iSize = size;
 
    m_pLastQueue->m_pNext = tempq;
    m_pLastQueue = tempq;
    m_pLastQueue->m_pNext = m_pQEntry;
 
-   m_iSize *= 2;
+   m_iSize += size;
+
    return 0;
 }
 
@@ -182,14 +186,24 @@ CUnit* CUnitQueue::getNextAvailUnit()
    if (m_iCount == m_iSize)
       return NULL;
 
+   int locality = true;
+
    while (true)
    {
       for (CUnit* sentinel = m_pCurrQueue->m_pUnit + m_pCurrQueue->m_iSize - 1; m_pAvailUnit != sentinel; ++ m_pAvailUnit)
          if (!m_pAvailUnit->m_bValid)
             return m_pAvailUnit;
 
-      m_pCurrQueue = m_pCurrQueue->m_pNext;
-      m_pAvailUnit = m_pCurrQueue->m_pUnit;
+      if (locality)
+      {
+         m_pAvailUnit = m_pCurrQueue->m_pUnit;
+         locality = false;
+      }
+      else
+      {
+         m_pCurrQueue = m_pCurrQueue->m_pNext;
+         m_pAvailUnit = m_pCurrQueue->m_pUnit;
+      }
    }
 
    return NULL;
@@ -1095,8 +1109,11 @@ TIMER_CHECK:
       }
    }
 
-
    delete [] temp.m_Packet.m_pcData;
+   if (AF_INET == self->m_UnitQueue.m_iIPversion)
+      delete (sockaddr_in*)addr;
+   else
+      delete (sockaddr_in6*)addr;
 
    return NULL;
 }

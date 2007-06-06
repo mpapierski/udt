@@ -34,7 +34,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 05/18/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -74,7 +74,7 @@ CUDT::CUDT():
 //
 m_iVersion(4),
 m_iQuickStartPkts(16),
-m_iSYNInterval(10000),
+m_iSYNInterval(1000),
 m_iSelfClockInterval(64)
 {
    m_pSndBuffer = NULL;
