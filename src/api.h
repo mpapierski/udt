@@ -29,7 +29,7 @@ This header file contains the definition of structures related to UDT API.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 03/27/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
 *****************************************************************************/
 
 #ifndef __UDT_API_H__
@@ -42,11 +42,8 @@ written by
 #include "packet.h"
 #include "queue.h"
 
-using namespace std;
-
 
 class CUDT;
-
 
 struct CUDTSocket
 {
@@ -169,7 +166,7 @@ private:
    void updateMux(CUDT* u, const sockaddr* addr = NULL);
 
 private:
-   vector<CMultiplexer> m_vMultiplexer;              // UDP multiplexer
+   std::vector<CMultiplexer> m_vMultiplexer;              // UDP multiplexer
    pthread_mutex_t m_MultiplexerLock;
 };
 

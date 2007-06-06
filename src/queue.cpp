@@ -184,8 +184,10 @@ CUnit* CUnitQueue::getNextAvailUnit()
    if (double(m_iCount) / m_iSize > 0.9)
       increase();
 
-   if (m_iCount == m_iSize)
+   if (m_iCount >= m_iSize)
       return NULL;
+
+   CQEntry* entrance = m_pCurrQueue;
 
    while (true)
    {
@@ -202,6 +204,9 @@ CUnit* CUnitQueue::getNextAvailUnit()
       {
          m_pCurrQueue = m_pCurrQueue->m_pNext;
          m_pAvailUnit = m_pCurrQueue->m_pUnit;
+
+         if (m_pCurrQueue == entrance)
+            return NULL;
       }
    }
 

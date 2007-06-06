@@ -43,6 +43,7 @@ written by
 #include "api.h"
 #include "core.h"
 
+using namespace std;
 
 CUDTSocket::CUDTSocket():
 m_pSelfAddr(NULL),

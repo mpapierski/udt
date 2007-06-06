@@ -40,6 +40,7 @@ written by
 #include <cmath>
 #include "buffer.h"
 
+using namespace std;
 
 CSndBuffer::CSndBuffer(const int& mss):
 m_pBlock(NULL),
@@ -276,7 +277,8 @@ m_iSize(65536),
 m_pUnitQueue(queue),
 m_iStartPos(0),
 m_iLastAckPos(0),
-m_iMaxPos(0)
+m_iMaxPos(0),
+m_iNotch(0)
 {
    m_pUnit = new CUnit* [m_iSize];
 }
@@ -330,45 +332,16 @@ int CRcvBuffer::addData(CUnit* unit, int offset)
 
 int CRcvBuffer::readBuffer(char* data, const int& len)
 {
-   // empty buffer
-   if (m_iStartPos == m_iLastAckPos)
-      return 0;
-
    int p = m_iStartPos;
    int lastack = m_iLastAckPos;
    int rs = len;
 
-   int unitsize = m_pUnit[p]->m_Packet.getLength() - m_iNotch;
-   if (rs >= unitsize)
-   {
-      memcpy(data, m_pUnit[p]->m_Packet.m_pcData + m_iNotch, unitsize);
-      data += unitsize;
-
-      CUnit* tmp = m_pUnit[p];
-      m_pUnit[p] = NULL;
-      tmp->m_bValid = false;
-      -- m_pUnitQueue->m_iCount;
-
-      m_iNotch = 0;
-      rs -= unitsize;
-
-      if (++ p == m_iSize)
-         p = 0;
-   }
-   else
-   {
-      memcpy(data, m_pUnit[p]->m_Packet.m_pcData + m_iNotch, rs);
-      m_iNotch += rs;
-
-      return rs;
-   }
-
    while ((p != lastack) && (rs > 0))
    {
-      unitsize = m_pUnit[p]->m_Packet.getLength();
+      int unitsize = m_pUnit[p]->m_Packet.getLength() - m_iNotch;
       if (rs >= unitsize)
       {
-         memcpy(data, m_pUnit[p]->m_Packet.m_pcData, unitsize);
+         memcpy(data, m_pUnit[p]->m_Packet.m_pcData + m_iNotch, unitsize);
          data += unitsize;
 
          CUnit* tmp = m_pUnit[p];
@@ -380,11 +353,52 @@ int CRcvBuffer::readBuffer(char* data, const int& len)
 
          if (++ p == m_iSize)
             p = 0;
+
+         m_iNotch = 0;
       }
       else
       {
-         memcpy(data, m_pUnit[p]->m_Packet.m_pcData, rs);
-         m_iNotch = rs;
+         memcpy(data, m_pUnit[p]->m_Packet.m_pcData + m_iNotch, rs);
+         m_iNotch += rs;
+
+         rs = 0;
+      }
+   }
+
+   m_iStartPos = p;
+
+   return len - rs;
+}
+
+int CRcvBuffer::readBufferToFile(ofstream& file, const int& len)
+{
+   int p = m_iStartPos;
+   int lastack = m_iLastAckPos;
+   int rs = len;
+
+   while ((p != lastack) && (rs > 0))
+   {
+      int unitsize = m_pUnit[p]->m_Packet.getLength() - m_iNotch;
+      if (rs >= unitsize)
+      {
+         file.write(m_pUnit[p]->m_Packet.m_pcData + m_iNotch, unitsize);
+
+         CUnit* tmp = m_pUnit[p];
+         m_pUnit[p] = NULL;
+         tmp->m_bValid = false;
+         -- m_pUnitQueue->m_iCount;
+
+         rs -= unitsize;
+
+         if (++ p == m_iSize)
+            p = 0;
+
+         m_iNotch = 0;
+      }
+      else
+      {
+         file.write(m_pUnit[p]->m_Packet.m_pcData + m_iNotch, rs);
+         m_iNotch += rs;
 
          rs = 0;
       }
@@ -476,7 +490,11 @@ int CRcvBuffer::readMsg(char* data, const int& len)
 
    // no msg found
    if (!found)
-      return 0;
+   {
+      // if the message is larger than the receiver buffer, return part of the message
+      if ((p == -1) || ((q + 1) % m_iSize != p))
+         return 0;
+   }
 
    int rs = len;
 

@@ -52,6 +52,7 @@ written by
 #include "queue.h"
 #include "core.h"
 
+using namespace std;
 
 CUDTUnited CUDT::s_UDTUnited;
 
@@ -1735,6 +1736,8 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
    if (SOCK_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
 
+   CGuard recvguard(m_RecvLock);
+
    if ((m_bBroken) && (0 == m_pRcvBuffer->getRcvDataSize()))
       throw CUDTException(2, 1, 0);
    else if (!m_bConnected)
@@ -1743,23 +1746,9 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
    if (size <= 0)
       return 0;
 
-   char* tempbuf = NULL;
    int64_t torecv = size;
    int unitsize = block;
    int recvsize;
-
-   try
-   {
-      tempbuf = new char[unitsize];
-   }
-   catch (...)
-   {
-      throw CUDTException(3, 2, 0);
-   }
-
-   // "recvfile" is always blocking.   
-   bool syn = m_bSynRecving;
-   m_bSynRecving = true;
 
    // positioning...
    try
@@ -1768,47 +1757,27 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
    }
    catch (...)
    {
-      delete [] tempbuf;
       throw CUDTException(4, 3);
    }
 
-   // receiving...
+   // receiving... "recvfile" is always blocking
    while (torecv > 0)
    {
+      pthread_mutex_lock(&m_RecvDataLock);
+      while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+         pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
+      pthread_mutex_unlock(&m_RecvDataLock);
+
+      if (m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+         throw CUDTException(2, 1, 0);
+
       unitsize = int((torecv >= block) ? block : torecv);
-
-      try
-      {
-         recvsize = recv(tempbuf, unitsize);
-         ofs.write(tempbuf, recvsize);
-
-         if (recvsize <= 0)
-         {
-             m_bSynRecving = syn;
-             delete [] tempbuf;
-             return size - torecv + recvsize;
-         }
-      }
-      catch (CUDTException e)
-      {
-         delete [] tempbuf;
-         throw e;
-      }
-      catch (...)
-      {
-         delete [] tempbuf;
-         throw CUDTException(4, 4);
-      }
+      recvsize = m_pRcvBuffer->readBufferToFile(ofs, unitsize);
 
       torecv -= recvsize;
    }
 
-   // recover the original receiving mode
-   m_bSynRecving = syn;
-
-   delete [] tempbuf;
-
-   return size;
+   return size - torecv;
 }
 
 void CUDT::sample(CPerfMon* perf, bool clear)
