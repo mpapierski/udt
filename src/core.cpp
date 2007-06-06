@@ -74,7 +74,7 @@ CUDT::CUDT():
 //
 m_iVersion(4),
 m_iQuickStartPkts(16),
-m_iSYNInterval(1000),
+m_iSYNInterval(10000),
 m_iSelfClockInterval(64)
 {
    m_pSndBuffer = NULL;

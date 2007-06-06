@@ -40,7 +40,6 @@ written by
 #include "packet.h"
 #include "channel.h"
 #include <vector>
-using namespace std;
 
 class CUDT;
 
@@ -265,7 +264,7 @@ public:
 private:
    CUDTList* m_pLast;		// the last node
 
-   vector<CUDT*> m_vNewEntry;	// newly added entries, to be inserted
+   std::vector<CUDT*> m_vNewEntry;	// newly added entries, to be inserted
    pthread_mutex_t m_ListLock;
 };
 
@@ -367,7 +366,7 @@ private:
       int m_iIPversion;
       sockaddr* m_pPeerAddr;
    };
-   vector<CRL> m_vRendezvousID;         // The sockets currently in rendezvous mode
+   std::vector<CRL> m_vRendezvousID;         // The sockets currently in rendezvous mode
 
    pthread_mutex_t m_RIDVectorLock;
 };

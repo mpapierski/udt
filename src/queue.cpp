@@ -41,6 +41,7 @@ written by
 #include "queue.h"
 #include "core.h"
 
+using namespace std;
 
 CUnitQueue::CUnitQueue():
 m_pQEntry(NULL),
@@ -186,18 +187,16 @@ CUnit* CUnitQueue::getNextAvailUnit()
    if (m_iCount == m_iSize)
       return NULL;
 
-   int locality = true;
-
    while (true)
    {
       for (CUnit* sentinel = m_pCurrQueue->m_pUnit + m_pCurrQueue->m_iSize - 1; m_pAvailUnit != sentinel; ++ m_pAvailUnit)
          if (!m_pAvailUnit->m_bValid)
             return m_pAvailUnit;
 
-      if (locality)
+      if (!m_pCurrQueue->m_pUnit->m_bValid)
       {
          m_pAvailUnit = m_pCurrQueue->m_pUnit;
-         locality = false;
+         return m_pAvailUnit;
       }
       else
       {

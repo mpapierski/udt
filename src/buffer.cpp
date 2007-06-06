@@ -33,7 +33,7 @@ The receiving buffer is a logically circular memeory block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 04/08/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -436,39 +436,46 @@ int CRcvBuffer::readMsg(char* data, const int& len)
    if (m_iStartPos == m_iLastAckPos)
       return 0;
 
-   int p = m_iStartPos;
-   int q = -1;
-   int lastack = m_iLastAckPos;
-   bool sfound = false;
-   while ((p != lastack) && (-1 == q))
+   int p = -1;			// message head
+   int q = m_iStartPos;		// message tail
+   bool found = false;
+
+   // looking for the first message
+   while (q != m_iLastAckPos)
    {
-      if (NULL != m_pUnit[p])
+      if (NULL != m_pUnit[q])
       {
-         switch (m_pUnit[p]->m_Packet.getMsgBoundary())
+         switch (m_pUnit[q]->m_Packet.getMsgBoundary())
          {
          case 3: // 11
-            q = p;
+            p = q;
+            found = true;
             break;
 
          case 2: // 10
-            sfound = true;
+            p = q;
             break;
 
          case 1: // 01
-            if (sfound) q = p;
+            if (p != -1)
+               found = true;
          }
       }
       else
       {
-         if (sfound) sfound = false;
+         // a hole in this message, not valid, restart search
+         p = -1;
       }
 
-      if (++ p == m_iSize)
-         p = 0;
+      if (found)
+         break;
+
+      if (++ q == m_iSize)
+         q = 0;
    }
 
    // no msg found
-   if (-1 == q)
+   if (!found)
       return 0;
 
    int rs = len;
