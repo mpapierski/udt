@@ -34,7 +34,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/07/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1563,12 +1563,30 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
          // wait here during a blocking sending
          #ifndef WIN32
             pthread_mutex_lock(&m_SendBlockLock);
-            while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
-               pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
+            if (m_iSndTimeOut < 0)
+            {
+               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+                  pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
+            }
+            else
+            {
+               uint64_t exptime = CTimer::getTime() + m_iSndTimeOut * 1000ULL;
+               timespec locktime;
+
+               locktime.tv_sec = exptime / 1000000;
+               locktime.tv_nsec = (exptime % 1000000) * 1000;
+
+               pthread_cond_timedwait(&m_SendBlockCond, &m_SendBlockLock, &locktime);
+            }
             pthread_mutex_unlock(&m_SendBlockLock);
          #else
-            while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
-               WaitForSingleObject(m_SendBlockCond, INFINITE);
+            if (m_iSndTimeOut < 0)
+            {
+               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+                  WaitForSingleObject(m_SendBlockCond, INFINITE);
+            }
+            else
+               WaitForSingleObject(m_SendBlockCond, DWORD(m_iSndTimeOut));
          #endif
 
          // check the connection status
@@ -1576,6 +1594,9 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
             throw CUDTException(2, 1, 0);
       }
    }
+
+   if ((m_iSndTimeOut >= 0) && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+      return 0;
 
    char* buf = new char[len];
    memcpy(buf, data, len);
@@ -1622,15 +1643,40 @@ int CUDT::recvmsg(char* data, const int& len)
    }
 
    int res = m_pRcvBuffer->readMsg(data, len);
+   bool timeout = false;
 
-   while (0 == res)
+   while ((0 == res) && !timeout)
    {
       #ifndef WIN32
          pthread_mutex_lock(&m_RecvDataLock);
-         pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
+         if (m_iRcvTimeOut < 0)
+         {
+            while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+               pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
+         }
+         else
+         {
+            uint64_t exptime = CTimer::getTime() + m_iRcvTimeOut * 1000ULL;
+            timespec locktime;
+
+            locktime.tv_sec = exptime / 1000000;
+            locktime.tv_nsec = (exptime % 1000000) * 1000;
+
+            if (pthread_cond_timedwait(&m_RecvDataCond, &m_RecvDataLock, &locktime) == ETIMEDOUT)
+               timeout = true;
+         }
          pthread_mutex_unlock(&m_RecvDataLock);
       #else
-         WaitForSingleObject(m_RecvDataCond, INFINITE);
+         if (m_iRcvTimeOut < 0)
+         {
+            while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+               WaitForSingleObject(m_RecvDataCond, INFINITE);
+         }
+         else
+         {
+            if (WaitForSingleObject(m_RecvDataCond, DWORD(m_iRcvTimeOut)) == WAIT_TIMEOUT)
+               timeout = true;
+         }
       #endif
 
       if (m_bBroken)
