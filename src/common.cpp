@@ -30,7 +30,7 @@ mutex facility, and exception processing.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 05/16/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
 *****************************************************************************/
 
 
@@ -83,28 +83,18 @@ void CTimer::rdtsc(uint64_t &x)
       if (!QueryPerformanceCounter((LARGE_INTEGER *)&x))
          x = getTime();
    #elif IA32
-      // read CPU clock with RDTSC instruction on IA32 acrh
-      __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-
-      // on Windows
-      /*
-         unsigned int a, b;
-         __asm 
-         {
-            __emit 0x0f
-            __emit 0x31
-            mov a, eax
-            mov b, ebx
-         }
-         x = b;
-         x = (x << 32) + a;
-      */
-
+      uint32_t lval, hval;
+      //asm volatile ("push %eax; push %ebx; push %ecx; push %edx");
+      //asm volatile ("xor %eax, %eax; cpuid");
+      asm volatile ("rdtsc" : "=a" (lval), "=d" (hval));
+      //asm volatile ("pop %edx; pop %ecx; pop %ebx; pop %eax");
+      x = hval;
+      x = (x << 32) | lval;
    #elif IA64
-      __asm__ volatile ("mov %0=ar.itc" : "=r"(x) :: "memory");
+      asm ("mov %0=ar.itc" : "=r"(x) :: "memory");
    #elif AMD64
-      unsigned int lval, hval;
-      __asm__ volatile ("rdtsc" : "=a" (lval), "=d" (hval));
+      uint32_t lval, hval;
+      asm ("rdtsc" : "=a" (lval), "=d" (hval));
       x = hval;
       x = (x << 32) | lval;
    #else
@@ -124,8 +114,6 @@ uint64_t CTimer::readCPUFrequency()
       else
          return 1;
    #elif IA32 || IA64 || AMD64
-      // alternative: read /proc/cpuinfo
-
       uint64_t t1, t2;
 
       rdtsc(t1);
@@ -165,7 +153,6 @@ void CTimer::sleepto(const uint64_t& nexttime)
    {
       #ifndef NO_BUSY_WAITING
          #ifdef IA32
-            //__asm__ volatile ("nop; nop; nop; nop; nop;");
             __asm__ volatile ("pause; rep; nop; nop; nop; nop; nop;");
          #elif IA64
             __asm__ volatile ("nop 0; nop 0; nop 0; nop 0; nop 0;");
