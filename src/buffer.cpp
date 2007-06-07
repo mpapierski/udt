@@ -33,7 +33,7 @@ The receiving buffer is a logically circular memeory block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/07/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -339,34 +339,33 @@ int CRcvBuffer::readBuffer(char* data, const int& len)
    while ((p != lastack) && (rs > 0))
    {
       int unitsize = m_pUnit[p]->m_Packet.getLength() - m_iNotch;
-      if (rs >= unitsize)
-      {
-         memcpy(data, m_pUnit[p]->m_Packet.m_pcData + m_iNotch, unitsize);
-         data += unitsize;
+      if (unitsize > rs)
+         unitsize = rs;
 
+      memcpy(data, m_pUnit[p]->m_Packet.m_pcData + m_iNotch, unitsize);
+      data += unitsize;
+
+      if ((rs > unitsize) || (rs == m_pUnit[p]->m_Packet.getLength() - m_iNotch))
+      {
          CUnit* tmp = m_pUnit[p];
          m_pUnit[p] = NULL;
          tmp->m_bValid = false;
          -- m_pUnitQueue->m_iCount;
 
-         rs -= unitsize;
-
          if (++ p == m_iSize)
             p = 0;
 
          m_iNotch = 0;
+         rs -= unitsize;
       }
       else
       {
-         memcpy(data, m_pUnit[p]->m_Packet.m_pcData + m_iNotch, rs);
          m_iNotch += rs;
-
          rs = 0;
       }
    }
 
    m_iStartPos = p;
-
    return len - rs;
 }
 
@@ -379,33 +378,32 @@ int CRcvBuffer::readBufferToFile(ofstream& file, const int& len)
    while ((p != lastack) && (rs > 0))
    {
       int unitsize = m_pUnit[p]->m_Packet.getLength() - m_iNotch;
-      if (rs >= unitsize)
-      {
-         file.write(m_pUnit[p]->m_Packet.m_pcData + m_iNotch, unitsize);
+      if (unitsize > rs)
+         unitsize = rs;
 
+      file.write(m_pUnit[p]->m_Packet.m_pcData + m_iNotch, unitsize);
+
+      if ((rs > unitsize) || (rs == m_pUnit[p]->m_Packet.getLength() - m_iNotch))
+      {
          CUnit* tmp = m_pUnit[p];
          m_pUnit[p] = NULL;
          tmp->m_bValid = false;
          -- m_pUnitQueue->m_iCount;
 
-         rs -= unitsize;
-
          if (++ p == m_iSize)
             p = 0;
 
          m_iNotch = 0;
+         rs -= unitsize;
       }
       else
       {
-         file.write(m_pUnit[p]->m_Packet.m_pcData + m_iNotch, rs);
          m_iNotch += rs;
-
          rs = 0;
       }
    }
 
    m_iStartPos = p;
-
    return len - rs;
 }
 
