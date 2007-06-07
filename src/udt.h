@@ -29,7 +29,7 @@ This is the (only) header file of the UDT API, needed for programming with UDT.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 05/15/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
 *****************************************************************************/
 
 #ifndef _UDT_H_
@@ -180,10 +180,42 @@ private:
 // 6+: undefined error
 
    int m_iMinor;        // for specific error reasons
-
    int m_iErrno;        // errno returned by the system if there is any
-
    char m_pcMsg[1024];  // text error message
+
+public: // Error Code
+   static const int SUCCESS;
+   static const int ECONNSETUP;
+   static const int ENOSERVER;
+   static const int ECONNREJ;
+   static const int ESOCKFAIL;
+   static const int ESECFAIL;
+   static const int ECONNFAIL;
+   static const int ECONNLOST;
+   static const int ENOCONN;
+   static const int ERESOURCE;
+   static const int ETHREAD;
+   static const int ENOBUF;
+   static const int EFILE;
+   static const int EINVRDOFF;
+   static const int ERDPERM;
+   static const int EINVWROFF;
+   static const int EWRPERM;
+   static const int EINVOP;
+   static const int EBOUNDSOCK;
+   static const int ECONNSOCK;
+   static const int EINVPARAM;
+   static const int EINVSOCK;
+   static const int EUNBOUNDSOCK;
+   static const int ENOLISTEN;
+   static const int ERDVNOSERV;
+   static const int ERDVUNBOUND;
+   static const int ESTREAMILL;
+   static const int EDGRAMILL;
+   static const int EASYNCFAIL;
+   static const int EASYNCSND;
+   static const int EASYNCRCV;
+   static const int EUNKNOWN;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
