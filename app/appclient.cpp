@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
    //if (NULL != cchandle)
    //   cchandle->setRate(500);
 
-   int size = 10000000;
+   int size = 100000;
    char* data = new char[size];
 
 #ifndef WIN32
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
    CreateThread(NULL, 0, monitor, &client, 0, NULL);
 #endif
 
-   for (int i = 0; i < 1000; i ++)
+   for (int i = 0; i < 100000; i ++)
    {
       int ssize = 0;
       int ss;

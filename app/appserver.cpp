@@ -118,7 +118,7 @@ DWORD WINAPI recvdata(LPVOID usocket)
    delete (UDTSOCKET*)usocket;
 
    char* data;
-   int size = 10000000;
+   int size = 100000;
    data = new char[size];
 
    while (true)
