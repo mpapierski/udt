@@ -356,13 +356,11 @@ int CRcvBuffer::readBuffer(char* data, const int& len)
             p = 0;
 
          m_iNotch = 0;
-         rs -= unitsize;
       }
       else
-      {
          m_iNotch += rs;
-         rs = 0;
-      }
+
+      rs -= unitsize;
    }
 
    m_iStartPos = p;
@@ -394,13 +392,11 @@ int CRcvBuffer::readBufferToFile(ofstream& file, const int& len)
             p = 0;
 
          m_iNotch = 0;
-         rs -= unitsize;
       }
       else
-      {
          m_iNotch += rs;
-         rs = 0;
-      }
+
+      rs -= unitsize;
    }
 
    m_iStartPos = p;
