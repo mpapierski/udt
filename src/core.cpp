@@ -34,7 +34,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/07/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/12/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1809,10 +1809,15 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
    // receiving... "recvfile" is always blocking
    while (torecv > 0)
    {
-      pthread_mutex_lock(&m_RecvDataLock);
-      while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
-         pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
-      pthread_mutex_unlock(&m_RecvDataLock);
+      #ifndef WIN32
+         pthread_mutex_lock(&m_RecvDataLock);
+         while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+            pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
+         pthread_mutex_unlock(&m_RecvDataLock);
+      #else
+         while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+            WaitForSingleObject(m_RecvDataCond, INFINITE);
+      #endif
 
       if (m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
          throw CUDTException(2, 1, 0);
