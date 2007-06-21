@@ -29,7 +29,7 @@ This is the (only) header file of the UDT API, needed for programming with UDT.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/20/2007
 *****************************************************************************/
 
 #ifndef _UDT_H_
@@ -66,6 +66,8 @@ written by
    #else
       #define UDT_API __declspec(dllimport)
    #endif
+
+   #define NO_BUSY_WAITING
 #else
    #define UDT_API
 #endif
