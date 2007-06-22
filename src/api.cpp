@@ -31,7 +31,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/22/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -750,9 +750,10 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
             if (NULL == (s = locate(*i)))
                throw CUDTException(5, 4, 0);
 
-            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0))
+            if ((s->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0)
                || (!s->m_pUDT->m_bListening && (s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected))
-               || (s->m_pUDT->m_bListening && (s->m_pQueuedSockets->size() > 0)))
+               || (s->m_pUDT->m_bListening && (s->m_pQueuedSockets->size() > 0))
+               || (s->m_Status == CUDTSocket::CLOSED))
             {
                rs.insert(*i);
                ++ count;
@@ -766,7 +767,8 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
             if (NULL == (s = locate(*i)))
                throw CUDTException(5, 4, 0);
 
-            if (s->m_pUDT->m_bConnected && (s->m_pUDT->m_pSndBuffer->getCurrBufSize() < s->m_pUDT->m_iSndQueueLimit))
+            if ((s->m_pUDT->m_pSndBuffer->getCurrBufSize() < s->m_pUDT->m_iSndQueueLimit)
+               || (s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected))
             {
                ws.insert(*i);
                ++ count;
