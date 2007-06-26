@@ -34,7 +34,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/12/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/25/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -106,6 +106,7 @@ m_iSelfClockInterval(64)
    m_bRendezvous = false;
    m_iSndTimeOut = -1;
    m_iRcvTimeOut = -1;
+   m_bReuseAddr = true;
 
    #ifdef CUSTOM_CC
       m_pCCFactory = new CCCFactory<CCC>;
@@ -162,6 +163,7 @@ m_iSelfClockInterval(ancestor.m_iSelfClockInterval)
    m_bRendezvous = ancestor.m_bRendezvous;
    m_iSndTimeOut = ancestor.m_iSndTimeOut;
    m_iRcvTimeOut = ancestor.m_iRcvTimeOut;
+   m_bReuseAddr = ancestor.m_bReuseAddr;
 
    #ifdef CUSTOM_CC
       m_pCCFactory = ancestor.m_pCCFactory->clone();
@@ -325,6 +327,13 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
    case UDT_RCVTIMEO: 
       m_iRcvTimeOut = *(int*)optval; 
       break; 
+
+   case UDT_REUSEADDR:
+      if (m_bOpened)
+         throw CUDTException(5, 1, 0);
+
+      m_bReuseAddr = *(bool*)optval;
+      break;
     
    default:
       throw CUDTException(5, 0, 0);
@@ -411,6 +420,11 @@ void CUDT::getOpt(UDTOpt optName, void* optval, int& optlen)
       *(int*)optval = m_iRcvTimeOut; 
       optlen = sizeof(int); 
       break; 
+
+   case UDT_REUSEADDR:
+      *(bool *)optval = m_bReuseAddr;
+      optlen = sizeof(bool);
+      break;
 
    default:
       throw CUDTException(5, 0, 0);

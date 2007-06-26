@@ -61,7 +61,7 @@ the UDT connection is set up. If 0 is used for the port, a randomly available po
 number.</p>
 <p>The <strong>bind</strong> call is necessary in all cases except for a socket to <a href="listen.htm">listen</a>. If <strong>bind</strong> is not called, UDT will automatically bind a 
 socket to a randomly available address when a connection is set up.</p>
-
+<p>By default, UDT will reuse existing UDP port for new UDT sockets, unless UDT_REUSEADDR is set to false. When UDT_REUSEADDR is false, UDT will create an exclusive UDP port for this UDT socket. UDT_REUSEADDR must be called before <strong>bind</strong>. </p>
 <h5>See Also</h5>
 <p><strong><a href="listen.htm">listen</a>, <a href="connect.htm">connect</a>, <a href="opt.htm">setsockopt</a>, <a href="opt.htm">getsockopt</a></strong></p>
 <p>&nbsp;</p>

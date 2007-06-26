@@ -29,7 +29,7 @@ This header file contains the definition of UDT core structure and operations.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 04/09/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/25/2007
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -261,6 +261,7 @@ private: // Options
    bool m_bRendezvous;                          // Rendezvous connection mode
    int m_iSndTimeOut;                           // sending timeout in milliseconds
    int m_iRcvTimeOut;                           // receiving timeout in milliseconds
+   bool m_bReuseAddr;				// reuse an exiting port or not, for UDP multiplexer
    const int m_iQuickStartPkts;                 // Number of packets to be sent as a quick start
 
 private: // CCC

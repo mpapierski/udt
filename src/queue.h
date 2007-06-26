@@ -29,7 +29,7 @@ This header file contains the definition of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/05/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/25/2007
 *****************************************************************************/
 
 
@@ -500,6 +500,7 @@ public:
    int m_iMTU;			// MTU
    int m_iSockType;		// Socket Type
    int m_iRefCount;		// number of UDT instances that are associated with this multiplexer
+   bool m_bReusable;		// if this one can be shared with others
 };
 
 #endif

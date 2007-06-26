@@ -72,7 +72,7 @@
 <h5>Description</h5>
 <p>UDT is connection oriented, for both of its SOCK_STREAM and SOCK_DGRAM mode. <strong>connect</strong> must be called in order to set up a UDT connection. The <i>name</i> parameter is 
 the address of the server or the peer side. In regular (default) client/server mode, the server side must has called <strong>bind</strong> and <strong>listen</strong>. In rendezvous mode, 
-both sides must call <strong>bind</strong> and connect to each other at (approximately) the same time.</p>
+both sides must call <strong>bind</strong> and connect to each other at (approximately) the same time. Rendezvous <strong>connect</strong> may not be used for more than one connections on the same UDP port pair, in which case UDT_REUSEADDR may be set to false. </p>
 <p><strong>connect</strong> takes at least one round trip to finish. This may become a bottleneck if applications frequently connect and disconnect to the same address.</p>
 <p>The blocking option does NOT affect the <strong>connect</strong> call, which is always blocked until the connection is either successfully set up or failed.</p>
 <p>When <strong>connect</strong> fails, the UDT socket can still be used to connect again. However, if the socket was not bound before, it may be bound implicitly, as mentioned above, even 
