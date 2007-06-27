@@ -321,7 +321,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    {
       // bind to the same addr of listening socket
       ns->m_pUDT->open();
-      updateMux(ns->m_pUDT, ls->m_pSelfAddr);
+      updateMux(ns->m_pUDT, ls);
       ns->m_pUDT->connect(peer, hs);
    }
    catch (...)
@@ -1044,6 +1044,27 @@ void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr)
    u->m_pSndQueue = m.m_pSndQueue;
    u->m_pRcvQueue = m.m_pRcvQueue;
    u->m_pRcvQueue->m_pHash->insert(u->m_SocketID, u);
+}
+
+void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
+{
+   CGuard cg(m_ControlLock);
+
+   int port = (AF_INET == ls->m_iIPversion) ? ntohs(((sockaddr_in*)ls->m_pSelfAddr)->sin_port) : ntohs(((sockaddr_in6*)ls->m_pSelfAddr)->sin6_port);
+
+   // find the listener's address
+   for (vector<CMultiplexer>::iterator i = m_vMultiplexer.begin(); i != m_vMultiplexer.end(); ++ i)
+   {
+      if (i->m_iPort == port)
+      {
+         // reuse the existing multiplexer
+         ++ i->m_iRefCount;
+         u->m_pSndQueue = i->m_pSndQueue;
+         u->m_pRcvQueue = i->m_pRcvQueue;
+         u->m_pRcvQueue->m_pHash->insert(u->m_SocketID, u);
+         return;
+      }
+   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
