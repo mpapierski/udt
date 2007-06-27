@@ -11,16 +11,15 @@
 
 <h3><font color="#000080">Firewall Traversing with UDT</font></h3>
 <p>While UDT was originally written for extremely high speed data transfer, there are many other potential benefits from this reliable UDP-based library. One particular usage is to setup 
-reliable connections between machines behind firewalls, especially those NAT firewall. To meet this requirement, UDT has added the rendezvous connection setup support.</p>
+reliable connections between machines behind firewalls, especially those NAT firewalls. To meet this requirement, UDT has added the rendezvous connection setup support.</p>
 
 <p>Traditional BSD socket setup process requires explicit server side and client side. To punch NAT firewalls, a common method is to use the SO_REUSEADDR socket option to open two sockets 
 bound to the same port, one listens and the other connects. UDT provides the more convenient rendezvous connection setup, in which there is no server or client, and two users can connect to 
 each other directly.</p>
 
-<p>With UDT, all sockets within one process can be bound to the same UDP port (but at most one listening socket on the same port is allowed). There is no SO_REUSEADDR option for UDT. In 
-fact, unless the application explicitly bind a socket to a different port, UDT will always try to bind socket on the same port.</p>
+<p>With UDT, all sockets within one process can be bound to the same UDP port (but at most one listening socket on the same port is allowed). This is also helpful for system administrators to open a specific UDP port for all UDT traffic. </p>
 
-<p>Example: Rendezvous connection setup.</p>
+<p>Example: Rendezvous connection setup. (Note that there is no need to set UDT_REUSEADDR here because it is true by default.) </p>
 <div class="code">
 UDTSOCKET u;<br>
 ...<br>

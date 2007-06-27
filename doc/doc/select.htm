@@ -88,9 +88,9 @@ tv.tv_usec = 0;<br>
 UD_ZERO(&readfds);<br>
 UD_SET(u, &readfds);<br>
 <br>
-int res = select(0, &readfds, NULL, NULL, &tv);<br>
+int res = UDT::select(0, &readfds, NULL, NULL, &tv);<br>
 <br>
-if ((res != UDT_ERROR) && (UD_ISSET(u, &readfds)))<br>
+if ((res != UDT::ERROR) && (UD_ISSET(u, &readfds)))<br>
 &nbsp;&nbsp;&nbsp;// read data from u.<br>
 else<br>
 &nbsp;&nbsp;&nbsp;// timeout or error<br>

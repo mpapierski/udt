@@ -34,7 +34,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/25/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/27/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -163,7 +163,7 @@ m_iSelfClockInterval(ancestor.m_iSelfClockInterval)
    m_bRendezvous = ancestor.m_bRendezvous;
    m_iSndTimeOut = ancestor.m_iSndTimeOut;
    m_iRcvTimeOut = ancestor.m_iRcvTimeOut;
-   m_bReuseAddr = ancestor.m_bReuseAddr;
+   m_bReuseAddr = true;
 
    #ifdef CUSTOM_CC
       m_pCCFactory = ancestor.m_pCCFactory->clone();

@@ -31,7 +31,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/26/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 06/27/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -983,15 +983,15 @@ void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr)
 
    if (u->m_bReuseAddr)
    {
+      int port = 0;
+      if (NULL != addr)
+         port = (AF_INET == u->m_iIPversion) ? ntohs(((sockaddr_in*)addr)->sin_port) : ntohs(((sockaddr_in6*)addr)->sin6_port);
+
       // find a reusable address
       for (vector<CMultiplexer>::iterator i = m_vMultiplexer.begin(); i != m_vMultiplexer.end(); ++ i)
       {
          if ((i->m_iIPversion == u->m_iIPversion) && (i->m_iMTU == u->m_iMSS) && i->m_bReusable)
          {
-            int port = 0;
-            if (NULL != addr)
-               port = (AF_INET == i->m_iIPversion) ? ntohs(((sockaddr_in*)addr)->sin_port) : ntohs(((sockaddr_in6*)addr)->sin6_port);
-
             if ((0 == port) || (i->m_iPort == port))
             {
                // reuse the existing multiplexer
