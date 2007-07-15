@@ -108,6 +108,7 @@ CUDT::CUDT()
 
    m_pCCFactory = new CCCFactory<CUDTCC>;
    m_pCC = NULL;
+   m_pController = NULL;
 
    m_iRTT = 10 * m_iSYNInterval;
    m_iRTTVar = m_iRTT >> 1;
@@ -157,6 +158,7 @@ CUDT::CUDT(const CUDT& ancestor)
 
    m_pCCFactory = ancestor.m_pCCFactory->clone();
    m_pCC = NULL;
+   m_pController = ancestor.m_pController;
 
    m_iRTT = ancestor.m_iRTT;
    m_iRTTVar = ancestor.m_iRTTVar;
@@ -178,30 +180,18 @@ CUDT::~CUDT()
    destroySynch();
 
    // destroy the data structures
-   if (m_pSndBuffer)
-      delete m_pSndBuffer;
-   if (m_pRcvBuffer)
-      delete m_pRcvBuffer;
-   if (m_pSndLossList)
-      delete m_pSndLossList;
-   if (m_pRcvLossList)
-      delete m_pRcvLossList;
-   if (m_pACKWindow)
-      delete m_pACKWindow;
-   if (m_pSndTimeWindow)
-      delete m_pSndTimeWindow;
-   if (m_pRcvTimeWindow)
-      delete m_pRcvTimeWindow;
-   if (m_pCCFactory)
-      delete m_pCCFactory;
-   if (m_pCC)
-      delete m_pCC;
-   if (m_pPeerAddr)
-      delete m_pPeerAddr;
-   if (m_pSNode)
-      delete m_pSNode;
-   if (m_pRNode)
-      delete m_pRNode;
+   delete m_pSndBuffer;
+   delete m_pRcvBuffer;
+   delete m_pSndLossList;
+   delete m_pRcvLossList;
+   delete m_pACKWindow;
+   delete m_pSndTimeWindow;
+   delete m_pRcvTimeWindow;
+   delete m_pCCFactory;
+   delete m_pCC;
+   delete m_pPeerAddr;
+   delete m_pSNode;
+   delete m_pRNode;
 }
 
 void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
@@ -651,11 +641,13 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pRcvTimeWindow = new CPktTimeWindow(16, 16, 64);
    m_pSndTimeWindow = new CPktTimeWindow();
 
+   m_pController->join(this, serv_addr, m_iIPversion, m_iRTT, m_iBandwidth);
    m_pCC->setMSS(m_iMSS);
+   m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
    m_pCC->setSndCurrSeqNo(m_iSndCurrSeqNo);
    m_pCC->setRcvRate(0);
-   m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
    m_pCC->setRTT(m_iRTT);
+   m_pCC->setBandwidth(m_iBandwidth);
    m_pCC->init();
 
    // register this socket for receiving data packets
@@ -721,11 +713,13 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pRcvTimeWindow = new CPktTimeWindow(16, 16, 64);
    m_pSndTimeWindow = new CPktTimeWindow();
 
+   m_pController->join(this, peer, m_iIPversion, m_iRTT, m_iBandwidth);
    m_pCC->setMSS(m_iMSS);
+   m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
    m_pCC->setSndCurrSeqNo(m_iSndCurrSeqNo);
    m_pCC->setRcvRate(0);
-   m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
    m_pCC->setRTT(m_iRTT);
+   m_pCC->setBandwidth(m_iBandwidth);
    m_pCC->init();
 
    // register this socket for receiving data packet
@@ -763,6 +757,7 @@ void CUDT::close()
    CGuard cg(m_ConnectionLock);
 
    m_pCC->close();
+   m_pController->leave(this, m_iRTT, m_iBandwidth);
 
    // Inform the threads handler to stop.
    m_bClosing = true;

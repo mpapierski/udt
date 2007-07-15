@@ -289,9 +289,8 @@ public:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class CIPAddress
+struct CIPAddress
 {
-public:
    static bool ipcmp(const sockaddr* addr1, const sockaddr* addr2, const int& ver = AF_INET);
 };
 

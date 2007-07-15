@@ -41,6 +41,7 @@ written by
 #include "udt.h"
 #include "packet.h"
 #include "queue.h"
+#include "control.h"
 
 
 class CUDT;
@@ -167,8 +168,11 @@ private:
    void updateMux(CUDT* u, const CUDTSocket* ls);
 
 private:
-   std::vector<CMultiplexer> m_vMultiplexer;              // UDP multiplexer
+   std::vector<CMultiplexer> m_vMultiplexer;		// UDP multiplexer
    pthread_mutex_t m_MultiplexerLock;
+
+private:
+   CControl* m_pController;				// UDT congestion control manager
 };
 
 #endif

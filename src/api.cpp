@@ -127,6 +127,7 @@ CUDTUnited::CUDTUnited()
    #endif
 
    m_vMultiplexer.clear();
+   m_pController = new CControl;
 }
 
 CUDTUnited::~CUDTUnited()
@@ -146,6 +147,7 @@ CUDTUnited::~CUDTUnited()
    #endif
 
    m_vMultiplexer.clear();
+   delete m_pController;
 
    // Global destruction code
    #ifdef WIN32
@@ -195,6 +197,7 @@ UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
    ns->m_pUDT->m_SocketID = ns->m_Socket;
    ns->m_pUDT->m_iSockType = type;
    ns->m_pUDT->m_iIPversion = ns->m_iIPversion = af;
+   ns->m_pUDT->m_pController = m_pController;
 
    // protect the m_Sockets structure.
    #ifndef WIN32

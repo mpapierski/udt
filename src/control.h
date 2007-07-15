@@ -35,10 +35,14 @@ written by
 #ifndef _UDT_CONTROL_H_
 #define _UDT_CONTROL_H_
 
-#include "core.h"
+#include "udt.h"
+#include "common.h"
 #include <list>
 #include <set>
 #include <map>
+
+
+class CUDT;
 
 struct CHistoryBlock
 {
@@ -53,30 +57,12 @@ struct CHistoryBlock
 
 struct CIPComp
 {
-   bool operator()(const CHistoryBlock* hb1, const CHistoryBlock* hb2) const
-   {
-      if (hb1->m_iIPversion != hb2->m_iIPversion)
-         return (hb1->m_iIPversion < hb2->m_iIPversion);
-      else if (hb1->m_iIPversion == AF_INET)
-         return (hb1->m_IP[0] > hb2->m_IP[0]);
-      else
-      {
-         for (int i = 0; i < 4; ++ i)
-         {
-            if (hb1->m_IP[i] != hb2->m_IP[i])
-               return (hb1->m_IP[i] > hb2->m_IP[i]);
-         }
-         return false;
-      }
-   }
+   bool operator()(const CHistoryBlock* hb1, const CHistoryBlock* hb2) const;
 };
 
 struct CTSComp
 {
-   bool operator()(const CHistoryBlock* hb1, const CHistoryBlock* hb2) const
-   {
-      return (hb1->m_ullTimeStamp > hb2->m_ullTimeStamp);
-   }
+   bool operator()(const CHistoryBlock* hb1, const CHistoryBlock* hb2) const;
 };
 
 class CHistory
@@ -104,10 +90,7 @@ private:
 
 struct CUDTComp
 {
-   bool operator()(const CUDT* u1, const CUDT* u2) const
-   {
-      return (u1->m_SocketID > u2->m_SocketID);
-   }
+   bool operator()(const CUDT* u1, const CUDT* u2) const;
 };
 
 class CControl

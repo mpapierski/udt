@@ -39,8 +39,31 @@ written by
 
 #include <string.h>
 #include "control.h"
+#include "core.h"
 
 using namespace std;
+
+bool CIPComp::operator()(const CHistoryBlock* hb1, const CHistoryBlock* hb2) const
+{
+   if (hb1->m_iIPversion != hb2->m_iIPversion)
+      return (hb1->m_iIPversion < hb2->m_iIPversion);
+   else if (hb1->m_iIPversion == AF_INET)
+      return (hb1->m_IP[0] > hb2->m_IP[0]);
+   else
+   {
+      for (int i = 0; i < 4; ++ i)
+      {
+         if (hb1->m_IP[i] != hb2->m_IP[i])
+            return (hb1->m_IP[i] > hb2->m_IP[i]);
+      }
+      return false;
+   }
+}
+
+bool CTSComp::operator()(const CHistoryBlock* hb1, const CHistoryBlock* hb2) const
+{
+   return (hb1->m_ullTimeStamp > hb2->m_ullTimeStamp);
+}
 
 CHistory::CHistory():
 m_uiSize(1024)
@@ -158,6 +181,13 @@ void CHistory::convert(const sockaddr* addr, const int& ver, uint32_t* ip)
    {
       memcpy((char*)ip, (char*)((sockaddr_in6*)addr)->sin6_addr.s6_addr, 16);
    }
+}
+
+
+//
+bool CUDTComp::operator()(const CUDT* u1, const CUDT* u2) const
+{
+   return (u1->m_SocketID > u2->m_SocketID);
 }
 
 CControl::CControl()

@@ -45,6 +45,7 @@ written by
 #include "channel.h"
 #include "api.h"
 #include "ccc.h"
+#include "control.h"
 #include "queue.h"
 
 class UDT_API CUDT
@@ -269,7 +270,8 @@ private: // Options
 
 private: // congestion control
    CCCVirtualFactory* m_pCCFactory;             // Factory class to create a specific CC instance
-   CCC* m_pCC;                                  // custom congestion control class
+   CCC* m_pCC;                                  // congestion control class
+   CControl* m_pController;			// congestion control manager
 
 private: // Status
    volatile bool m_bListening;                  // If the UDT entit is listening to connection
