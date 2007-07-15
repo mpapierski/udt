@@ -795,465 +795,6 @@ void CUDT::close()
    m_bOpened = false;
 }
 
-void CUDT::sendCtrl(const int& pkttype, void* lparam, void* rparam, const int& size)
-{
-   CPacket ctrlpkt;
-
-   switch (pkttype)
-   {
-   case 2: //010 - Acknowledgement
-      {
-      int32_t ack;
-
-      // If there is no loss, the ACK is the current largest sequence number plus 1;
-      // Otherwise it is the smallest sequence number in the receiver loss list.
-      if (0 == m_pRcvLossList->getLossLength())
-         ack = CSeqNo::incseq(m_iRcvCurrSeqNo);
-      else
-         ack = m_pRcvLossList->getFirstLostSeq();
-
-      // send out a lite ACK
-      // to save time on buffer processing and bandwidth/AS measurement, a lite ACK only feeds back an ACK number
-      if (4 == size)
-      {
-         ctrlpkt.pack(2, NULL, &ack, size);
-         ctrlpkt.m_iID = m_PeerID;
-         m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
-
-         break;
-      }
-
-      uint64_t currtime;
-      CTimer::rdtsc(currtime);
-
-      // There are new received packets to acknowledge, update related information.
-      if (CSeqNo::seqcmp(ack, m_iRcvLastAck) > 0)
-      {
-         int acksize = CSeqNo::seqoff(m_iRcvLastAck, ack);
-
-         m_iRcvLastAck = ack;
-
-         m_pRcvBuffer->ackData(acksize);
-
-         // signal a waiting "recv" call if there is any data available
-         #ifndef WIN32
-            pthread_mutex_lock(&m_RecvDataLock);
-            if ((m_bSynRecving) && (0 != m_pRcvBuffer->getRcvDataSize()))
-               pthread_cond_signal(&m_RecvDataCond);
-            pthread_mutex_unlock(&m_RecvDataLock);
-         #else
-            if ((m_bSynRecving) && (0 != m_pRcvBuffer->getRcvDataSize()))
-               SetEvent(m_RecvDataCond);
-         #endif
-      }
-      else if (ack == m_iRcvLastAck)
-      {
-         if ((currtime - m_ullLastAckTime) < ((m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency))
-            break;
-      }
-      else
-         break;
-
-      // Send out the ACK only if has not been received by the sender before
-      if (CSeqNo::seqcmp(m_iRcvLastAck, m_iRcvLastAckAck) > 0)
-      {
-         int32_t data[6];
-
-         m_iAckSeqNo = CAckNo::incack(m_iAckSeqNo);
-         data[0] = m_iRcvLastAck;
-         data[1] = m_iRTT;
-         data[2] = m_iRTTVar;
-         data[3] = m_pRcvBuffer->getAvailBufSize();
-         // a minimum flow window of 2 is used, even if buffer is full, to break potential deadlock
-         if (data[3] < 2)
-            data[3] = 2;
-
-         if (CTimer::getTime() - m_ullLastAckTime > (uint64_t)m_iSYNInterval)
-         {
-            data[4] = m_pRcvTimeWindow->getPktRcvSpeed();
-            data[5] = m_pRcvTimeWindow->getBandwidth();
-            ctrlpkt.pack(2, &m_iAckSeqNo, data, 24);
-         }
-         else
-         {
-            ctrlpkt.pack(2, &m_iAckSeqNo, data, 16);
-         }
-
-         ctrlpkt.m_iID = m_PeerID;
-         m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
-
-         m_pACKWindow->store(m_iAckSeqNo, m_iRcvLastAck);
-
-         CTimer::rdtsc(m_ullLastAckTime);
-
-         ++ m_iSentACK;
-      }
-
-      break;
-      }
-
-   case 6: //110 - Acknowledgement of Acknowledgement
-      ctrlpkt.pack(6, lparam);
-      ctrlpkt.m_iID = m_PeerID;
-      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
-
-      break;
-
-   case 3: //011 - Loss Report
-      if (NULL != rparam)
-      {
-         if (1 == size)
-         {
-            // only 1 loss packet
-            ctrlpkt.pack(3, NULL, (int32_t *)rparam + 1, 4);
-         }
-         else
-         {
-            // more than 1 loss packets
-            ctrlpkt.pack(3, NULL, rparam, 8);
-         }
-
-         ctrlpkt.m_iID = m_PeerID;
-         m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
-
-         ++ m_iSentNAK;
-      }
-      else if (m_pRcvLossList->getLossLength() > 0)
-      {
-         // this is periodically NAK report
-
-         // read loss list from the local receiver loss list
-         int32_t* data = new int32_t[m_iPayloadSize / 4];
-         int losslen;
-         m_pRcvLossList->getLossArray(data, losslen, m_iPayloadSize / 4, m_iRTT + 4 * m_iRTTVar);
-
-         if (0 < losslen)
-         {
-            ctrlpkt.pack(3, NULL, data, losslen * 4);
-            ctrlpkt.m_iID = m_PeerID;
-            m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
-
-            ++ m_iSentNAK;
-         }
-
-         delete [] data;
-      }
-
-      break;
-
-   case 4: //100 - Congestion Warning
-      ctrlpkt.pack(4);
-      ctrlpkt.m_iID = m_PeerID;
-      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
-
-      CTimer::rdtsc(m_ullLastWarningTime);
-
-      break;
-
-   case 1: //001 - Keep-alive
-      ctrlpkt.pack(1);
-      ctrlpkt.m_iID = m_PeerID;
-      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
- 
-      break;
-
-   case 0: //000 - Handshake
-      ctrlpkt.pack(0, NULL, rparam, sizeof(CHandShake));
-      ctrlpkt.m_iID = m_PeerID;
-      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
-
-      break;
-
-   case 5: //101 - Shutdown
-      ctrlpkt.pack(5);
-      ctrlpkt.m_iID = m_PeerID;
-      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
-
-      break;
-
-   case 7: //111 - Msg drop request
-      ctrlpkt.pack(7, lparam, rparam, 8);
-      ctrlpkt.m_iID = m_PeerID;
-      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
-
-      break;
-
-   case 65535: //0x7FFF - Resevered for future use
-      break;
-
-   default:
-      break;
-   }
-}
-
-void CUDT::processCtrl(CPacket& ctrlpkt)
-{
-   // Just heard from the peer, reset the expiration count.
-   m_iEXPCount = 1;
-   m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-   if (CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck)
-   {
-      CTimer::rdtsc(m_ullNextEXPTime);
-      m_ullNextEXPTime += m_ullEXPInt;
-   }
-
-   if ((2 == ctrlpkt.getType()) || (6 == ctrlpkt.getType()))
-   {
-      m_ullNAKInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency;
-      //do not resent the loss report within too short period
-      if (m_ullNAKInt < m_ullSYNInt)
-         m_ullNAKInt = m_ullSYNInt;
-   }
-
-   uint64_t currtime;
-   CTimer::rdtsc(currtime);
-   if ((2 <= ctrlpkt.getType()) && (4 >= ctrlpkt.getType()))
-      m_ullNextEXPTime = currtime + m_ullEXPInt;
-
-
-   switch (ctrlpkt.getType())
-   {
-   case 2: //010 - Acknowledgement
-      {
-      int32_t ack;
-
-      // process a lite ACK
-      if (4 == ctrlpkt.getLength())
-      {
-         ack = *(int32_t *)ctrlpkt.m_pcData;
-         if (CSeqNo::seqcmp(ack, const_cast<int32_t&>(m_iSndLastAck)) >= 0)
-         {
-            m_iFlowWindowSize -= CSeqNo::seqoff(const_cast<int32_t&>(m_iSndLastAck), ack);
-            m_iSndLastAck = ack;
-         }
-
-         break;
-      }
-
-      // read ACK seq. no.
-      ack = ctrlpkt.getAckSeqNo();
-
-      // send ACK acknowledgement
-      sendCtrl(6, &ack);
-
-      // Got data ACK
-      ack = *(int32_t *)ctrlpkt.m_pcData;
-
-      if (CSeqNo::seqcmp(ack, const_cast<int32_t&>(m_iSndLastAck)) >= 0)
-      {
-         // Update Flow Window Size, must update before and together m_iSndLastAck
-         m_iFlowWindowSize = *((int32_t *)ctrlpkt.m_pcData + 3);
-         m_iSndLastAck = ack;
-      }
-
-      // protect packet retransmission
-      #ifndef WIN32
-         pthread_mutex_lock(&m_AckLock);
-      #else
-         WaitForSingleObject(m_AckLock, INFINITE);
-      #endif
-
-      int offset = CSeqNo::seqoff(m_iSndLastDataAck, ack);
-      if (offset <= 0)
-      {
-         // discard it if it is a repeated ACK
-         #ifndef WIN32
-            pthread_mutex_unlock(&m_AckLock);
-         #else
-            ReleaseMutex(m_AckLock);
-         #endif
-
-         break;
-      }
-
-      // acknowledge the sending buffer
-      m_pSndBuffer->ackData(offset * m_iPayloadSize, m_iPayloadSize);
-
-      // update sending variables
-      m_iSndLastDataAck = ack;
-      m_pSndLossList->remove(CSeqNo::decseq(m_iSndLastDataAck));
-
-      // insert this socket to snd list if it is not on the list yet
-      m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
-      m_pSndQueue->m_pTimer->interrupt();
-
-      #ifndef WIN32
-         pthread_mutex_unlock(&m_AckLock);
-
-         pthread_mutex_lock(&m_SendBlockLock);
-         if (m_bSynSending)
-            pthread_cond_signal(&m_SendBlockCond);
-         pthread_mutex_unlock(&m_SendBlockLock);
-      #else
-         ReleaseMutex(m_AckLock);
-
-         if (m_bSynSending)
-            SetEvent(m_SendBlockCond);
-      #endif
-
-      // Update RTT
-      m_iRTT = *((int32_t *)ctrlpkt.m_pcData + 1);
-      m_iRTTVar = *((int32_t *)ctrlpkt.m_pcData + 2);
-      m_pCC->setRTT(m_iRTT);
-
-      if (ctrlpkt.getLength() > 16)
-      {
-         // Update Estimated Bandwidth
-         if (*((int32_t *)ctrlpkt.m_pcData + 5) > 0)
-            m_iBandwidth = (m_iBandwidth * 7 + *((int32_t *)ctrlpkt.m_pcData + 4)) >> 3;
-
-         m_pCC->setRcvRate(*((int32_t *)ctrlpkt.m_pcData + 4));
-         m_pCC->setBandwidth(m_iBandwidth);
-      }
-
-      m_pCC->onACK(ack);
-      // update CC parameters
-      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-      m_dCongestionWindow = m_pCC->m_dCWndSize;
-
-      ++ m_iRecvACK;
-
-      break;
-      }
-
-   case 6: //110 - Acknowledgement of Acknowledgement
-      {
-      int32_t ack;
-      int rtt = -1;
-      //timeval currtime;
-
-      // update RTT
-      rtt = m_pACKWindow->acknowledge(ctrlpkt.getAckSeqNo(), ack);
-
-      if (rtt <= 0)
-         break;
-
-      //
-      // Well, I decide to temporaly disable the use of delay.
-      // a good idea but the algorithm to detect it is not good enough.
-      // I'll come back later...
-      //
-
-      //m_pRcvTimeWindow->ack2Arrival(rtt);
-
-      // check packet delay trend
-      //CTimer::rdtsc(currtime);
-      //if (m_pRcvTimeWindow->getDelayTrend() && (currtime - m_ullLastWarningTime > (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency))
-      //   sendCtrl(4);
-
-      // RTT EWMA
-      m_iRTTVar = (m_iRTTVar * 3 + abs(rtt - m_iRTT)) >> 2;
-      m_iRTT = (m_iRTT * 7 + rtt) >> 3;
-
-      // update last ACK that has been received by the sender
-      if (CSeqNo::seqcmp(ack, m_iRcvLastAckAck) > 0)
-         m_iRcvLastAckAck = ack;
-
-      break;
-      }
-
-   case 3: //011 - Loss Report
-      {
-      int32_t* losslist = (int32_t *)(ctrlpkt.m_pcData);
-
-      m_pCC->onLoss(losslist, ctrlpkt.getLength());
-      // update CC parameters
-      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-      m_dCongestionWindow = m_pCC->m_dCWndSize;
-
-      // decode loss list message and insert loss into the sender loss list
-      for (int i = 0, n = (int)(ctrlpkt.getLength() / 4); i < n; ++ i)
-      {
-         if (0 != (losslist[i] & 0x80000000))
-         {
-            if (CSeqNo::seqcmp(losslist[i] & 0x7FFFFFFF, const_cast<int32_t&>(m_iSndLastAck)) >= 0)
-               m_iTraceSndLoss += m_pSndLossList->insert(losslist[i] & 0x7FFFFFFF, losslist[i + 1]);
-            else if (CSeqNo::seqcmp(losslist[i + 1], const_cast<int32_t&>(m_iSndLastAck)) >= 0)
-               m_iTraceSndLoss += m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), losslist[i + 1]);
-
-            ++ i;
-         }
-         else if (CSeqNo::seqcmp(losslist[i], const_cast<int32_t&>(m_iSndLastAck)) >= 0)
-         {
-            m_iTraceSndLoss += m_pSndLossList->insert(losslist[i], losslist[i]);
-         }
-      }
-
-      // Wake up the waiting sender (avoiding deadlock on an infinite sleeping)
-      m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), const_cast<int32_t&>(m_iSndLastAck));
-	  
-      // the lost packet (retransmission) should be sent out immediately
-      m_pSndQueue->m_pSndUList->update(m_SocketID, this);
-      m_pSndQueue->m_pTimer->interrupt();
-
-      ++ m_iRecvNAK;
-
-      break;
-      }
-
-   case 4: //100 - Delay Warning
-      // One way packet delay is increasing, so decrease the sending rate
-      m_ullInterval = (uint64_t)ceil(m_ullInterval * 1.125);
-
-      m_iLastDecSeq = m_iSndCurrSeqNo;
-
-      break;
-
-   case 1: //001 - Keep-alive
-      // The only purpose of keep-alive packet is to tell that the peer is still alive
-      // nothing needs to be done.
-
-      break;
-
-   case 0: //000 - Handshake
-      if ((((CHandShake*)(ctrlpkt.m_pcData))->m_iReqType > 0) || (m_bRendezvous && (((CHandShake*)(ctrlpkt.m_pcData))->m_iReqType != -2)))
-      {
-         // The peer side has not received the handshake message, so it keeps querying
-         // resend the handshake packet
-
-         CHandShake initdata;
-         initdata.m_iISN = m_iISN;
-         initdata.m_iMSS = m_iMSS;
-         initdata.m_iFlightFlagSize = m_iFlightFlagSize;
-         initdata.m_iReqType = (!m_bRendezvous) ? -1 : -2;
-         initdata.m_iID = m_SocketID;
-         sendCtrl(0, NULL, (char *)&initdata, sizeof(CHandShake));
-      }
-
-      break;
-
-   case 5: //101 - Shutdown
-      m_bShutdown = true;
-      m_bClosing = true;
-      m_bBroken = true;
-
-      // Signal the sender and recver if they are waiting for data.
-      releaseSynch();
-
-      CTimer::triggerEvent();
-
-      break;
-
-   case 7: //111 - Msg drop request
-      m_pRcvBuffer->dropMsg(ctrlpkt.getMsgSeq());
-
-      m_pRcvLossList->remove(*(int32_t*)ctrlpkt.m_pcData, *(int32_t*)(ctrlpkt.m_pcData + 4));
-
-      break;
-
-   case 65535: //0x7FFF - reserved and user defined messages
-      m_pCC->processCustomMsg(&ctrlpkt);
-      // update CC parameters
-      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-      m_dCongestionWindow = m_pCC->m_dCWndSize;
-
-      break;
-
-   default:
-      break;
-   }
-}
-
 int CUDT::send(char* data, const int& len)
 {
    if (SOCK_DGRAM == m_iSockType)
@@ -1824,6 +1365,465 @@ void CUDT::releaseSynch()
    #endif
 }
 
+void CUDT::sendCtrl(const int& pkttype, void* lparam, void* rparam, const int& size)
+{
+   CPacket ctrlpkt;
+
+   switch (pkttype)
+   {
+   case 2: //010 - Acknowledgement
+      {
+      int32_t ack;
+
+      // If there is no loss, the ACK is the current largest sequence number plus 1;
+      // Otherwise it is the smallest sequence number in the receiver loss list.
+      if (0 == m_pRcvLossList->getLossLength())
+         ack = CSeqNo::incseq(m_iRcvCurrSeqNo);
+      else
+         ack = m_pRcvLossList->getFirstLostSeq();
+
+      // send out a lite ACK
+      // to save time on buffer processing and bandwidth/AS measurement, a lite ACK only feeds back an ACK number
+      if (4 == size)
+      {
+         ctrlpkt.pack(2, NULL, &ack, size);
+         ctrlpkt.m_iID = m_PeerID;
+         m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+
+         break;
+      }
+
+      uint64_t currtime;
+      CTimer::rdtsc(currtime);
+
+      // There are new received packets to acknowledge, update related information.
+      if (CSeqNo::seqcmp(ack, m_iRcvLastAck) > 0)
+      {
+         int acksize = CSeqNo::seqoff(m_iRcvLastAck, ack);
+
+         m_iRcvLastAck = ack;
+
+         m_pRcvBuffer->ackData(acksize);
+
+         // signal a waiting "recv" call if there is any data available
+         #ifndef WIN32
+            pthread_mutex_lock(&m_RecvDataLock);
+            if ((m_bSynRecving) && (0 != m_pRcvBuffer->getRcvDataSize()))
+               pthread_cond_signal(&m_RecvDataCond);
+            pthread_mutex_unlock(&m_RecvDataLock);
+         #else
+            if ((m_bSynRecving) && (0 != m_pRcvBuffer->getRcvDataSize()))
+               SetEvent(m_RecvDataCond);
+         #endif
+      }
+      else if (ack == m_iRcvLastAck)
+      {
+         if ((currtime - m_ullLastAckTime) < ((m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency))
+            break;
+      }
+      else
+         break;
+
+      // Send out the ACK only if has not been received by the sender before
+      if (CSeqNo::seqcmp(m_iRcvLastAck, m_iRcvLastAckAck) > 0)
+      {
+         int32_t data[6];
+
+         m_iAckSeqNo = CAckNo::incack(m_iAckSeqNo);
+         data[0] = m_iRcvLastAck;
+         data[1] = m_iRTT;
+         data[2] = m_iRTTVar;
+         data[3] = m_pRcvBuffer->getAvailBufSize();
+         // a minimum flow window of 2 is used, even if buffer is full, to break potential deadlock
+         if (data[3] < 2)
+            data[3] = 2;
+
+         if (CTimer::getTime() - m_ullLastAckTime > (uint64_t)m_iSYNInterval)
+         {
+            data[4] = m_pRcvTimeWindow->getPktRcvSpeed();
+            data[5] = m_pRcvTimeWindow->getBandwidth();
+            ctrlpkt.pack(2, &m_iAckSeqNo, data, 24);
+         }
+         else
+         {
+            ctrlpkt.pack(2, &m_iAckSeqNo, data, 16);
+         }
+
+         ctrlpkt.m_iID = m_PeerID;
+         m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+
+         m_pACKWindow->store(m_iAckSeqNo, m_iRcvLastAck);
+
+         CTimer::rdtsc(m_ullLastAckTime);
+
+         ++ m_iSentACK;
+      }
+
+      break;
+      }
+
+   case 6: //110 - Acknowledgement of Acknowledgement
+      ctrlpkt.pack(6, lparam);
+      ctrlpkt.m_iID = m_PeerID;
+      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+
+      break;
+
+   case 3: //011 - Loss Report
+      if (NULL != rparam)
+      {
+         if (1 == size)
+         {
+            // only 1 loss packet
+            ctrlpkt.pack(3, NULL, (int32_t *)rparam + 1, 4);
+         }
+         else
+         {
+            // more than 1 loss packets
+            ctrlpkt.pack(3, NULL, rparam, 8);
+         }
+
+         ctrlpkt.m_iID = m_PeerID;
+         m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+
+         ++ m_iSentNAK;
+      }
+      else if (m_pRcvLossList->getLossLength() > 0)
+      {
+         // this is periodically NAK report
+
+         // read loss list from the local receiver loss list
+         int32_t* data = new int32_t[m_iPayloadSize / 4];
+         int losslen;
+         m_pRcvLossList->getLossArray(data, losslen, m_iPayloadSize / 4, m_iRTT + 4 * m_iRTTVar);
+
+         if (0 < losslen)
+         {
+            ctrlpkt.pack(3, NULL, data, losslen * 4);
+            ctrlpkt.m_iID = m_PeerID;
+            m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+
+            ++ m_iSentNAK;
+         }
+
+         delete [] data;
+      }
+
+      break;
+
+   case 4: //100 - Congestion Warning
+      ctrlpkt.pack(4);
+      ctrlpkt.m_iID = m_PeerID;
+      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+
+      CTimer::rdtsc(m_ullLastWarningTime);
+
+      break;
+
+   case 1: //001 - Keep-alive
+      ctrlpkt.pack(1);
+      ctrlpkt.m_iID = m_PeerID;
+      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+ 
+      break;
+
+   case 0: //000 - Handshake
+      ctrlpkt.pack(0, NULL, rparam, sizeof(CHandShake));
+      ctrlpkt.m_iID = m_PeerID;
+      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+
+      break;
+
+   case 5: //101 - Shutdown
+      ctrlpkt.pack(5);
+      ctrlpkt.m_iID = m_PeerID;
+      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+
+      break;
+
+   case 7: //111 - Msg drop request
+      ctrlpkt.pack(7, lparam, rparam, 8);
+      ctrlpkt.m_iID = m_PeerID;
+      m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
+
+      break;
+
+   case 65535: //0x7FFF - Resevered for future use
+      break;
+
+   default:
+      break;
+   }
+}
+
+void CUDT::processCtrl(CPacket& ctrlpkt)
+{
+   // Just heard from the peer, reset the expiration count.
+   m_iEXPCount = 1;
+   m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+   if (CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck)
+   {
+      CTimer::rdtsc(m_ullNextEXPTime);
+      m_ullNextEXPTime += m_ullEXPInt;
+   }
+
+   if ((2 == ctrlpkt.getType()) || (6 == ctrlpkt.getType()))
+   {
+      m_ullNAKInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency;
+      //do not resent the loss report within too short period
+      if (m_ullNAKInt < m_ullSYNInt)
+         m_ullNAKInt = m_ullSYNInt;
+   }
+
+   uint64_t currtime;
+   CTimer::rdtsc(currtime);
+   if ((2 <= ctrlpkt.getType()) && (4 >= ctrlpkt.getType()))
+      m_ullNextEXPTime = currtime + m_ullEXPInt;
+
+
+   switch (ctrlpkt.getType())
+   {
+   case 2: //010 - Acknowledgement
+      {
+      int32_t ack;
+
+      // process a lite ACK
+      if (4 == ctrlpkt.getLength())
+      {
+         ack = *(int32_t *)ctrlpkt.m_pcData;
+         if (CSeqNo::seqcmp(ack, const_cast<int32_t&>(m_iSndLastAck)) >= 0)
+         {
+            m_iFlowWindowSize -= CSeqNo::seqoff(const_cast<int32_t&>(m_iSndLastAck), ack);
+            m_iSndLastAck = ack;
+         }
+
+         break;
+      }
+
+      // read ACK seq. no.
+      ack = ctrlpkt.getAckSeqNo();
+
+      // send ACK acknowledgement
+      sendCtrl(6, &ack);
+
+      // Got data ACK
+      ack = *(int32_t *)ctrlpkt.m_pcData;
+
+      if (CSeqNo::seqcmp(ack, const_cast<int32_t&>(m_iSndLastAck)) >= 0)
+      {
+         // Update Flow Window Size, must update before and together m_iSndLastAck
+         m_iFlowWindowSize = *((int32_t *)ctrlpkt.m_pcData + 3);
+         m_iSndLastAck = ack;
+      }
+
+      // protect packet retransmission
+      #ifndef WIN32
+         pthread_mutex_lock(&m_AckLock);
+      #else
+         WaitForSingleObject(m_AckLock, INFINITE);
+      #endif
+
+      int offset = CSeqNo::seqoff(m_iSndLastDataAck, ack);
+      if (offset <= 0)
+      {
+         // discard it if it is a repeated ACK
+         #ifndef WIN32
+            pthread_mutex_unlock(&m_AckLock);
+         #else
+            ReleaseMutex(m_AckLock);
+         #endif
+
+         break;
+      }
+
+      // acknowledge the sending buffer
+      m_pSndBuffer->ackData(offset * m_iPayloadSize, m_iPayloadSize);
+
+      // update sending variables
+      m_iSndLastDataAck = ack;
+      m_pSndLossList->remove(CSeqNo::decseq(m_iSndLastDataAck));
+
+      // insert this socket to snd list if it is not on the list yet
+      m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
+      m_pSndQueue->m_pTimer->interrupt();
+
+      #ifndef WIN32
+         pthread_mutex_unlock(&m_AckLock);
+
+         pthread_mutex_lock(&m_SendBlockLock);
+         if (m_bSynSending)
+            pthread_cond_signal(&m_SendBlockCond);
+         pthread_mutex_unlock(&m_SendBlockLock);
+      #else
+         ReleaseMutex(m_AckLock);
+
+         if (m_bSynSending)
+            SetEvent(m_SendBlockCond);
+      #endif
+
+      // Update RTT
+      m_iRTT = *((int32_t *)ctrlpkt.m_pcData + 1);
+      m_iRTTVar = *((int32_t *)ctrlpkt.m_pcData + 2);
+      m_pCC->setRTT(m_iRTT);
+
+      if (ctrlpkt.getLength() > 16)
+      {
+         // Update Estimated Bandwidth
+         if (*((int32_t *)ctrlpkt.m_pcData + 5) > 0)
+            m_iBandwidth = (m_iBandwidth * 7 + *((int32_t *)ctrlpkt.m_pcData + 4)) >> 3;
+
+         m_pCC->setRcvRate(*((int32_t *)ctrlpkt.m_pcData + 4));
+         m_pCC->setBandwidth(m_iBandwidth);
+      }
+
+      m_pCC->onACK(ack);
+      // update CC parameters
+      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+      m_dCongestionWindow = m_pCC->m_dCWndSize;
+
+      ++ m_iRecvACK;
+
+      break;
+      }
+
+   case 6: //110 - Acknowledgement of Acknowledgement
+      {
+      int32_t ack;
+      int rtt = -1;
+      //timeval currtime;
+
+      // update RTT
+      rtt = m_pACKWindow->acknowledge(ctrlpkt.getAckSeqNo(), ack);
+
+      if (rtt <= 0)
+         break;
+
+      //
+      // Well, I decide to temporaly disable the use of delay.
+      // a good idea but the algorithm to detect it is not good enough.
+      // I'll come back later...
+      //
+
+      //m_pRcvTimeWindow->ack2Arrival(rtt);
+
+      // check packet delay trend
+      //CTimer::rdtsc(currtime);
+      //if (m_pRcvTimeWindow->getDelayTrend() && (currtime - m_ullLastWarningTime > (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency))
+      //   sendCtrl(4);
+
+      // RTT EWMA
+      m_iRTTVar = (m_iRTTVar * 3 + abs(rtt - m_iRTT)) >> 2;
+      m_iRTT = (m_iRTT * 7 + rtt) >> 3;
+
+      // update last ACK that has been received by the sender
+      if (CSeqNo::seqcmp(ack, m_iRcvLastAckAck) > 0)
+         m_iRcvLastAckAck = ack;
+
+      break;
+      }
+
+   case 3: //011 - Loss Report
+      {
+      int32_t* losslist = (int32_t *)(ctrlpkt.m_pcData);
+
+      m_pCC->onLoss(losslist, ctrlpkt.getLength());
+      // update CC parameters
+      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+      m_dCongestionWindow = m_pCC->m_dCWndSize;
+
+      // decode loss list message and insert loss into the sender loss list
+      for (int i = 0, n = (int)(ctrlpkt.getLength() / 4); i < n; ++ i)
+      {
+         if (0 != (losslist[i] & 0x80000000))
+         {
+            if (CSeqNo::seqcmp(losslist[i] & 0x7FFFFFFF, const_cast<int32_t&>(m_iSndLastAck)) >= 0)
+               m_iTraceSndLoss += m_pSndLossList->insert(losslist[i] & 0x7FFFFFFF, losslist[i + 1]);
+            else if (CSeqNo::seqcmp(losslist[i + 1], const_cast<int32_t&>(m_iSndLastAck)) >= 0)
+               m_iTraceSndLoss += m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), losslist[i + 1]);
+
+            ++ i;
+         }
+         else if (CSeqNo::seqcmp(losslist[i], const_cast<int32_t&>(m_iSndLastAck)) >= 0)
+         {
+            m_iTraceSndLoss += m_pSndLossList->insert(losslist[i], losslist[i]);
+         }
+      }
+
+      // Wake up the waiting sender (avoiding deadlock on an infinite sleeping)
+      m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), const_cast<int32_t&>(m_iSndLastAck));
+	  
+      // the lost packet (retransmission) should be sent out immediately
+      m_pSndQueue->m_pSndUList->update(m_SocketID, this);
+      m_pSndQueue->m_pTimer->interrupt();
+
+      ++ m_iRecvNAK;
+
+      break;
+      }
+
+   case 4: //100 - Delay Warning
+      // One way packet delay is increasing, so decrease the sending rate
+      m_ullInterval = (uint64_t)ceil(m_ullInterval * 1.125);
+
+      m_iLastDecSeq = m_iSndCurrSeqNo;
+
+      break;
+
+   case 1: //001 - Keep-alive
+      // The only purpose of keep-alive packet is to tell that the peer is still alive
+      // nothing needs to be done.
+
+      break;
+
+   case 0: //000 - Handshake
+      if ((((CHandShake*)(ctrlpkt.m_pcData))->m_iReqType > 0) || (m_bRendezvous && (((CHandShake*)(ctrlpkt.m_pcData))->m_iReqType != -2)))
+      {
+         // The peer side has not received the handshake message, so it keeps querying
+         // resend the handshake packet
+
+         CHandShake initdata;
+         initdata.m_iISN = m_iISN;
+         initdata.m_iMSS = m_iMSS;
+         initdata.m_iFlightFlagSize = m_iFlightFlagSize;
+         initdata.m_iReqType = (!m_bRendezvous) ? -1 : -2;
+         initdata.m_iID = m_SocketID;
+         sendCtrl(0, NULL, (char *)&initdata, sizeof(CHandShake));
+      }
+
+      break;
+
+   case 5: //101 - Shutdown
+      m_bShutdown = true;
+      m_bClosing = true;
+      m_bBroken = true;
+
+      // Signal the sender and recver if they are waiting for data.
+      releaseSynch();
+
+      CTimer::triggerEvent();
+
+      break;
+
+   case 7: //111 - Msg drop request
+      m_pRcvBuffer->dropMsg(ctrlpkt.getMsgSeq());
+
+      m_pRcvLossList->remove(*(int32_t*)ctrlpkt.m_pcData, *(int32_t*)(ctrlpkt.m_pcData + 4));
+
+      break;
+
+   case 65535: //0x7FFF - reserved and user defined messages
+      m_pCC->processCustomMsg(&ctrlpkt);
+      // update CC parameters
+      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+      m_dCongestionWindow = m_pCC->m_dCWndSize;
+
+      break;
+
+   default:
+      break;
+   }
+}
+
 int CUDT::packData(CPacket& packet, uint64_t& ts)
 {
    if (m_bClosing || m_bBroken)
@@ -1950,103 +1950,6 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
    return payload;
 }
 
-void CUDT::checkTimers()
-{
-   if (m_bClosing || m_bBroken)
-      return;
-
-   // update CC parameters
-   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-   m_dCongestionWindow = m_pCC->m_dCWndSize;
-   if (m_ullInterval < (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9))
-      m_ullInterval = (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9);
-
-   uint64_t currtime;
-   CTimer::rdtsc(currtime);
-   int32_t loss = m_pRcvLossList->getFirstLostSeq();
-
-   if ((currtime > m_ullNextACKTime) || ((m_pCC->m_iACKInterval > 0) && (m_pCC->m_iACKInterval <= m_iPktCount)))
-   {
-      // ACK timer expired, or user buffer is fulfilled, or ACK interval reached
-
-      sendCtrl(2);
-      CTimer::rdtsc(currtime);
-      if (m_pCC->m_iACKPeriod > 0)
-         m_ullNextACKTime = currtime + m_pCC->m_iACKPeriod * m_ullCPUFrequency;
-      else
-         m_ullNextACKTime = currtime + m_ullACKInt;
-
-      m_iPktCount = 0;
-      m_iLightACKCount = 1;
-   }
-   else if (m_iSelfClockInterval * m_iLightACKCount <= m_iPktCount)
-   {
-      //send a "light" ACK
-      sendCtrl(2, NULL, NULL, 4);
-      ++ m_iLightACKCount;
-   }
-
-   if ((loss >= 0) && (currtime > m_ullNextNAKTime))
-   {
-      // NAK timer expired, and there is loss to be reported.
-      sendCtrl(3);
-
-      CTimer::rdtsc(currtime);
-      m_ullNextNAKTime = currtime + m_ullNAKInt;
-   }
-
-   if (currtime > m_ullNextEXPTime)
-   {
-      // Haven't receive any information from the peer, is it dead?!
-      // timeout: at least 16 expirations and must be greater than 3 seconds and be less than 30 seconds
-      if (((m_iEXPCount > 16) && 
-          (m_iEXPCount * ((m_iEXPCount - 1) * (m_iRTT + 4 * m_iRTTVar) / 2 + m_iSYNInterval) > 3000000))
-          || (m_iEXPCount * ((m_iEXPCount - 1) * (m_iRTT + 4 * m_iRTTVar) / 2 + m_iSYNInterval) > 30000000))
-      {
-         //
-         // Connection is broken. 
-         // UDT does not signal any information about this instead of to stop quietly.
-         // Apllication will detect this when it calls any UDT methods next time.
-         //
-         m_bClosing = true;
-         m_bBroken = true;
-
-         releaseSynch();
-
-         CTimer::triggerEvent();
-
-         return;
-      }
-
-      // sender: Insert all the packets sent after last received acknowledgement into the sender loss list.
-      // recver: Send out a keep-alive packet
-      if (CSeqNo::incseq(m_iSndCurrSeqNo) != m_iSndLastAck)
-      {
-         int32_t csn = m_iSndCurrSeqNo;
-         m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), csn);
-      }
-      else
-         sendCtrl(1);
-
-      if (m_pSndBuffer->getCurrBufSize() > 0)
-      {
-         // immediately restart transmission
-         m_pSndQueue->m_pSndUList->update(m_SocketID, this);
-         m_pSndQueue->m_pTimer->interrupt();
-      }
-
-      ++ m_iEXPCount;
-      m_ullEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;
-      CTimer::rdtsc(m_ullNextEXPTime);
-      m_ullNextEXPTime += m_ullEXPInt;
-
-      m_pCC->onTimeout();
-      // update CC parameters
-      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-      m_dCongestionWindow = m_pCC->m_dCWndSize;
-   }
-}
-
 int CUDT::processData(CUnit* unit)
 {
    if (m_bClosing || m_bBroken)
@@ -2146,3 +2049,101 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
 
    return hs->m_iReqType;
 }
+
+void CUDT::checkTimers()
+{
+   if (m_bClosing || m_bBroken)
+      return;
+
+   // update CC parameters
+   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+   m_dCongestionWindow = m_pCC->m_dCWndSize;
+   if (m_ullInterval < (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9))
+      m_ullInterval = (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9);
+
+   uint64_t currtime;
+   CTimer::rdtsc(currtime);
+   int32_t loss = m_pRcvLossList->getFirstLostSeq();
+
+   if ((currtime > m_ullNextACKTime) || ((m_pCC->m_iACKInterval > 0) && (m_pCC->m_iACKInterval <= m_iPktCount)))
+   {
+      // ACK timer expired, or user buffer is fulfilled, or ACK interval reached
+
+      sendCtrl(2);
+      CTimer::rdtsc(currtime);
+      if (m_pCC->m_iACKPeriod > 0)
+         m_ullNextACKTime = currtime + m_pCC->m_iACKPeriod * m_ullCPUFrequency;
+      else
+         m_ullNextACKTime = currtime + m_ullACKInt;
+
+      m_iPktCount = 0;
+      m_iLightACKCount = 1;
+   }
+   else if (m_iSelfClockInterval * m_iLightACKCount <= m_iPktCount)
+   {
+      //send a "light" ACK
+      sendCtrl(2, NULL, NULL, 4);
+      ++ m_iLightACKCount;
+   }
+
+   if ((loss >= 0) && (currtime > m_ullNextNAKTime))
+   {
+      // NAK timer expired, and there is loss to be reported.
+      sendCtrl(3);
+
+      CTimer::rdtsc(currtime);
+      m_ullNextNAKTime = currtime + m_ullNAKInt;
+   }
+
+   if (currtime > m_ullNextEXPTime)
+   {
+      // Haven't receive any information from the peer, is it dead?!
+      // timeout: at least 16 expirations and must be greater than 3 seconds and be less than 30 seconds
+      if (((m_iEXPCount > 16) && 
+          (m_iEXPCount * ((m_iEXPCount - 1) * (m_iRTT + 4 * m_iRTTVar) / 2 + m_iSYNInterval) > 3000000))
+          || (m_iEXPCount * ((m_iEXPCount - 1) * (m_iRTT + 4 * m_iRTTVar) / 2 + m_iSYNInterval) > 30000000))
+      {
+         //
+         // Connection is broken. 
+         // UDT does not signal any information about this instead of to stop quietly.
+         // Apllication will detect this when it calls any UDT methods next time.
+         //
+         m_bClosing = true;
+         m_bBroken = true;
+
+         releaseSynch();
+
+         CTimer::triggerEvent();
+
+         return;
+      }
+
+      // sender: Insert all the packets sent after last received acknowledgement into the sender loss list.
+      // recver: Send out a keep-alive packet
+      if (CSeqNo::incseq(m_iSndCurrSeqNo) != m_iSndLastAck)
+      {
+         int32_t csn = m_iSndCurrSeqNo;
+         m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), csn);
+      }
+      else
+         sendCtrl(1);
+
+      if (m_pSndBuffer->getCurrBufSize() > 0)
+      {
+         // immediately restart transmission
+         m_pSndQueue->m_pSndUList->update(m_SocketID, this);
+         m_pSndQueue->m_pTimer->interrupt();
+      }
+
+      ++ m_iEXPCount;
+      m_ullEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;
+      CTimer::rdtsc(m_ullNextEXPTime);
+      m_ullNextEXPTime += m_ullEXPInt;
+
+      m_pCC->onTimeout();
+      // update CC parameters
+      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+      m_dCongestionWindow = m_pCC->m_dCWndSize;
+   }
+}
+
