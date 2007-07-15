@@ -29,7 +29,7 @@ This header file contains the definition of UDT/CCC base class.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 03/16/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/13/2007
 *****************************************************************************/
 
 
@@ -48,9 +48,6 @@ friend class CUDT;
 public:
    CCC();
    virtual ~CCC() {}
-
-public:
-   //static const int m_iCCID = 0;
 
 public:
 
@@ -177,17 +174,37 @@ protected:
 
    const CPerfMon* getPerfInfo();
 
+private:
+   void setMSS(const int& mss);
+   void setMaxCWndSize(const int& cwnd);
+   void setBandwidth(const int& bw);
+   void setSndCurrSeqNo(const int32_t& seqno);
+   void setRcvRate(const int& rcvrate);
+   void setRTT(const int& rtt);
+
 protected:
+   const int32_t& m_iSYNInterval;	// UDT constant parameter, SYN
+
    double m_dPktSndPeriod;              // Packet sending period, in microseconds
    double m_dCWndSize;                  // Congestion window size, in packets
+
+   int m_iBandwidth;			// estimated bandwidth, packets per second
+   double m_dMaxCWndSize;               // maximum cwnd size, in packets
+
+   int m_iMSS;				// Maximum Packet Size, including all packet headers
+   int32_t m_iSndCurrSeqNo;		// current maximum seq no sent out
+   int m_iRcvRate;			// packet arrive rate at receiver side, packets per second
+   int m_iRTT;				// current estimated RTT, microsecond
 
 private:
    UDTSOCKET m_UDT;                     // The UDT entity that this congestion control algorithm is bound to
 
    int m_iACKPeriod;                    // Periodical timer to send an ACK, in milliseconds
    int m_iACKInterval;                  // How many packets to send one ACK, in packets
+
    bool m_bUserDefinedRTO;              // if the RTO value is defined by users
-   int m_iRTO;                          // RTO value
+   int m_iRTO;                          // RTO value, microseconds
+
    CPerfMon m_PerfInfo;                 // protocol statistics information
 };
 
@@ -210,5 +227,26 @@ public:
    virtual CCCVirtualFactory* clone() {return new CCCFactory<T>;}
 };
 
+class CUDTCC: public CCC
+{
+public:
+   virtual void init();
+   virtual void onACK(const int32_t&);
+   virtual void onLoss(const int32_t*, const int&);
+   virtual void onTimeout();
+
+private:
+   int m_iRCInterval;			// UDT Rate control interval
+   uint64_t m_LastRCTime;		// last rate increase time
+   bool m_bSlowStart;			// if in slow start phase
+   int32_t m_iLastAck;			// last ACKed seq no
+   bool m_bLoss;			// if loss happened since last rate increase
+   int32_t m_iLastDecSeq;		// max pkt seq no sent out when last decrease happened
+   double m_dLastDecPeriod;		// value of pktsndperiod when last decrease happened
+   int m_iNAKCount;                     // NAK counter
+   int m_iDecRandom;                    // random threshold on decrease by number of loss events
+   int m_iAvgNAKNum;                    // average number of NAKs per congestion
+   int m_iDecCount;			// number of decreases in a congestion epoch
+};
 
 #endif

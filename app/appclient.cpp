@@ -9,7 +9,7 @@
 #endif
 #include <iostream>
 #include <udt.h>
-//#include "cc.h"
+#include "cc.h"
 
 using namespace std;
 
@@ -50,9 +50,9 @@ int main(int argc, char* argv[])
    //UDT::setsockopt(client, 0, UDT_SNDBUF, new int(10000000), sizeof(int));
    //UDT::setsockopt(client, 0, UDP_SNDBUF, new int(10000000), sizeof(int));
 
-#ifdef WIN32
-   UDT::setsockopt(client, 0, UDT_MSS, new int(1052), sizeof(int));
-#endif
+   #ifdef WIN32
+      UDT::setsockopt(client, 0, UDT_MSS, new int(1052), sizeof(int));
+   #endif
 
    // for rendezvous connection, enable the code below
    /*
@@ -91,11 +91,11 @@ int main(int argc, char* argv[])
    int size = 100000;
    char* data = new char[size];
 
-#ifndef WIN32
-   pthread_create(new pthread_t, NULL, monitor, &client);
-#else
-   CreateThread(NULL, 0, monitor, &client, 0, NULL);
-#endif
+   #ifndef WIN32
+      pthread_create(new pthread_t, NULL, monitor, &client);
+   #else
+      CreateThread(NULL, 0, monitor, &client, 0, NULL);
+   #endif
 
    for (int i = 0; i < 100000; i ++)
    {
@@ -133,32 +133,33 @@ DWORD WINAPI monitor(LPVOID s)
 
    UDT::TRACEINFO perf;
 
-   cout << "SendRate(Mb/s) RTT(ms) FlowWindow PktSndPeriod(us) RecvACK RecvNAK" << endl;
+   cout << "SendRate(Mb/s)\tRTT(ms)\tCWnd\tPktSndPeriod(us)\tRecvACK\tRecvNAK" << endl;
 
    while (true)
    {
-#ifndef WIN32
-      sleep(1);
-#else
-      Sleep(1000);
-#endif
+      #ifndef WIN32
+         sleep(1);
+      #else
+         Sleep(1000);
+      #endif
+
       if (UDT::ERROR == UDT::perfmon(u, &perf))
       {
          cout << "perfmon: " << UDT::getlasterror().getErrorMessage() << endl;
          break;
       }
 
-      cout << perf.mbpsSendRate << "\t" 
+      cout << perf.mbpsSendRate << "\t\t" 
            << perf.msRTT << "\t" 
-           << perf.pktFlowWindow << "\t" 
-           << perf.usPktSndPeriod << "\t" 
+           << perf.pktCongestionWindow << "\t" 
+           << perf.usPktSndPeriod << "\t\t\t" 
            << perf.pktRecvACK << "\t" 
            << perf.pktRecvNAK << endl;
    }
 
-#ifndef WIN32
-   return NULL;
-#else
-   return 0;
-#endif
+   #ifndef WIN32
+      return NULL;
+   #else
+      return 0;
+   #endif
 }

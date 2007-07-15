@@ -72,8 +72,6 @@ written by
    #define UDT_API
 #endif
 
-typedef void (*UDT_MEM_ROUTINE)(char*, int, void*);
-
 typedef int UDTSOCKET;
 
 typedef std::set<UDTSOCKET> ud_set;

@@ -9,7 +9,7 @@
 #endif
 #include <iostream>
 #include <udt.h>
-//#include "cc.h"
+#include "cc.h"
 
 using namespace std;
 
@@ -94,13 +94,13 @@ int main(int argc, char* argv[])
       getnameinfo((sockaddr *)&clientaddr, addrlen, clienthost, sizeof(clienthost), clientservice, sizeof(clientservice), NI_NUMERICHOST|NI_NUMERICSERV);
       cout << "new connection: " << clienthost << ":" << clientservice << endl;
 
-#ifndef WIN32
-      pthread_t rcvthread;
-      pthread_create(&rcvthread, NULL, recvdata, new UDTSOCKET(recver));
-      pthread_detach(rcvthread);
-#else
-      CreateThread(NULL, 0, recvdata, new UDTSOCKET(recver), 0, NULL);
-#endif
+      #ifndef WIN32
+         pthread_t rcvthread;
+         pthread_create(&rcvthread, NULL, recvdata, new UDTSOCKET(recver));
+         pthread_detach(rcvthread);
+      #else
+         CreateThread(NULL, 0, recvdata, new UDTSOCKET(recver), 0, NULL);
+      #endif
    }
 
    UDT::close(serv);
@@ -144,9 +144,9 @@ DWORD WINAPI recvdata(LPVOID usocket)
 
    UDT::close(recver);
 
-#ifndef WIN32
-   return NULL;
-#else
-   return 0;
-#endif
+   #ifndef WIN32
+      return NULL;
+   #else
+      return 0;
+   #endif
 }
