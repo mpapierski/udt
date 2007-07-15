@@ -15,8 +15,6 @@
 <div class="ref_head">&nbsp;UDT Tutorial</div>
 
 <h3><font color="#000080">User-defined Congestion Control Algorithm</font></h3>
-<p><span class="style1">STOP</span>: Make sure that you have uncommented the -DCUSTOM_CC compiler option in ./src/Makefile. Otherwise your control algorithm will NOT be used.</p>
-
 <p>You can add your own congestion control algorithm into UDT. It is as simple as to define several callback functions that will be triggered on certain events, e.g, when an ACK is 
 received.</p>
 
@@ -41,13 +39,9 @@ public:<br />
 public:<br>
 &nbsp;&nbsp;void setRate(int mbps)<br>
 &nbsp;&nbsp;{<br>
-&nbsp;&nbsp;&nbsp;&nbsp;m_dPktSndPeriod = (m_iSMSS * 8.0) / mbps;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;m_dPktSndPeriod = (m_iMSS * 8.0) / mbps;<br>
 &nbsp;&nbsp;}<br>
-<br>
-protected:<br>
-&nbsp;&nbsp;static const int m_iSMSS = 1500;<br>
-};
-</div>
+};</div>
 
 <p>In this example, CUDPBlast inherits from the base class CCC. In the constructor, it sets the congestion window size to a large value so that it will not affect the packet sending. (This 
 is pure rate based method to blast UDP packets.) The method SetRate() can be used to set a fixed packet sending rate at any time.</p>

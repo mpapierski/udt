@@ -29,7 +29,7 @@ This file contains the definition of classes for UDT congestion control block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/12/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/15/2007
 *****************************************************************************/
 
 #ifndef _UDT_CONTROL_H_
@@ -88,6 +88,7 @@ public:
 
 public:
    void update(const sockaddr* addr, const int& ver, const int& rtt, const int& bw);
+   void update(CHistoryBlock* hb);
    int lookup(const sockaddr* addr, const int& ver, CHistoryBlock* hb);
 
 private:
@@ -101,6 +102,14 @@ private:
    pthread_mutex_t m_Lock;
 };
 
+struct CUDTComp
+{
+   bool operator()(const CUDT* u1, const CUDT* u2) const
+   {
+      return (u1->m_SocketID > u2->m_SocketID);
+   }
+};
+
 class CControl
 {
 public:
@@ -108,12 +117,13 @@ public:
    ~CControl();
 
 public:
-   void join(const sockaddr* addr, const int& ver, int& rtt, int& bw);
-   void leave(const int& rtt, const int& bw);
+   int join(CUDT* udt, const sockaddr* addr, const int& ver, int& rtt, int& bw);
+   void leave(CUDT* udt, const int& rtt, const int& bw);
 
 private:
    CHistory* m_pHistoryRecord;
-   std::multimap<CHistoryBlock*, CUDT*, CIPComp> m_mControlBlock;
+   std::map<CHistoryBlock*, std::set<CUDT*, CUDTComp>, CIPComp> m_mControlBlock;
+   std::map<CUDT*, CHistoryBlock*, CUDTComp> m_mUDTIndex;
 
    pthread_mutex_t m_Lock;
 };

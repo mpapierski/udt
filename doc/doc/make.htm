@@ -45,15 +45,6 @@ may be available) are located in ./src directory.</p>
 </p>export LD_LIBRARY_PATH=<location of libudt.so>:$LD_LIBRARY_PATH</p>
 
 <p>On Windows, copy udt.dll to the proper directory.</p>
-
-<p><b>Note:</b></p>
-
-<p>1. By default, UDT uses the non-busy-waiting data sending in order to reduce CPU usage. You may turn off the -DNO_BUSY_WAITING option in ./src/Makefile, which may lead to better 
-throughput but higher CPU usage.</p>
-
-<p>2. If you need to configure congestion control algorithms, please uncomment the -DCUSTOM_CC compile option in ./src/Makefile. When this option is enabled, -DNO_BUSY_WAITIING is always 
-disabled.</p>
-
 <p>&nbsp;</p>
 </body>
 </html>

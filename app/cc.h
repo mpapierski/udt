@@ -3,7 +3,7 @@ DISCLAIMER: The algorithms implemented using UDT/CCC in this file may be
 modified. These modifications may NOT necessarily reflect the view of
 the algorithms' original authors.
 
-Written by: Yunhong Gu <gu@lac.uic.edu>, last updated on July 11, 2007.
+Written by: Yunhong Gu <gu@lac.uic.edu>, last updated on July 15, 2007.
 *****************************************************************************/
 
 #ifndef WIN32

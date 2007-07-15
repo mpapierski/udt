@@ -29,8 +29,13 @@ This file contains the implementation of UDT congestion control block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/11/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/15/2007
 *****************************************************************************/
+
+#ifdef WIN32
+   #include <winsock2.h>
+   #include <ws2tcpip.h>
+#endif
 
 #include <string.h>
 #include "control.h"
@@ -40,53 +45,94 @@ using namespace std;
 CHistory::CHistory():
 m_uiSize(1024)
 {
-   pthread_mutex_init(&m_Lock, NULL);
+   #ifndef WIN32
+      pthread_mutex_init(&m_Lock, NULL);
+   #else
+      m_Lock = CreateMutex(NULL, false, NULL);
+   #endif
 }
 
 CHistory::CHistory(const unsigned int& size):
 m_uiSize(size)
 {
+   #ifndef WIN32
+      pthread_mutex_init(&m_Lock, NULL);
+   #else
+      m_Lock = CreateMutex(NULL, false, NULL);
+   #endif
 }
 
 CHistory::~CHistory()
 {
    for (set<CHistoryBlock*, CTSComp>::iterator i = m_sTSIndex.begin(); i != m_sTSIndex.end(); ++ i)
       delete *i;
+
+   #ifndef WIN32
+      pthread_mutex_destroy(&m_Lock);
+   #else
+      CloseHandle(m_Lock);
+   #endif
 }
 
 void CHistory::update(const sockaddr* addr, const int& ver, const int& rtt, const int& bw)
 {
+   CGuard hbguard(m_Lock);
+
    CHistoryBlock* hb = new CHistoryBlock;
    convert(addr, ver, hb->m_IP);
 
    set<CHistoryBlock*, CIPComp>::iterator i = m_sIPIndex.find(hb);
 
-   if (i == m_sIPIndex.end())
+   if (i != m_sIPIndex.end())
    {
-      hb->m_iRTT = rtt;
-      hb->m_iBandwidth = bw;
-      hb->m_ullTimeStamp = CTimer::getTime();
-      m_sIPIndex.insert(hb);
-      m_sTSIndex.insert(hb);
-
-      if (m_sTSIndex.size() > m_uiSize)
-      {
-         hb = *m_sTSIndex.begin();
-         m_sIPIndex.erase(hb);
-         m_sTSIndex.erase(m_sTSIndex.begin());
-      }
+      m_sTSIndex.erase(*i);
+      delete *i;
+      m_sIPIndex.erase(i);
    }
-   else
+
+   hb->m_iRTT = rtt;
+   hb->m_iBandwidth = bw;
+   hb->m_ullTimeStamp = CTimer::getTime();
+   m_sIPIndex.insert(hb);
+   m_sTSIndex.insert(hb);
+
+   if (m_sTSIndex.size() > m_uiSize)
    {
+      hb = *m_sTSIndex.begin();
+      m_sIPIndex.erase(hb);
+      m_sTSIndex.erase(m_sTSIndex.begin());
       delete hb;
-      (*i)->m_iRTT = rtt;
-      (*i)->m_iBandwidth = bw;
-      (*i)->m_ullTimeStamp = CTimer::getTime();
+   }
+}
+
+void CHistory::update(CHistoryBlock* hb)
+{
+   set<CHistoryBlock*, CIPComp>::iterator i = m_sIPIndex.find(hb);
+
+   if (i != m_sIPIndex.end())
+   {
+      m_sTSIndex.erase(*i);
+      delete *i;
+      m_sIPIndex.erase(i);
+   }
+
+   hb->m_ullTimeStamp = CTimer::getTime();
+   m_sIPIndex.insert(hb);
+   m_sTSIndex.insert(hb);
+
+   if (m_sTSIndex.size() > m_uiSize)
+   {
+      hb = *m_sTSIndex.begin();
+      m_sIPIndex.erase(hb);
+      m_sTSIndex.erase(m_sTSIndex.begin());
+      delete hb;
    }
 }
 
 int CHistory::lookup(const sockaddr* addr, const int& ver, CHistoryBlock* hb)
 {
+   CGuard hbguard(m_Lock);
+
    convert(addr, ver, hb->m_IP);
 
    set<CHistoryBlock*, CIPComp>::iterator i = m_sIPIndex.find(hb);
@@ -112,4 +158,73 @@ void CHistory::convert(const sockaddr* addr, const int& ver, uint32_t* ip)
    {
       memcpy((char*)ip, (char*)((sockaddr_in6*)addr)->sin6_addr.s6_addr, 16);
    }
+}
+
+CControl::CControl()
+{
+   #ifndef WIN32
+      pthread_mutex_init(&m_Lock, NULL);
+   #else
+      m_Lock = CreateMutex(NULL, false, NULL);
+   #endif
+
+   m_pHistoryRecord = new CHistory;   
+}
+
+CControl::~CControl()
+{
+   #ifndef WIN32
+      pthread_mutex_destroy(&m_Lock);
+   #else
+      CloseHandle(m_Lock);
+   #endif
+
+   delete m_pHistoryRecord;
+}
+
+int CControl::join(CUDT* udt, const sockaddr* addr, const int& ver, int& rtt, int& bw)
+{
+   CGuard ctrlguard(m_Lock);
+
+   CHistoryBlock* hb = new CHistoryBlock;
+   int found = m_pHistoryRecord->lookup(addr, ver, hb);
+
+   map<CHistoryBlock*, set<CUDT*, CUDTComp>, CIPComp>::iterator i = m_mControlBlock.find(hb);
+
+   if (i == m_mControlBlock.end())
+   {
+      set<CUDT*, CUDTComp> tmp;
+      m_mControlBlock[hb] = tmp;
+      m_mControlBlock[hb].insert(udt);
+      m_mUDTIndex[udt] = hb;
+   }
+   else
+   {
+      i->second.insert(udt);
+      m_mUDTIndex[udt] = i->first;
+      delete hb;
+   }
+
+   if (found < 0)
+      return -1;
+
+   rtt = hb->m_iRTT;
+   bw = hb->m_iBandwidth;
+
+   return 1;
+}
+
+void CControl::leave(CUDT* udt, const int& rtt, const int& bw)
+{
+   CGuard ctrlguard(m_Lock);
+
+   CHistoryBlock* hb = m_mUDTIndex[udt];
+   map<CHistoryBlock*, set<CUDT*, CUDTComp>, CIPComp>::iterator i = m_mControlBlock.find(hb);
+
+   m_mControlBlock.erase(hb);
+   m_mUDTIndex.erase(udt);
+
+   hb->m_iRTT = rtt;
+   hb->m_iBandwidth = bw;
+   m_pHistoryRecord->update(hb);
 }

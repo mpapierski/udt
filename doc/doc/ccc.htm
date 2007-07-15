@@ -14,32 +14,33 @@
 <p>The class definition is in ccc.h, all new control algorithms definition should include this header file.</p>
 
 <div class="code">
-  class CCC<br />
-  {<br />
-  public:<br />
+  <p>class CCC<br />
+    {<br />
+    public:<br />
   &nbsp;&nbsp;CCC();<br />
-  &nbsp;&nbsp;virtual ~CCC() {}</p>
-  public:<br />
+  &nbsp;&nbsp;virtual ~CCC() {}
+  </p>
+    public:<br />
   &nbsp;&nbsp;virtual void init() {}<br />
   &nbsp;&nbsp;virtual void close() {}<br />
   &nbsp;&nbsp;virtual void onACK(const int&amp; ack) {}<br />
   &nbsp;&nbsp;virtual void onLoss(const int* losslist, const int&amp; size) {}
-  &nbsp;&nbsp;virtual void onTimeout() {}<br />
+    &nbsp;&nbsp;virtual void onTimeout() {}<br />
   &nbsp;&nbsp;virtual void onPktSent(const CPacket* pkt) {}<br />
   &nbsp;&nbsp;virtual void onPktReceived(const CPacket* pkt) {}<br />
   &nbsp;&nbsp;virtual void processCustomMsg(const CPacket&amp; pkt) {}<br />
-  <br />
-  protected:<br />
+    <br />
+    protected:<br />
   &nbsp;&nbsp;void setACKTimer(const int&amp; msINT);<br />
-  &nbsp;&nbsp;void setACKInterval(const int&amp; pktINT);
+  &nbsp;&nbsp;void setACKInterval(const int&amp; pktINT);<br />
   &nbsp;&nbsp;void setRTO(const int&amp; usRTO);<br />
   &nbsp;&nbsp;void sendCustomMsg(CPacket&amp; pkt) const; <br />
   &nbsp;&nbsp;const UDT::TRACEINFO* getPerfInfo();<br />
-  <br />
-  protected:<br />
+    <br />
+    protected:<br />
   &nbsp;&nbsp;double m_dPktSndPeriod;<br />
   &nbsp;&nbsp;double m_dCWndSize;<br />
-  };
+    }; </p>
 </div>
 
 <p>void <strong>init</strong>()</p>
