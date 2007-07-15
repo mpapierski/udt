@@ -35,8 +35,8 @@ written by
 
 #include "core.h"
 #include "ccc.h"
+#include <cmath>
 
-#include <iostream>
 using namespace std;
 
 CCC::CCC():

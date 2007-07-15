@@ -295,20 +295,22 @@ reference:
 http://www.cs.ucla.edu/NRL/hpi/tcpw/
 *****************************************************************************/
 
+// UDT timing utility class CTimer is reused here, defined in src/common.h
+#include <common.h>
+
 class CWestwood: public CTCP
 {
 public:
    CWestwood(): m_dBWE(1), m_dLastBWE(1), m_dBWESample(1), m_dLastBWESample(1)
    {
-      gettimeofday(&m_LastACKTime, 0);
+      m_LastACKTime = CTimer::getTime();
    }
 
    virtual void onACK(const int& ack)
    {
-      timeval currtime;
-      gettimeofday(&currtime, 0);
+      uint64_t currtime = CTimer::getTime();
 
-      m_dBWESample = double(ack - m_iLastACK) / double((currtime.tv_sec - m_LastACKTime.tv_sec) * 1000.0 + (currtime.tv_usec - m_LastACKTime.tv_usec) / 1000.0);
+      m_dBWESample = double(ack - m_iLastACK) * 1000 / (currtime - m_LastACKTime);
       m_dBWE = 19.0/21.0 * m_dLastBWE + 1.0/21.0 * (m_dBWESample + m_dLastBWESample);
 
       m_LastACKTime = currtime;
@@ -357,7 +359,7 @@ public:
 private:
    double m_dBWE, m_dLastBWE;
    double m_dBWESample, m_dLastBWESample;
-   timeval m_LastACKTime;
+   uint64_t m_LastACKTime;
 };
 
 
@@ -372,6 +374,7 @@ Note:
 This class can be used to derive new delay based approaches, e.g., FAST.
 *****************************************************************************/
 
+// A RTT calculating utility class is reused here, defined src/windows.h
 #include <window.h>
 
 class CVegas: public CTCP
@@ -382,7 +385,7 @@ public:
       m_iSSRound = 1;
       m_iRTT = 1000000;
       m_iBaseRTT = 1000000;
-      gettimeofday(&m_LastCCTime, 0);
+      m_LastCCTime = CTimer::getTime();
       m_iPktSent = 0;
       m_pAckWindow = new CACKWindow(100000);
    }
@@ -400,14 +403,12 @@ public:
       if (rtt > 0)
          m_iRTT = (m_iRTT * 15 + rtt) >> 4;
 
-      timeval currtime;
-      gettimeofday(&currtime, 0);
-
-      if ((currtime.tv_sec - m_LastCCTime.tv_sec) * 1000000 + (currtime.tv_usec - m_LastCCTime.tv_usec) < m_iRTT)
+      uint64_t currtime = CTimer::getTime();
+      if ((currtime - m_LastCCTime) < (uint64_t)m_iRTT)
          return;
 
       expected = m_dCWndSize * 1000.0 / m_iBaseRTT;
-      actual = m_iPktSent / ((currtime.tv_sec - m_LastCCTime.tv_sec) * 1000.0 + (currtime.tv_usec - m_LastCCTime.tv_usec) / 1000.0);
+      actual = m_iPktSent * 1000.0 / (currtime - m_LastCCTime);
       diff = expected - actual;
 
       if (m_bSlowStart)
@@ -428,7 +429,7 @@ public:
             m_dCWndSize -= 1.0;
       }
 
-      gettimeofday(&m_LastCCTime, 0);
+      m_LastCCTime = CTimer::getTime();
       m_iPktSent = 0;
       if (m_iBaseRTT > m_iRTT)
          m_iBaseRTT = m_iRTT;
@@ -449,7 +450,7 @@ protected:
 
    int m_iRTT;
    int m_iBaseRTT;
-   timeval m_LastCCTime;
+   uint64_t m_LastCCTime;
 
    int m_iPktSent;
 
@@ -512,10 +513,8 @@ public:
       if (rtt > 0)
          m_iRTT = (m_iRTT * 7 + rtt) >> 3;
 
-      timeval currtime;
-      gettimeofday(&currtime, 0);
-
-      if ((currtime.tv_sec - m_LastCCTime.tv_sec) * 1000000 + (currtime.tv_usec - m_LastCCTime.tv_usec) < 2 * m_iRTT)
+      uint64_t currtime = CTimer::getTime();
+      if ((currtime - m_LastCCTime) < 2 * (uint64_t)m_iRTT)
          return;
 
       m_dNewWin = 0.5 * (m_dOldWin + (double(m_iBaseRTT) / m_iRTT) * m_dCWndSize + alpha);
@@ -530,7 +529,7 @@ public:
 
       m_dOldWin = m_dCWndSize;
 
-      gettimeofday(&m_LastCCTime, 0);
+      m_LastCCTime = CTimer::getTime();
       m_iPktSent = 0;
       if (m_iBaseRTT > m_iRTT)
          m_iBaseRTT = m_iRTT;
