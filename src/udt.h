@@ -169,6 +169,15 @@ public:
 
    virtual const int getErrorCode() const;
 
+      // Functionality:
+      //    Clear the error code.
+      // Parameters:
+      //    None.
+      // Returned value:
+      //    None.
+
+   virtual void clear();
+
 private:
    int m_iMajor;        // major exception categories
 

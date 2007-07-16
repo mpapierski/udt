@@ -555,6 +555,13 @@ const int CUDTException::getErrorCode() const
    return m_iMajor * 1000 + m_iMinor;
 }
 
+void CUDTException::clear()
+{
+   m_iMajor = 0;
+   m_iMinor = 0;
+   m_iErrno = 0;
+}
+
 const int CUDTException::SUCCESS = 0;
 const int CUDTException::ECONNSETUP = 1000;
 const int CUDTException::ENOSERVER = 1001;

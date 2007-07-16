@@ -51,8 +51,8 @@
 <p>The ERRORINFO structure contains the specific information of a UDT error. It has two helper functions to let applications know an integral error code and a piece of text information.</p>
 <table width="100%" border="1" cellpadding="1" cellspacing="0" bordercolor="#CCCCCC">
   <tr>
-    <td width="19%" class="table_headline"><strong>Functions</strong></td>
-    <td width="81%" class="table_headline"><strong>Comments</strong></td>
+    <td width="30%" class="table_headline"><strong>Functions</strong></td>
+    <td width="70%" class="table_headline"><strong>Comments</strong></td>
   </tr>
   <tr>
     <td>int getErrorCode()</td>
@@ -62,6 +62,10 @@
     <td>const char* getErrorMessage()</td>
     <td>read the text information about the error.</td>
   </tr>
+  <tr>
+    <td>void clear()</td>
+    <td>clear the error information (set to SUCCESS).</td>
+  </tr>
 </table>
 
 <h5><a name="3" id="3"></a>UDSET</h5>
@@ -70,8 +74,8 @@
 
 <table width="100%" border="1" cellpadding="1" cellspacing="0" bordercolor="#CCCCCC">
   <tr>
-    <td width="17%" class="table_headline"><strong>Macros</strong></td>
-    <td width="83%" class="table_headline"><strong>Comments</strong></td>
+    <td width="30%" class="table_headline"><strong>Macros</strong></td>
+    <td width="70%" class="table_headline"><strong>Comments</strong></td>
   </tr>
   <tr>
     <td>UD_CLR(<em>u</em>, *<em>set</em>)</td>

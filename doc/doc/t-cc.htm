@@ -49,7 +49,10 @@ is pure rate based method to blast UDP packets.) The method SetRate() can be use
 <p>The application can use setsockopt/getsockopt to assign this control class to a UDT instance, and/or set its parameters.</p>
 
 <div class="code">
-UDT::setsockopt(usock, 0, UDT_CC, new CCCFactory<CUDPBlast>, sizeof(CCCFactory<CUDPBlast>));
+UDT::setsockopt(usock, 0, UDT_CC, new CCCFactory&lt;CUDPBlast&gt;
+  <CUDPBlast>
+  , sizeof(CCCFactory&lt;CUDPBlast&gt;
+  <CUDPBlast>));
 </div>
 
 
