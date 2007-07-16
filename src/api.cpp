@@ -31,7 +31,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/27/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1571,7 +1571,7 @@ int select(int nfds, UDSET* readfds, UDSET* writefds, UDSET* exceptfds, const st
    return CUDT::select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
-ERRORINFO getlasterror()
+ERRORINFO& getlasterror()
 {
    return CUDT::getlasterror();
 }

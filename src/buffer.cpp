@@ -33,7 +33,7 @@ The receiving buffer is a logically circular memeory block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/07/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -313,7 +313,7 @@ CRcvBuffer::~CRcvBuffer()
 
 int CRcvBuffer::addData(CUnit* unit, int offset)
 {
-   int pos = (m_iLastAckPos + offset);
+   int pos = m_iLastAckPos + offset;
    if (pos > m_iMaxPos)
       m_iMaxPos = pos;
 
@@ -504,7 +504,9 @@ int CRcvBuffer::readMsg(char* data, const int& len)
          m_iStartPos = 0;
    }
 
-   do
+   m_iStartPos = (q + 1) % m_iSize;
+
+   while (p != m_iStartPos)
    {
       int unitsize = m_pUnit[p]->m_Packet.getLength();
       if ((rs >= 0) && (unitsize > rs))
@@ -514,6 +516,7 @@ int CRcvBuffer::readMsg(char* data, const int& len)
       {
          memcpy(data, m_pUnit[p]->m_Packet.m_pcData, unitsize);
          data += unitsize;
+         rs -= unitsize;
       }
 
       CUnit* tmp = m_pUnit[p];
@@ -523,9 +526,7 @@ int CRcvBuffer::readMsg(char* data, const int& len)
 
       if (++ p == m_iSize)
          p = 0;
-   } while (p != q);
-
-   m_iStartPos = (q + 1) % m_iSize;
+   }
 
    return len - rs;
 }

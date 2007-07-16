@@ -34,7 +34,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/15/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1022,16 +1022,17 @@ int CUDT::recvmsg(char* data, const int& len)
          return res;
    }
 
-   int res = m_pRcvBuffer->readMsg(data, len);
+   int res = 0;
    bool timeout = false;
 
-   while ((0 == res) && !timeout)
+   do
    {
       #ifndef WIN32
          pthread_mutex_lock(&m_RecvDataLock);
+
          if (m_iRcvTimeOut < 0)
          {
-            while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+            while (!m_bBroken && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
                pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
          }
          else
@@ -1044,26 +1045,29 @@ int CUDT::recvmsg(char* data, const int& len)
 
             if (pthread_cond_timedwait(&m_RecvDataCond, &m_RecvDataLock, &locktime) == ETIMEDOUT)
                timeout = true;
+
+            res = m_pRcvBuffer->readMsg(data, len);           
          }
          pthread_mutex_unlock(&m_RecvDataLock);
       #else
          if (m_iRcvTimeOut < 0)
          {
-            while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+            while (!m_bBroken && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
                WaitForSingleObject(m_RecvDataCond, INFINITE);
          }
          else
          {
             if (WaitForSingleObject(m_RecvDataCond, DWORD(m_iRcvTimeOut)) == WAIT_TIMEOUT)
                timeout = true;
+
+            res = m_pRcvBuffer->readMsg(data, len);
          }
       #endif
 
       if (m_bBroken)
-         CUDTException(2, 1, 0);
+         throw CUDTException(2, 1, 0);
 
-      res = m_pRcvBuffer->readMsg(data, len);
-   }
+   } while ((0 == res) && !timeout);
 
    return res;
 }
