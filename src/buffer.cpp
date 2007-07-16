@@ -303,7 +303,7 @@ CRcvBuffer::~CRcvBuffer()
    {
       if (NULL != m_pUnit[i])
       {
-         m_pUnit[i]->m_bValid = false;
+         m_pUnit[i]->m_iFlag = 0;
          -- m_pUnitQueue->m_iCount;
       }
    }
@@ -324,7 +324,7 @@ int CRcvBuffer::addData(CUnit* unit, int offset)
    
    m_pUnit[pos] = unit;
 
-   unit->m_bValid = true;
+   unit->m_iFlag = 1;
    ++ m_pUnitQueue->m_iCount;
 
    return 0;
@@ -349,7 +349,7 @@ int CRcvBuffer::readBuffer(char* data, const int& len)
       {
          CUnit* tmp = m_pUnit[p];
          m_pUnit[p] = NULL;
-         tmp->m_bValid = false;
+         tmp->m_iFlag = 0;
          -- m_pUnitQueue->m_iCount;
 
          if (++ p == m_iSize)
@@ -385,7 +385,7 @@ int CRcvBuffer::readBufferToFile(ofstream& file, const int& len)
       {
          CUnit* tmp = m_pUnit[p];
          m_pUnit[p] = NULL;
-         tmp->m_bValid = false;
+         tmp->m_iFlag = 0;
          -- m_pUnitQueue->m_iCount;
 
          if (++ p == m_iSize)
@@ -430,12 +430,7 @@ void CRcvBuffer::dropMsg(const int32_t& msgno)
 {
    for (int i = 0, n = m_iMaxPos + getRcvDataSize(); i < n; ++ i)
       if ((NULL != m_pUnit[i]) && (msgno == m_pUnit[i]->m_Packet.m_iMsgNo))
-      {
-         CUnit* tmp = m_pUnit[i];
-         m_pUnit[i] = NULL;
-         tmp->m_bValid = false;
-         -- m_pUnitQueue->m_iCount;
-      }
+         m_pUnit[i]->m_iFlag = 3;
 }
 
 int CRcvBuffer::readMsg(char* data, const int& len)
@@ -444,14 +439,30 @@ int CRcvBuffer::readMsg(char* data, const int& len)
    if (m_iStartPos == m_iLastAckPos)
       return 0;
 
+   //skip all bad msgs at the beginning
+   while (m_iStartPos != m_iLastAckPos)
+   {
+      if ((1 == m_pUnit[m_iStartPos]->m_iFlag) && (m_pUnit[m_iStartPos]->m_Packet.getMsgBoundary() > 1))
+         break;
+
+      CUnit* tmp = m_pUnit[m_iStartPos];
+      m_pUnit[m_iStartPos] = NULL;
+      tmp->m_iFlag = 0;
+      -- m_pUnitQueue->m_iCount;
+
+      if (++ m_iStartPos == m_iSize)
+         m_iStartPos = 0;
+   }
+
    int p = -1;			// message head
    int q = m_iStartPos;		// message tail
    bool found = false;
+   bool passack = false;
 
    // looking for the first message
-   while (q != m_iLastAckPos)
+   for (int i = 0, n = m_iMaxPos + getRcvDataSize(); i < n; ++ i)
    {
-      if (NULL != m_pUnit[q])
+      if ((NULL != m_pUnit[q]) && (1 == m_pUnit[q]->m_iFlag))
       {
          switch (m_pUnit[q]->m_Packet.getMsgBoundary())
          {
@@ -476,10 +487,19 @@ int CRcvBuffer::readMsg(char* data, const int& len)
       }
 
       if (found)
-         break;
+      {
+         // the msg has to be ack'ed or it is allowed to read out of order, and was not read before
+         if (!passack || !m_pUnit[q]->m_Packet.getMsgOrderFlag())
+            break;
+
+         found = false;
+      }
 
       if (++ q == m_iSize)
          q = 0;
+
+      if (q == m_iLastAckPos)
+         passack = true;
    }
 
    // no msg found
@@ -491,22 +511,7 @@ int CRcvBuffer::readMsg(char* data, const int& len)
    }
 
    int rs = len;
-
-   // remove all dropped units
-   while (m_iStartPos != p)
-   {
-      CUnit* tmp = m_pUnit[m_iStartPos];
-      m_pUnit[m_iStartPos] = NULL;
-      tmp->m_bValid = false;
-      -- m_pUnitQueue->m_iCount;
-
-      if (++ m_iStartPos == m_iSize)
-         m_iStartPos = 0;
-   }
-
-   m_iStartPos = (q + 1) % m_iSize;
-
-   while (p != m_iStartPos)
+   while (p != (q + 1) % m_iSize)
    {
       int unitsize = m_pUnit[p]->m_Packet.getLength();
       if ((rs >= 0) && (unitsize > rs))
@@ -519,14 +524,22 @@ int CRcvBuffer::readMsg(char* data, const int& len)
          rs -= unitsize;
       }
 
-      CUnit* tmp = m_pUnit[p];
-      m_pUnit[p] = NULL;
-      tmp->m_bValid = false;
-      -- m_pUnitQueue->m_iCount;
+      if (!passack)
+      {
+         CUnit* tmp = m_pUnit[p];
+         m_pUnit[p] = NULL;
+         tmp->m_iFlag = 0;
+         -- m_pUnitQueue->m_iCount;
+      }
+      else
+         m_pUnit[p]->m_iFlag = 2;
 
       if (++ p == m_iSize)
          p = 0;
    }
+
+   if (!passack)
+      m_iStartPos = (q + 1) % m_iSize;
 
    return len - rs;
 }

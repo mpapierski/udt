@@ -29,7 +29,7 @@ This header file contains the definition of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/25/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
 *****************************************************************************/
 
 
@@ -46,7 +46,7 @@ class CUDT;
 struct CUnit
 {
    CPacket m_Packet;		// packet
-   bool m_bValid;		// if this is a valid entry
+   int m_iFlag;			// 0: free, 1: occupied, 2: msg read but not freed (out-of-order), 3: msg dropped
 };
 
 class CUnitQueue

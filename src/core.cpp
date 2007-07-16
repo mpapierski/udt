@@ -1805,7 +1805,6 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
    case 7: //111 - Msg drop request
       m_pRcvBuffer->dropMsg(ctrlpkt.getMsgSeq());
-
       m_pRcvLossList->remove(*(int32_t*)ctrlpkt.m_pcData, *(int32_t*)(ctrlpkt.m_pcData + 4));
 
       break;

@@ -29,7 +29,7 @@ This file contains the implementation of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/06/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -93,7 +93,7 @@ int CUnitQueue::init(const int& size, const int& mss, const int& version)
 
    for (int i = 0; i < size; ++ i)
    {
-      tempu[i].m_bValid = false;
+      tempu[i].m_iFlag = 0;
       tempu[i].m_Packet.m_pcData = tempb + i * mss;
    }
    tempq->m_pUnit = tempu;
@@ -121,7 +121,7 @@ int CUnitQueue::increase()
    {
       CUnit* u = p->m_pUnit;
       for (CUnit* end = u + p->m_iSize - 1; u != end; ++ u)
-         if (u->m_bValid)
+         if (u->m_iFlag != 0)
             ++ real_count;
 
       if (p == m_pLastQueue)
@@ -157,7 +157,7 @@ int CUnitQueue::increase()
 
    for (int i = 0; i < size; ++ i)
    {
-      tempu[i].m_bValid = false;
+      tempu[i].m_iFlag = 0;
       tempu[i].m_Packet.m_pcData = tempb + i * m_iMSS;
    }
    tempq->m_pUnit = tempu;
@@ -192,10 +192,10 @@ CUnit* CUnitQueue::getNextAvailUnit()
    while (true)
    {
       for (CUnit* sentinel = m_pCurrQueue->m_pUnit + m_pCurrQueue->m_iSize - 1; m_pAvailUnit != sentinel; ++ m_pAvailUnit)
-         if (!m_pAvailUnit->m_bValid)
+         if (m_pAvailUnit->m_iFlag == 0)
             return m_pAvailUnit;
 
-      if (!m_pCurrQueue->m_pUnit->m_bValid)
+      if (m_pCurrQueue->m_pUnit->m_iFlag == 0)
       {
          m_pAvailUnit = m_pCurrQueue->m_pUnit;
          return m_pAvailUnit;
@@ -762,7 +762,6 @@ int CHash::retrieve(const int32_t& id, CPacket& packet)
 
          packet.setLength(b->m_pUnit->m_Packet.getLength());
 
-         //b->m_pUnit->m_bValid = false;
          delete [] b->m_pUnit->m_Packet.m_pcData;
          delete b->m_pUnit;
          b->m_pUnit = NULL;
