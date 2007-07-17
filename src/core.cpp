@@ -34,7 +34,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/17/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1669,7 +1669,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       {
          // Update Estimated Bandwidth
          if (*((int32_t *)ctrlpkt.m_pcData + 5) > 0)
-            m_iBandwidth = (m_iBandwidth * 7 + *((int32_t *)ctrlpkt.m_pcData + 4)) >> 3;
+            m_iBandwidth = (m_iBandwidth * 7 + *((int32_t *)ctrlpkt.m_pcData + 5)) >> 3;
 
          m_pCC->setRcvRate(*((int32_t *)ctrlpkt.m_pcData + 4));
          m_pCC->setBandwidth(m_iBandwidth);
