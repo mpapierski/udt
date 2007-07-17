@@ -35,7 +35,6 @@ written by
 
 #include "list.h"
 
-
 CSndLossList::CSndLossList(const int& size):
 m_piData1(NULL),
 m_piData2(NULL),

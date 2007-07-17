@@ -29,7 +29,7 @@ This file contains the definition of classes for UDT congestion control block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/15/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/17/2007
 *****************************************************************************/
 
 #ifndef _UDT_CONTROL_H_
@@ -74,7 +74,7 @@ public:
 
 public:
    void update(const sockaddr* addr, const int& ver, const int& rtt, const int& bw);
-   void update(CHistoryBlock* hb);
+   void update(const CHistoryBlock* hb);
    int lookup(const sockaddr* addr, const int& ver, CHistoryBlock* hb);
 
 private:

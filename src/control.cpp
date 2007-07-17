@@ -29,7 +29,7 @@ This file contains the implementation of UDT congestion control block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/15/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/17/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -103,6 +103,7 @@ void CHistory::update(const sockaddr* addr, const int& ver, const int& rtt, cons
 
    CHistoryBlock* hb = new CHistoryBlock;
    convert(addr, ver, hb->m_IP);
+   hb->m_iIPversion = ver;
 
    set<CHistoryBlock*, CIPComp>::iterator i = m_sIPIndex.find(hb);
 
@@ -128,8 +129,13 @@ void CHistory::update(const sockaddr* addr, const int& ver, const int& rtt, cons
    }
 }
 
-void CHistory::update(CHistoryBlock* hb)
+void CHistory::update(const CHistoryBlock* info)
 {
+   CGuard hbguard(m_Lock);
+
+   CHistoryBlock* hb = new CHistoryBlock;
+   memcpy((char*)hb, (char*)info, sizeof(CHistoryBlock));
+
    set<CHistoryBlock*, CIPComp>::iterator i = m_sIPIndex.find(hb);
 
    if (i != m_sIPIndex.end())
@@ -157,6 +163,7 @@ int CHistory::lookup(const sockaddr* addr, const int& ver, CHistoryBlock* hb)
    CGuard hbguard(m_Lock);
 
    convert(addr, ver, hb->m_IP);
+   hb->m_iIPversion = ver;
 
    set<CHistoryBlock*, CIPComp>::iterator i = m_sIPIndex.find(hb);
 
@@ -219,6 +226,12 @@ int CControl::join(CUDT* udt, const sockaddr* addr, const int& ver, int& rtt, in
    CHistoryBlock* hb = new CHistoryBlock;
    int found = m_pHistoryRecord->lookup(addr, ver, hb);
 
+   if (found > 0)
+   {
+      rtt = hb->m_iRTT;
+      bw = hb->m_iBandwidth;
+   }
+
    map<CHistoryBlock*, set<CUDT*, CUDTComp>, CIPComp>::iterator i = m_mControlBlock.find(hb);
 
    if (i == m_mControlBlock.end())
@@ -238,9 +251,6 @@ int CControl::join(CUDT* udt, const sockaddr* addr, const int& ver, int& rtt, in
    if (found < 0)
       return -1;
 
-   rtt = hb->m_iRTT;
-   bw = hb->m_iBandwidth;
-
    return 1;
 }
 
@@ -251,10 +261,15 @@ void CControl::leave(CUDT* udt, const int& rtt, const int& bw)
    CHistoryBlock* hb = m_mUDTIndex[udt];
    map<CHistoryBlock*, set<CUDT*, CUDTComp>, CIPComp>::iterator i = m_mControlBlock.find(hb);
 
-   m_mControlBlock.erase(hb);
-   m_mUDTIndex.erase(udt);
-
    hb->m_iRTT = rtt;
    hb->m_iBandwidth = bw;
    m_pHistoryRecord->update(hb);
+
+   i->second.erase(udt);
+   if (i->second.empty())
+   {
+      m_mControlBlock.erase(i);
+      delete hb;
+   }
+   m_mUDTIndex.erase(udt);
 }
