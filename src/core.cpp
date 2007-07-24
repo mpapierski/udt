@@ -34,7 +34,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/23/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -222,7 +222,7 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
       break;
 
    case UDT_CC:
-      if (m_bOpened)
+      if (m_bConnected)
          throw CUDTException(5, 1, 0);
       if (NULL != m_pCCFactory)
          delete m_pCCFactory;
@@ -407,40 +407,15 @@ void CUDT::open()
    m_bClosing = false;
    m_bShutdown = false;
    m_bListening = false;
-   m_iEXPCount = 1;
-   m_iBandwidth = 1;
 
    // Initial sequence number, loss, acknowledgement, etc.
    m_iPktSize = m_iMSS - 28;
    m_iPayloadSize = m_iPktSize - CPacket::m_iPktHdrSize;
-   m_iISN = 0;
-   m_iPeerISN = 0;
 
+   m_iEXPCount = 1;
+   m_iBandwidth = 1;
    m_iAckSeqNo = 0;
-
-   m_iSndLastAck = 0;
-   m_iSndLastDataAck = 0;
-   m_iSndCurrSeqNo = -1;
-
-   m_iRcvLastAck = 0;
-   m_iRcvLastAckAck = 0;
    m_ullLastAckTime = 0;
-   m_iRcvCurrSeqNo = -1;
-
-   // Initial sending rate = 1us
-   m_ullInterval = m_ullCPUFrequency;
-   m_ullTimeDiff = 0;
-
-   // default congestion window size = infinite
-   m_dCongestionWindow = 1 << 30;
-
-   // Initial Window Size = 16 packets
-   m_iFlowWindowSize = 16;
-
-   m_pCC = m_pCCFactory->create();
-   m_pCC->m_UDT = m_SocketID;
-   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-   m_dCongestionWindow = m_pCC->m_dCWndSize;
 
    // trace information
    m_StartTime = CTimer::getTime();
@@ -448,6 +423,7 @@ void CUDT::open()
    m_LastSampleTime = CTimer::getTime();
    m_llTraceSent = m_llTraceRecv = m_iTraceSndLoss = m_iTraceRcvLoss = m_iTraceRetrans = m_iSentACK = m_iRecvACK = m_iSentNAK = m_iRecvNAK = 0;
 
+   // structures for queue
    if (NULL == m_pSNode)
       m_pSNode = new CUDTList;
    m_pSNode->m_iID = m_SocketID;
@@ -461,9 +437,6 @@ void CUDT::open()
    m_pRNode->m_pUDT = this;
    m_pRNode->m_llTimeStamp = 1;
    m_pRNode->m_pPrev = m_pRNode->m_pNext = NULL;
-
-   // Now UDT is opened.
-   m_bOpened = true;
 
    // set ip the timers
    m_ullSYNInt = m_iSYNInterval * m_ullCPUFrequency;
@@ -484,6 +457,9 @@ void CUDT::open()
 
    m_ullTargetTime = 0;
    m_ullTimeDiff = 0;
+
+   // Now UDT is opened.
+   m_bOpened = true;
 }
 
 void CUDT::listen()
@@ -641,6 +617,11 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pRcvTimeWindow = new CPktTimeWindow(16, 16, 64);
    m_pSndTimeWindow = new CPktTimeWindow();
 
+   m_pCC = m_pCCFactory->create();
+   m_pCC->m_UDT = m_SocketID;
+   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+   m_dCongestionWindow = m_pCC->m_dCWndSize;
+
    m_pController->join(this, serv_addr, m_iIPversion, m_iRTT, m_iBandwidth);
    m_pCC->setMSS(m_iMSS);
    m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
@@ -713,6 +694,11 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pRcvTimeWindow = new CPktTimeWindow(16, 16, 64);
    m_pSndTimeWindow = new CPktTimeWindow();
 
+   m_pCC = m_pCCFactory->create();
+   m_pCC->m_UDT = m_SocketID;
+   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+   m_dCongestionWindow = m_pCC->m_dCWndSize;
+
    m_pController->join(this, peer, m_iIPversion, m_iRTT, m_iBandwidth);
    m_pCC->setMSS(m_iMSS);
    m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
@@ -756,9 +742,6 @@ void CUDT::close()
 
    CGuard cg(m_ConnectionLock);
 
-   m_pCC->close();
-   m_pController->leave(this, m_iRTT, m_iBandwidth);
-
    // Inform the threads handler to stop.
    m_bClosing = true;
    m_bBroken = true;
@@ -775,6 +758,9 @@ void CUDT::close()
    {
       if (!m_bShutdown)
          sendCtrl(5);
+
+      m_pCC->close();
+      m_pController->leave(this, m_iRTT, m_iBandwidth);
 
       m_bConnected = false;
    }

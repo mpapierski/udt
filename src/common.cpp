@@ -220,7 +220,7 @@ uint64_t CTimer::getTime()
       else
       {
          FILETIME ft;
-         GetSystemTimeAsFileTime((FILETIME *)&ft);
+         GetSystemTimeAsFileTime(&ft);
          return ((((uint64_t)ft.dwHighDateTime) << 32) + ft.dwLowDateTime) / 10;
       }
    #endif

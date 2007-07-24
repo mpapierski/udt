@@ -37,7 +37,6 @@ written by
 #include "ccc.h"
 #include <cmath>
 
-using namespace std;
 
 CCC::CCC():
 m_iSYNInterval(CUDT::m_iSYNInterval),

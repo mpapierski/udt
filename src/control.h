@@ -29,7 +29,7 @@ This file contains the definition of classes for UDT congestion control block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/22/2007
 *****************************************************************************/
 
 #ifndef _UDT_CONTROL_H_
@@ -37,7 +37,6 @@ written by
 
 #include "udt.h"
 #include "common.h"
-#include <list>
 #include <set>
 #include <map>
 
