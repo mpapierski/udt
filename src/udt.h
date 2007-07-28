@@ -66,11 +66,12 @@ written by
    #else
       #define UDT_API __declspec(dllimport)
    #endif
-
-   #define NO_BUSY_WAITING
 #else
    #define UDT_API
 #endif
+
+#define NO_BUSY_WAITING
+
 
 typedef int UDTSOCKET;
 

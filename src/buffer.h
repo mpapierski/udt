@@ -29,7 +29,7 @@ This header file contains the definition of UDT buffer structure and operations.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 04/08/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/28/2007
 *****************************************************************************/
 
 #ifndef __UDT_BUFFER_H__
@@ -219,6 +219,18 @@ public:
       //    actuall size of data read.
 
    int readMsg(char* data, const int& len);
+
+      // Functionality:
+      //    Query how many messages are available now.
+      // Parameters:
+      //    None.
+      // Returned value:
+      //    number of messages available for recvmsg.
+
+   int getRcvMsgNum();
+
+private:
+   bool scanMsg(int& start, int& end, bool& passack);
 
 private:
    CUnit** m_pUnit;                     // pointer to the protocol buffer

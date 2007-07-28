@@ -31,7 +31,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/28/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -753,7 +753,7 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
             if (NULL == (s = locate(*i)))
                throw CUDTException(5, 4, 0);
 
-            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0))
+            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && ((s->m_pUDT->m_iSockType == SOCK_STREAM) || (s->m_pUDT->m_pRcvBuffer->getRcvMsgNum() > 0)))
                || (!s->m_pUDT->m_bListening && (s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected))
                || (s->m_pUDT->m_bListening && (s->m_pQueuedSockets->size() > 0))
                || (s->m_Status == CUDTSocket::CLOSED))

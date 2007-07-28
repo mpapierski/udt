@@ -33,7 +33,7 @@ The receiving buffer is a logically circular memeory block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/28/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -435,9 +435,57 @@ void CRcvBuffer::dropMsg(const int32_t& msgno)
 
 int CRcvBuffer::readMsg(char* data, const int& len)
 {
+   int p, q;
+   bool passack;
+   if (!scanMsg(p, q, passack))
+      return 0;
+
+   int rs = len;
+   while (p != (q + 1) % m_iSize)
+   {
+      int unitsize = m_pUnit[p]->m_Packet.getLength();
+      if ((rs >= 0) && (unitsize > rs))
+         unitsize = rs;
+
+      if (unitsize > 0)
+      {
+         memcpy(data, m_pUnit[p]->m_Packet.m_pcData, unitsize);
+         data += unitsize;
+         rs -= unitsize;
+      }
+
+      if (!passack)
+      {
+         CUnit* tmp = m_pUnit[p];
+         m_pUnit[p] = NULL;
+         tmp->m_iFlag = 0;
+         -- m_pUnitQueue->m_iCount;
+      }
+      else
+         m_pUnit[p]->m_iFlag = 2;
+
+      if (++ p == m_iSize)
+         p = 0;
+   }
+
+   if (!passack)
+      m_iStartPos = (q + 1) % m_iSize;
+
+   return len - rs;
+}
+
+int CRcvBuffer::getRcvMsgNum()
+{
+   int p, q;
+   bool passack;
+   return scanMsg(p, q, passack) ? 1 : 0;
+}
+
+bool CRcvBuffer::scanMsg(int& p, int& q, bool& passack)
+{
    // empty buffer
    if (m_iStartPos == m_iLastAckPos)
-      return 0;
+      return false;
 
    //skip all bad msgs at the beginning
    while (m_iStartPos != m_iLastAckPos)
@@ -454,10 +502,10 @@ int CRcvBuffer::readMsg(char* data, const int& len)
          m_iStartPos = 0;
    }
 
-   int p = -1;			// message head
-   int q = m_iStartPos;		// message tail
+   p = -1;                  // message head
+   q = m_iStartPos;         // message tail
+   passack = false;
    bool found = false;
-   bool passack = false;
 
    // looking for the first message
    for (int i = 0, n = m_iMaxPos + getRcvDataSize(); i < n; ++ i)
@@ -506,40 +554,9 @@ int CRcvBuffer::readMsg(char* data, const int& len)
    if (!found)
    {
       // if the message is larger than the receiver buffer, return part of the message
-      if ((p == -1) || ((q + 1) % m_iSize != p))
-         return 0;
+      if ((p != -1) && ((q + 1) % m_iSize == p))
+         found = true;
    }
 
-   int rs = len;
-   while (p != (q + 1) % m_iSize)
-   {
-      int unitsize = m_pUnit[p]->m_Packet.getLength();
-      if ((rs >= 0) && (unitsize > rs))
-         unitsize = rs;
-
-      if (unitsize > 0)
-      {
-         memcpy(data, m_pUnit[p]->m_Packet.m_pcData, unitsize);
-         data += unitsize;
-         rs -= unitsize;
-      }
-
-      if (!passack)
-      {
-         CUnit* tmp = m_pUnit[p];
-         m_pUnit[p] = NULL;
-         tmp->m_iFlag = 0;
-         -- m_pUnitQueue->m_iCount;
-      }
-      else
-         m_pUnit[p]->m_iFlag = 2;
-
-      if (++ p == m_iSize)
-         p = 0;
-   }
-
-   if (!passack)
-      m_iStartPos = (q + 1) % m_iSize;
-
-   return len - rs;
+   return found;
 }
