@@ -33,7 +33,7 @@ The receiving buffer is a logically circular memeory block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/28/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 07/29/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -407,7 +407,7 @@ void CRcvBuffer::ackData(const int& len)
 {
    m_iLastAckPos = (m_iLastAckPos + len) % m_iSize;
 
-   m_iMaxPos -= len;
+   m_iMaxPos -= len - 1;
 
    CTimer::triggerEvent();
 }
@@ -484,7 +484,7 @@ int CRcvBuffer::getRcvMsgNum()
 bool CRcvBuffer::scanMsg(int& p, int& q, bool& passack)
 {
    // empty buffer
-   if (m_iStartPos == m_iLastAckPos)
+   if ((m_iStartPos == m_iLastAckPos) && (0 == m_iMaxPos))
       return false;
 
    //skip all bad msgs at the beginning
