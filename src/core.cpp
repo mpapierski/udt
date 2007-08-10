@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/23/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/09/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -210,6 +210,12 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
 
       m_iMSS = *(int*)optval;
 
+      // Packet size cannot be greater than UDP buffer size
+      if (m_iMSS > m_iUDPSndBufSize)
+         m_iMSS = m_iUDPSndBufSize;
+      if (m_iMSS > m_iUDPRcvBufSize)
+         m_iMSS = m_iUDPRcvBufSize;
+
       break;
 
    case UDT_SNDSYN:
@@ -275,6 +281,10 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
          throw CUDTException(5, 1, 0);
 
       m_iUDPSndBufSize = *(int*)optval;
+
+      if (m_iUDPSndBufSize < m_iMSS)
+         m_iUDPSndBufSize = m_iMSS;
+
       break;
 
    case UDP_RCVBUF:
@@ -282,6 +292,10 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
          throw CUDTException(5, 1, 0);
 
       m_iUDPRcvBufSize = *(int*)optval;
+
+      if (m_iUDPRcvBufSize < m_iMSS)
+         m_iUDPRcvBufSize = m_iMSS;
+
       break;
 
    case UDT_RENDEZVOUS:
