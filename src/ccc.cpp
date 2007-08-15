@@ -124,10 +124,11 @@ void CUDTCC::init()
    m_bSlowStart = true;
    m_iLastAck = m_iSndCurrSeqNo;
    m_bLoss = false;
-   m_iLastDecSeq = 0;
+   m_iLastDecSeq = CSeqNo::decseq(m_iLastAck);
    m_dLastDecPeriod = 1;
    m_iAvgNAKNum = 0;
    m_iNAKCount = 0;
+   m_iDecRandom = 1;
 
    m_dCWndSize = 16;
    m_dPktSndPeriod = 1;
@@ -209,7 +210,7 @@ void CUDTCC::onLoss(const int32_t* losslist, const int&)
       m_dLastDecPeriod = m_dPktSndPeriod;
       m_dPktSndPeriod = (uint64_t)ceil(m_dPktSndPeriod * 1.125);
 
-      m_iAvgNAKNum = (int)ceil((double)m_iAvgNAKNum * 0.875 + (double)m_iNAKCount * 0.125) + 1;
+      m_iAvgNAKNum = (int)ceil(m_iAvgNAKNum * 0.875 + m_iNAKCount * 0.125);
       m_iNAKCount = 1;
       m_iDecCount = 1;
 
@@ -217,7 +218,9 @@ void CUDTCC::onLoss(const int32_t* losslist, const int&)
 
       // remove global synchronization using randomization
       srand(m_iLastDecSeq);
-      m_iDecRandom = (int)(rand() * double(m_iAvgNAKNum) / (RAND_MAX + 1.0)) + 1;
+      m_iDecRandom = (int)ceil(rand() * double(m_iAvgNAKNum) / (RAND_MAX + 1.0));
+      if (m_iDecRandom < 1)
+         m_iDecRandom = 1;
    }
    else if ((m_iDecCount ++ < 5) && (0 == (++ m_iNAKCount % m_iDecRandom)))
    {
