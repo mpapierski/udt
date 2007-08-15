@@ -28,7 +28,7 @@ This header file contains the definition of UDT/CCC base class.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/15/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/15/2007
 *****************************************************************************/
 
 
@@ -125,8 +125,9 @@ void CUDTCC::init()
    m_iLastAck = m_iSndCurrSeqNo;
    m_bLoss = false;
    m_iLastDecSeq = 0;
-   m_iDecRandom = -1;
    m_dLastDecPeriod = 1;
+   m_iAvgNAKNum = 0;
+   m_iNAKCount = 0;
 
    m_dCWndSize = 16;
    m_dPktSndPeriod = 1;
