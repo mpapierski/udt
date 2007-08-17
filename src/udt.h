@@ -28,7 +28,7 @@ This is the (only) header file of the UDT API, needed for programming with UDT.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/15/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
 *****************************************************************************/
 
 #ifndef _UDT_H_
@@ -44,6 +44,7 @@ written by
 #endif
 #include <fstream>
 #include <set>
+#include <string>
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -104,7 +105,7 @@ enum UDTOpt
 
 ////////////////////////////////////////////////////////////////////////////////
 
-struct UDT_API CPerfMon
+struct CPerfMon
 {
    // global measurements
    int64_t msTimeStamp;                 // time since the UDT entity is started, in milliseconds
@@ -144,7 +145,7 @@ struct UDT_API CPerfMon
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class UDT_API CUDTException
+class CUDTException
 {
 public:
    CUDTException(int major = 0, int minor = 0, int err = -1);
@@ -189,9 +190,9 @@ private:
 // 5: method not supported
 // 6+: undefined error
 
-   int m_iMinor;        // for specific error reasons
-   int m_iErrno;        // errno returned by the system if there is any
-   char m_pcMsg[1024];  // text error message
+   int m_iMinor;		// for specific error reasons
+   int m_iErrno;		// errno returned by the system if there is any
+   std::string m_strMsg;	// text error message
 
 public: // Error Code
    static const int SUCCESS;
@@ -279,6 +280,5 @@ UDT_API ERRORINFO& getlasterror();
 
 UDT_API int perfmon(UDTSOCKET u, TRACEINFO* perf, bool clear = true);
 }
-
 
 #endif

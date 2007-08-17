@@ -29,7 +29,7 @@ mutex facility, and exception processing.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/07/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
 *****************************************************************************/
 
 
@@ -316,36 +316,28 @@ const char* CUDTException::getErrorMessage()
    switch (m_iMajor)
    {
       case 0:
-        strcpy(m_pcMsg, "Success");
+        m_strMsg = "Success";
         break;
 
       case 1:
-        strcpy(m_pcMsg, "Connection setup failure");
+        m_strMsg = "Connection setup failure";
 
         switch (m_iMinor)
         {
         case 1:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "connection time out");
-
+           m_strMsg += ": connection time out";
            break;
 
         case 2:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "connection rejected");
-
+           m_strMsg += ": connection rejected";
            break;
 
         case 3:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "unable to create/configure UDP socket");
-
+           m_strMsg += ": unable to create/configure UDP socket";
            break;
 
         case 4:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "abort for security reasons");
-
+           m_strMsg += ": abort for security reasons";
            break;
 
         default:
@@ -358,13 +350,11 @@ const char* CUDTException::getErrorMessage()
         switch (m_iMinor)
         {
         case 1:
-           strcpy(m_pcMsg, "Connection was broken");
-
+           m_strMsg = "Connection was broken";
            break;
 
         case 2:
-           strcpy(m_pcMsg, "Connection does not exist");
-
+           m_strMsg = "Connection does not exist";
            break;
 
         default:
@@ -374,18 +364,16 @@ const char* CUDTException::getErrorMessage()
         break;
 
       case 3:
-        strcpy(m_pcMsg, "System resource failure");
+        m_strMsg = "System resource failure";
 
         switch (m_iMinor)
         {
         case 1:
-           strcpy(m_pcMsg, "unable to create new threads");
-
+           m_strMsg += ": unable to create new threads";
            break;
 
         case 2:
-           strcpy(m_pcMsg, "unable to allocate buffers");
-
+           m_strMsg += ": unable to allocate buffers";
            break;
 
         default:
@@ -395,32 +383,24 @@ const char* CUDTException::getErrorMessage()
         break;
 
       case 4:
-        strcpy(m_pcMsg, "File system failure");
+        m_strMsg = "File system failure";
 
         switch (m_iMinor)
         {
         case 1:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "cannot seek read position");
-
+           m_strMsg += ": cannot seek read position";
            break;
 
         case 2:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "failure in read");
-
+           m_strMsg += ": failure in read";
            break;
 
         case 3:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "cannot seek write position");
-
+           m_strMsg += ": cannot seek write position";
            break;
 
         case 4:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "failure in write");
-
+           m_strMsg += ": failure in write";
            break;
 
         default:
@@ -430,68 +410,48 @@ const char* CUDTException::getErrorMessage()
         break;
 
       case 5:
-        strcpy(m_pcMsg, "Operation not supported");
+        m_strMsg = "Operation not supported";
  
         switch (m_iMinor)
         {
         case 1:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "Cannot do this operation on a BOUND socket");
-
+           m_strMsg += ": Cannot do this operation on a BOUND socket";
            break;
 
         case 2:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "Cannot do this operation on a CONNECTED socket");
-
+           m_strMsg += ": Cannot do this operation on a CONNECTED socket";
            break;
 
         case 3:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "Bad parameters");
-
+           m_strMsg += ": Bad parameters";
            break;
 
         case 4:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "Invalid socket ID");
-
+           m_strMsg += ": Invalid socket ID";
            break;
 
         case 5:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "Cannot do this operation on an UNBOUND socket");
-
+           m_strMsg += ": Cannot do this operation on an UNBOUND socket";
            break;
 
         case 6:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "Socket is not in listening state");
-
+           m_strMsg += ": Socket is not in listening state";
            break;
 
         case 7:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "Listen/accept is not supported in rendezous connection setup");
-
+           m_strMsg += ": Listen/accept is not supported in rendezous connection setup";
            break;
 
         case 8:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "Cannot call connect on UNBOUND socket in rendezvous connection setup");
-
+           m_strMsg += ": Cannot call connect on UNBOUND socket in rendezvous connection setup";
            break;
 
         case 9:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "This operation is not supported in SOCK_STREAM mode");
-
+           m_strMsg += ": This operation is not supported in SOCK_STREAM mode";
            break;
 
         case 10:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "This operation is not supported in SOCK_DGRAM mode");
-
+           m_strMsg += ": This operation is not supported in SOCK_DGRAM mode";
            break;
 
         default:
@@ -501,20 +461,16 @@ const char* CUDTException::getErrorMessage()
         break;
 
      case 6:
-        strcpy(m_pcMsg, "Non-blocking call failure");
+        m_strMsg = "Non-blocking call failure";
 
         switch (m_iMinor)
         {
         case 1:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "no buffer available for sending");
-
+           m_strMsg += ": no buffer available for sending";
            break;
 
         case 2:
-           strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
-           strcpy(m_pcMsg + strlen(m_pcMsg), "no data available for reading");
-
+           m_strMsg += ": no data available for reading";
            break;
 
         default:
@@ -524,29 +480,29 @@ const char* CUDTException::getErrorMessage()
         break;
 
       default:
-        strcpy(m_pcMsg, "Unknown error");
+        m_strMsg = "Unknown error";
    }
 
    // Adding "errno" information
    if (0 < m_iErrno)
    {
-      strcpy(m_pcMsg + strlen(m_pcMsg), ": ");
+      m_strMsg += ": ";
       #ifndef WIN32
-         strncpy(m_pcMsg + strlen(m_pcMsg), strerror(m_iErrno), 1024 - strlen(m_pcMsg) - 2);
+         m_strMsg += strerror(m_iErrno);
       #else
          LPVOID lpMsgBuf;
          FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, m_iErrno, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
-         strncpy(m_pcMsg + strlen(m_pcMsg), (char*)lpMsgBuf, 1024 - strlen(m_pcMsg) - 2);
+         m_strMsg += (char*)lpMsgBuf;
          LocalFree(lpMsgBuf);
       #endif
    }
 
    // period
    #ifndef WIN32
-      strcpy(m_pcMsg + strlen(m_pcMsg), ".");
+      m_strMsg += ".";
    #endif
 
-   return m_pcMsg;
+   return m_strMsg.c_str();
 }
 
 const int CUDTException::getErrorCode() const

@@ -28,7 +28,7 @@ This file contains the implementation of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -188,7 +188,7 @@ CUnit* CUnitQueue::getNextAvailUnit()
 
    CQEntry* entrance = m_pCurrQueue;
 
-   while (true)
+   do
    {
       for (CUnit* sentinel = m_pCurrQueue->m_pUnit + m_pCurrQueue->m_iSize - 1; m_pAvailUnit != sentinel; ++ m_pAvailUnit)
          if (m_pAvailUnit->m_iFlag == 0)
@@ -199,15 +199,10 @@ CUnit* CUnitQueue::getNextAvailUnit()
          m_pAvailUnit = m_pCurrQueue->m_pUnit;
          return m_pAvailUnit;
       }
-      else
-      {
-         m_pCurrQueue = m_pCurrQueue->m_pNext;
-         m_pAvailUnit = m_pCurrQueue->m_pUnit;
 
-         if (m_pCurrQueue == entrance)
-            return NULL;
-      }
-   }
+      m_pCurrQueue = m_pCurrQueue->m_pNext;
+      m_pAvailUnit = m_pCurrQueue->m_pUnit;
+   } while (m_pCurrQueue != entrance);
 
    return NULL;
 }

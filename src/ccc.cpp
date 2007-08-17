@@ -28,7 +28,7 @@ This header file contains the definition of UDT/CCC base class.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/15/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
 *****************************************************************************/
 
 
@@ -208,7 +208,7 @@ void CUDTCC::onLoss(const int32_t* losslist, const int&)
    if (CSeqNo::seqcmp(losslist[0] & 0x7FFFFFFF, m_iLastDecSeq) > 0)
    {
       m_dLastDecPeriod = m_dPktSndPeriod;
-      m_dPktSndPeriod = (uint64_t)ceil(m_dPktSndPeriod * 1.125);
+      m_dPktSndPeriod = ceil(m_dPktSndPeriod * 1.125);
 
       m_iAvgNAKNum = (int)ceil(m_iAvgNAKNum * 0.875 + m_iNAKCount * 0.125);
       m_iNAKCount = 1;
@@ -225,7 +225,7 @@ void CUDTCC::onLoss(const int32_t* losslist, const int&)
    else if ((m_iDecCount ++ < 5) && (0 == (++ m_iNAKCount % m_iDecRandom)))
    {
       // 0.875^5 = 0.51, rate should not be decreased by more than half within a congestion period
-      m_dPktSndPeriod = (uint64_t)ceil(m_dPktSndPeriod * 1.125);
+      m_dPktSndPeriod = ceil(m_dPktSndPeriod * 1.125);
       m_iLastDecSeq = m_iSndCurrSeqNo;
    }
 }

@@ -28,7 +28,7 @@ This header file contains the definition of UDT core structure and operations.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/15/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -47,12 +47,12 @@ written by
 #include "control.h"
 #include "queue.h"
 
-class UDT_API CUDT
+class CUDT
 {
 friend struct CUDTSocket;
 friend class CUDTUnited;
 friend class CCC;
-friend class CUDTComp;
+friend struct CUDTComp;
 friend class CControl;
 friend class CSndQueue;
 friend class CRcvQueue;
