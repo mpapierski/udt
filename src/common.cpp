@@ -454,6 +454,10 @@ const char* CUDTException::getErrorMessage()
            m_strMsg += ": This operation is not supported in SOCK_DGRAM mode";
            break;
 
+        case 11:
+           m_strMsg += ": Another socket is already listening on the same port";
+           break;
+
         default:
            break;
         }
@@ -537,14 +541,15 @@ const int CUDTException::EWRPERM = 4004;
 const int CUDTException::EINVOP = 5000;
 const int CUDTException::EBOUNDSOCK = 5001;
 const int CUDTException::ECONNSOCK = 5002;
-const int CUDTException::EINVPARAM = 5002;
-const int CUDTException::EINVSOCK = 5003;
-const int CUDTException::EUNBOUNDSOCK = 5004;
-const int CUDTException::ENOLISTEN = 5005;
-const int CUDTException::ERDVNOSERV = 5006;
-const int CUDTException::ERDVUNBOUND = 5007;
-const int CUDTException::ESTREAMILL = 5008;
-const int CUDTException::EDGRAMILL = 5009;
+const int CUDTException::EINVPARAM = 5003;
+const int CUDTException::EINVSOCK = 5004;
+const int CUDTException::EUNBOUNDSOCK = 5005;
+const int CUDTException::ENOLISTEN = 5006;
+const int CUDTException::ERDVNOSERV = 5007;
+const int CUDTException::ERDVUNBOUND = 5008;
+const int CUDTException::ESTREAMILL = 5009;
+const int CUDTException::EDGRAMILL = 5010;
+const int CUDTException::EDUPLISTEN = 5011;
 const int CUDTException::EASYNCFAIL = 6000;
 const int CUDTException::EASYNCSND = 6001;
 const int CUDTException::EASYNCRCV = 6002;

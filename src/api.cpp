@@ -30,7 +30,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/23/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -169,9 +169,15 @@ UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
       ns = new CUDTSocket;
       ns->m_pUDT = new CUDT;
       if (AF_INET == af)
+      {
          ns->m_pSelfAddr = (sockaddr*)(new sockaddr_in);
+         ((sockaddr_in*)(ns->m_pSelfAddr))->sin_port = 0;
+      }
       else
+      {
          ns->m_pSelfAddr = (sockaddr*)(new sockaddr_in6);
+         ((sockaddr_in6*)(ns->m_pSelfAddr))->sin6_port = 0;
+      }
    }
    catch (...)
    {
@@ -283,12 +289,14 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
       if (AF_INET == ls->m_iIPversion)
       {
          ns->m_pSelfAddr = (sockaddr*)(new sockaddr_in);
+         ((sockaddr_in*)(ns->m_pSelfAddr))->sin_port = 0;
          ns->m_pPeerAddr = (sockaddr*)(new sockaddr_in);
          memcpy(ns->m_pPeerAddr, peer, sizeof(sockaddr_in));
       }
       else
       {
          ns->m_pSelfAddr = (sockaddr*)(new sockaddr_in6);
+         ((sockaddr_in6*)(ns->m_pSelfAddr))->sin6_port = 0;
          ns->m_pPeerAddr = (sockaddr*)(new sockaddr_in6);
          memcpy(ns->m_pPeerAddr, peer, sizeof(sockaddr_in6));
       }

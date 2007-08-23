@@ -28,7 +28,7 @@ This file contains the implementation of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/23/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -925,16 +925,18 @@ m_pRcvUList(NULL),
 m_pHash(NULL),
 m_pChannel(NULL),
 m_pTimer(NULL),
-m_ListenerID(-1),
+m_ListenerID(CUDT::INVALID_SOCK),
 m_pRendezvousQueue(NULL),
 m_bClosing(false)
 {
    #ifndef WIN32
-      pthread_cond_init(&m_PassCond, NULL);
       pthread_mutex_init(&m_PassLock, NULL);
+      pthread_cond_init(&m_PassCond, NULL);
+      pthread_mutex_init(&m_IDLock, NULL);
    #else
       m_PassLock = CreateMutex(NULL, false, NULL);
       m_PassCond = CreateEvent(NULL, false, false, NULL);
+      m_IDLock = CreateMutex(NULL, false, NULL);
    #endif
 }
 
@@ -944,13 +946,15 @@ CRcvQueue::~CRcvQueue()
 
    #ifndef WIN32
       pthread_join(m_WorkerThread, NULL);
-      pthread_cond_destroy(&m_PassCond);
       pthread_mutex_destroy(&m_PassLock);
+      pthread_cond_destroy(&m_PassCond);
+      pthread_mutex_destroy(&m_IDLock);
    #else
       WaitForSingleObject(m_WorkerThread, INFINITE);
       CloseHandle(m_WorkerThread);
       CloseHandle(m_PassLock);
       CloseHandle(m_PassCond);
+      CloseHandle(m_IDLock);
    #endif
 
    delete m_pRcvUList;
@@ -1139,4 +1143,23 @@ int CRcvQueue::recvfrom(const int32_t& id, CPacket& packet)
    res = m_pHash->retrieve(id, packet);
 
    return res;
+}
+
+int CRcvQueue::setListenerID(const UDTSOCKET& id)
+{
+   CGuard idlock(m_IDLock);
+
+   if (CUDT::INVALID_SOCK != m_ListenerID)
+      return -1;
+
+   m_ListenerID = id;
+   return 1;
+}
+
+void CRcvQueue::removeListenerID(const UDTSOCKET& id)
+{
+   CGuard idlock(m_IDLock);
+
+   if (id == m_ListenerID)
+      m_ListenerID = CUDT::INVALID_SOCK;
 }

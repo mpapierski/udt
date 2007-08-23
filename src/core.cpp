@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/09/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/23/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -84,6 +84,10 @@ CUDT::CUDT()
    m_pRcvTimeWindow = NULL;
 
    m_pSndQueue = NULL;
+   m_pRcvQueue = NULL;
+   m_pPeerAddr = NULL;
+   m_pSNode = NULL;
+   m_pRNode = NULL;
 
    // Initilize mutex and condition variables
    initSynch();
@@ -109,18 +113,13 @@ CUDT::CUDT()
    m_pCC = NULL;
    m_pController = NULL;
 
-   m_iRTT = 10 * m_iSYNInterval;
-   m_iRTTVar = m_iRTT >> 1;
-   m_ullCPUFrequency = CTimer::getCPUFrequency();
-
    // Initial status
    m_bOpened = false;
+   m_bListening = false;
    m_bConnected = false;
+   m_bClosing = false;
+   m_bShutdown = false;
    m_bBroken = false;
-
-   m_pPeerAddr = NULL;
-   m_pSNode = NULL;
-   m_pRNode = NULL;
 }
 
 CUDT::CUDT(const CUDT& ancestor)
@@ -134,6 +133,10 @@ CUDT::CUDT(const CUDT& ancestor)
    m_pRcvTimeWindow = NULL;
 
    m_pSndQueue = NULL;
+   m_pRcvQueue = NULL;
+   m_pPeerAddr = NULL;
+   m_pSNode = NULL;
+   m_pRNode = NULL;
 
    // Initilize mutex and condition variables
    initSynch();
@@ -159,18 +162,13 @@ CUDT::CUDT(const CUDT& ancestor)
    m_pCC = NULL;
    m_pController = ancestor.m_pController;
 
-   m_iRTT = ancestor.m_iRTT;
-   m_iRTTVar = ancestor.m_iRTTVar;
-   m_ullCPUFrequency = ancestor.m_ullCPUFrequency;
-
    // Initial status
    m_bOpened = false;
+   m_bListening = false;
    m_bConnected = false;
+   m_bClosing = false;
+   m_bShutdown = false;
    m_bBroken = false;
-
-   m_pPeerAddr = NULL;
-   m_pSNode = NULL;
-   m_pRNode = NULL;
 }
 
 CUDT::~CUDT()
@@ -416,11 +414,6 @@ void CUDT::open()
 {
    CGuard cg(m_ConnectionLock);
 
-   // Initial status
-   m_bClosing = false;
-   m_bShutdown = false;
-   m_bListening = false;
-
    // Initial sequence number, loss, acknowledgement, etc.
    m_iPktSize = m_iMSS - 28;
    m_iPayloadSize = m_iPktSize - CPacket::m_iPktHdrSize;
@@ -451,7 +444,11 @@ void CUDT::open()
    m_pRNode->m_llTimeStamp = 1;
    m_pRNode->m_pPrev = m_pRNode->m_pNext = NULL;
 
-   // set ip the timers
+   m_iRTT = 10 * m_iSYNInterval;
+   m_iRTTVar = m_iRTT >> 1;
+   m_ullCPUFrequency = CTimer::getCPUFrequency();
+
+   // set up the timers
    m_ullSYNInt = m_iSYNInterval * m_ullCPUFrequency;
    
    m_ullACKInt = m_ullSYNInt;
@@ -489,13 +486,11 @@ void CUDT::listen()
    if (m_bListening)
       return;
 
+   // if there is already another socket listening on the same port
+   if (m_pRcvQueue->setListenerID(m_SocketID) < 0)
+      throw CUDTException(5, 11, 0);
+
    m_bListening = true;
-
-   // TO DO
-   //detect error here:
-   // if there is already a listener, throw exception
-
-   m_pRcvQueue->m_ListenerID = m_SocketID;
 }
 
 void CUDT::connect(const sockaddr* serv_addr)
@@ -765,7 +760,7 @@ void CUDT::close()
    if (m_bListening)
    {
       m_bListening = false;
-      m_pRcvQueue->m_ListenerID = -1;
+      m_pRcvQueue->removeListenerID(m_SocketID);
    }
    if (m_bConnected)
    {
@@ -776,10 +771,10 @@ void CUDT::close()
       m_pController->leave(this, m_iRTT, m_iBandwidth);
 
       m_bConnected = false;
-   }
 
-   if (m_bRendezvous)
-      m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
+      if (m_bRendezvous)
+         m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
+   }
 
    // waiting all send and recv calls to stop
    CGuard sendguard(m_SendLock);

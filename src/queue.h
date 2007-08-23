@@ -28,7 +28,7 @@ This header file contains the definition of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/16/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/23/2007
 *****************************************************************************/
 
 
@@ -458,6 +458,10 @@ public:
    int recvfrom(const int32_t& id, CPacket& packet);
 
 private:
+   int setListenerID(const UDTSOCKET& id);
+   void removeListenerID(const UDTSOCKET& id);
+
+private:
 #ifndef WIN32
    static void* worker(void* param);
 #else
@@ -476,6 +480,7 @@ private:
 
    pthread_mutex_t m_PassLock;
    pthread_cond_t m_PassCond;
+   pthread_mutex_t m_IDLock;
 
    volatile UDTSOCKET m_ListenerID;		// The only listening socket that is associated to the queue, if there is one
    CRendezvousQueue* m_pRendezvousQueue;	// The list of sockets in rendezvous mode
