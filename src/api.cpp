@@ -30,7 +30,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/23/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/25/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1047,7 +1047,7 @@ void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr)
    m.m_pSndQueue = new CSndQueue;
    m.m_pSndQueue->init(m.m_pChannel, m.m_pTimer);
    m.m_pRcvQueue = new CRcvQueue;
-   m.m_pRcvQueue->init((m.m_iMTU > 1500) ? 32 : 128, u->m_iPayloadSize, 1024, m.m_iIPversion, m.m_pChannel, m.m_pTimer);
+   m.m_pRcvQueue->init((m.m_iMTU > 1500) ? 32 : 128, u->m_iPayloadSize, m.m_iIPversion, 1024, m.m_pChannel, m.m_pTimer);
 
    m_vMultiplexer.insert(m_vMultiplexer.end(), m);
 
