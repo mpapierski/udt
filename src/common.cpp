@@ -29,7 +29,7 @@ mutex facility, and exception processing.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/26/2007
 *****************************************************************************/
 
 
@@ -80,7 +80,7 @@ void CTimer::rdtsc(uint64_t &x)
 {
    #ifdef WIN32
       if (!QueryPerformanceCounter((LARGE_INTEGER *)&x))
-         x = getTime();
+         x = getTime() * s_ullCPUFrequency;
    #elif IA32
       uint32_t lval, hval;
       //asm volatile ("push %eax; push %ebx; push %ecx; push %edx");
@@ -213,15 +213,11 @@ uint64_t CTimer::getTime()
       if (QueryPerformanceFrequency(&ccf))
       {
          LARGE_INTEGER cc;
-         QueryPerformanceCounter(&cc);
-         return (cc.QuadPart / ccf.QuadPart) * 1000000ULL + (cc.QuadPart % ccf.QuadPart) / (ccf.QuadPart / 1000000);
+         if (QueryPerformanceCounter(&cc))
+            return (cc.QuadPart * 1000000ULL / ccf.QuadPart);
       }
-      else
-      {
-         FILETIME ft;
-         GetSystemTimeAsFileTime(&ft);
-         return ((((uint64_t)ft.dwHighDateTime) << 32) + ft.dwLowDateTime) / 10;
-      }
+
+      return GetTickCount() * 1000ULL;
    #endif
 }
 
