@@ -30,7 +30,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/25/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/26/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -883,7 +883,19 @@ void CUDTUnited::checkBrokenSockets()
             // remove from listener's queue
             map<UDTSOCKET, CUDTSocket*>::iterator j = m_Sockets.find(i->second->m_ListenSocket);
             if (j != m_Sockets.end())
+            {
+               #ifndef WIN32
+                  pthread_mutex_lock(&(j->second->m_AcceptLock));
+               #else
+                  WaitForSingleObject(j->second->m_AcceptLock, INFINITE);
+               #endif
                j->second->m_pQueuedSockets->erase(i->second->m_Socket);
+               #ifndef WIN32
+                  pthread_mutex_unlock(&(j->second->m_AcceptLock));
+               #else
+                  ReleaseMutex(j->second->m_AcceptLock);
+               #endif
+            }
          }
       }
       else
@@ -925,12 +937,28 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
    {
       // if it is an accepted socket, remove it from the listener's queue
       map<UDTSOCKET, CUDTSocket*>::iterator j = m_Sockets.find(i->second->m_ListenSocket);
-
       if (j != m_Sockets.end())
+      {
+         #ifndef WIN32
+            pthread_mutex_lock(&(j->second->m_AcceptLock));
+         #else
+            WaitForSingleObject(j->second->m_AcceptLock, INFINITE);
+         #endif
          j->second->m_pAcceptSockets->erase(u);
+         #ifndef WIN32
+            pthread_mutex_unlock(&(j->second->m_AcceptLock));
+         #else
+            ReleaseMutex(j->second->m_AcceptLock);
+         #endif
+      }
    }
    else if (NULL != i->second->m_pQueuedSockets)
    {
+      #ifndef WIN32
+         pthread_mutex_lock(&(i->second->m_AcceptLock));
+      #else
+         WaitForSingleObject(i->second->m_AcceptLock, INFINITE);
+      #endif
       // if it is a listener, remove all un-accepted sockets in its queue
       for (set<UDTSOCKET>::iterator j = i->second->m_pQueuedSockets->begin(); j != i->second->m_pQueuedSockets->end(); ++ j)
       {
@@ -941,6 +969,11 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
          if (m != m_vMultiplexer.end())
             m->m_iRefCount --;
       }
+      #ifndef WIN32
+         pthread_mutex_unlock(&(i->second->m_AcceptLock));
+      #else
+         ReleaseMutex(i->second->m_AcceptLock);
+      #endif
    }
 
    // delete this one

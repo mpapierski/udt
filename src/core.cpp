@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/23/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/26/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -549,7 +549,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    uint64_t entertime = CTimer::getTime();
    CUDTException e(0, 0);
 
-   do
+   while (!m_bClosing)
    {
       m_pSndQueue->sendto(serv_addr, request);
 
@@ -566,9 +566,12 @@ void CUDT::connect(const sockaddr* serv_addr)
             if (1 == res->m_iReqType)
                response.setLength(-1);
             else
-               req->m_iReqType = -1;
+               req->m_iReqType = -2;
          }
       }
+
+      if ((response.getLength() > 0) && (res->m_iReqType < 0))
+         break;
 
       if (CTimer::getTime() - entertime > timeo)
       {
@@ -576,7 +579,7 @@ void CUDT::connect(const sockaddr* serv_addr)
          e = CUDTException(1, 1, 0);
          break;
       }
-   } while (((response.getLength() <= 0) || (m_bRendezvous && (res->m_iReqType > 0))) && !m_bClosing);
+   }
 
    delete [] reqdata;
 
