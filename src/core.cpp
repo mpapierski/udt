@@ -625,7 +625,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
    m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
    m_pACKWindow = new CACKWindow(4096);
-   m_pRcvTimeWindow = new CPktTimeWindow(16, 16, 64);
+   m_pRcvTimeWindow = new CPktTimeWindow(16, 64);
    m_pSndTimeWindow = new CPktTimeWindow();
 
    m_pCC = m_pCCFactory->create();
@@ -702,7 +702,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
    m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
    m_pACKWindow = new CACKWindow(4096);
-   m_pRcvTimeWindow = new CPktTimeWindow(16, 16, 64);
+   m_pRcvTimeWindow = new CPktTimeWindow(16, 64);
    m_pSndTimeWindow = new CPktTimeWindow();
 
    m_pCC = m_pCCFactory->create();
@@ -1694,17 +1694,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       if (rtt <= 0)
          break;
 
-      //
-      // Well, I decide to temporaly disable the use of delay.
-      // a good idea but the algorithm to detect it is not good enough.
-      // I'll come back later...
-      //
-
-      //m_pRcvTimeWindow->ack2Arrival(rtt);
-
-      // check packet delay trend
-      //CTimer::rdtsc(currtime);
-      //if (m_pRcvTimeWindow->getDelayTrend() && (currtime - m_ullLastWarningTime > (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency))
+      //if increasing delay detected...
       //   sendCtrl(4);
 
       // RTT EWMA
@@ -1760,7 +1750,6 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
    case 4: //100 - Delay Warning
       // One way packet delay is increasing, so decrease the sending rate
       m_ullInterval = (uint64_t)ceil(m_ullInterval * 1.125);
-
       m_iLastDecSeq = m_iSndCurrSeqNo;
 
       break;
@@ -1968,7 +1957,7 @@ int CUDT::processData(CUnit* unit)
 
    m_iPktCount ++;
 
-   // update time/delay information
+   // update time information
    m_pRcvTimeWindow->onPktArrival();
 
    // check if it is probing packet pair

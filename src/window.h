@@ -28,7 +28,7 @@ This header file contains the definition of Window structures used in UDT.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 03/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/22/2007
 *****************************************************************************/
 
 #ifndef __UDT_WINDOW_H__
@@ -85,7 +85,7 @@ class CPktTimeWindow
 {
 public:
    CPktTimeWindow();
-   CPktTimeWindow(const int& s1, const int& s2, const int& s3);
+   CPktTimeWindow(const int& asize, const int& psize);
    ~CPktTimeWindow();
 
       // Functionality:
@@ -105,15 +105,6 @@ public:
       //    Packet arrival speed (packets per second).
 
    int getPktRcvSpeed() const;
-
-      // Functionality:
-      //    Check if the rtt is increasing or not.
-      // Parameters:
-      //    None.
-      // Returned value:
-      //    true is RTT is increasing, otherwise false.
-
-   bool getDelayTrend() const;
 
       // Functionality:
       //    Estimate the bandwidth.
@@ -143,15 +134,6 @@ public:
    void onPktArrival();
 
       // Functionality:
-      //    Record the recent RTT.
-      // Parameters:
-      //    0) [in] rtt: the mose recent RTT from ACK-2.
-      // Returned value:
-      //    None.
-
-   void ack2Arrival(const int& rtt);
-
-      // Functionality:
       //    Record the arrival time of the first probing packet.
       // Parameters:
       //    None.
@@ -173,12 +155,6 @@ private:
    int m_iAWSize;               // size of the packet arrival history window
    int* m_piPktWindow;          // packet information window
    int m_iPktWindowPtr;         // position pointer of the packet info. window.
-
-   int m_iRWSize;               // size of RTT history window size
-   int* m_piRTTWindow;          // RTT history window
-   int* m_piPCTWindow;          // PCT (pairwise comparison test) history window
-   int* m_piPDTWindow;          // PDT (pairwise difference test) history window
-   int m_iRTTWindowPtr;         // position pointer to the 3 windows above
 
    int m_iPWSize;               // size of probe history window size
    int* m_piProbeWindow;        // record inter-packet time for probing packet pairs

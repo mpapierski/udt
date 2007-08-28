@@ -28,7 +28,7 @@ This header file contains the definition of UDT buffer structure and operations.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 03/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/22/2007
 *****************************************************************************/
 
 #include <cmath>
@@ -147,21 +147,13 @@ int CACKWindow::acknowledge(const int32_t& seq, int32_t& ack)
 CPktTimeWindow::CPktTimeWindow():
 m_iAWSize(16),
 m_piPktWindow(NULL),
-m_iRWSize(16),
-m_piRTTWindow(NULL),
-m_piPCTWindow(NULL),
-m_piPDTWindow(NULL),
 m_iPWSize(16),
 m_piProbeWindow(NULL)
 {
    m_piPktWindow = new int[m_iAWSize];
-   m_piRTTWindow = new int[m_iRWSize];
-   m_piPCTWindow = new int[m_iRWSize];
-   m_piPDTWindow = new int[m_iRWSize];
    m_piProbeWindow = new int[m_iPWSize];
 
    m_iPktWindowPtr = 0;
-   m_iRTTWindowPtr = 0;
    m_iProbeWindowPtr = 0;
 
    m_LastArrTime = CTimer::getTime();
@@ -171,32 +163,21 @@ m_piProbeWindow(NULL)
 
    for (int i = 0; i < m_iAWSize; ++ i)
       m_piPktWindow[i] = 1;
-
-   for (int j = 0; j < m_iRWSize; ++ j)
-      m_piRTTWindow[j] = m_piPCTWindow[j] = m_piPDTWindow[j] = 0;
 
    for (int k = 0; k < m_iPWSize; ++ k)
       m_piProbeWindow[k] = 1000;
 }
 
-CPktTimeWindow::CPktTimeWindow(const int& s1, const int& s2, const int& s3):
-m_iAWSize(s1),
+CPktTimeWindow::CPktTimeWindow(const int& asize, const int& psize):
+m_iAWSize(asize),
 m_piPktWindow(NULL),
-m_iRWSize(s2),
-m_piRTTWindow(NULL),
-m_piPCTWindow(NULL),
-m_piPDTWindow(NULL),
-m_iPWSize(s3),
+m_iPWSize(psize),
 m_piProbeWindow(NULL)
 {
    m_piPktWindow = new int[m_iAWSize];
-   m_piRTTWindow = new int[m_iRWSize];
-   m_piPCTWindow = new int[m_iRWSize];
-   m_piPDTWindow = new int[m_iRWSize];
    m_piProbeWindow = new int[m_iPWSize];
 
    m_iPktWindowPtr = 0;
-   m_iRTTWindowPtr = 0;
    m_iProbeWindowPtr = 0;
 
    m_LastArrTime = CTimer::getTime();
@@ -206,9 +187,6 @@ m_piProbeWindow(NULL)
 
    for (int i = 0; i < m_iAWSize; ++ i)
       m_piPktWindow[i] = 1;
-
-   for (int j = 0; j < m_iRWSize; ++ j)
-      m_piRTTWindow[j] = m_piPCTWindow[j] = m_piPDTWindow[j] = 0;
 
    for (int k = 0; k < m_iPWSize; ++ k)
       m_piProbeWindow[k] = 1000;
@@ -217,9 +195,6 @@ m_piProbeWindow(NULL)
 CPktTimeWindow::~CPktTimeWindow()
 {
    delete [] m_piPktWindow;
-   delete [] m_piRTTWindow;
-   delete [] m_piPCTWindow;
-   delete [] m_piPDTWindow;
    delete [] m_piProbeWindow;
 }
 
@@ -261,28 +236,6 @@ int CPktTimeWindow::getPktRcvSpeed() const
       return (int)ceil(1000000.0 / (sum / count));
    else
       return 0;
-}
-
-bool CPktTimeWindow::getDelayTrend() const
-{
-   double pct = 0.0;
-   double pdt = 0.0;
-
-   for (int i = 0, n = m_iRWSize; i < n; ++ i)
-      if (i != m_iRTTWindowPtr)
-      {
-         pct += m_piPCTWindow[i];
-         pdt += m_piPDTWindow[i];
-      }
-
-   // calculate PCT and PDT value
-   pct /= m_iRWSize - 1;
-   if (0 != pdt)
-      pdt = (m_piRTTWindow[(m_iRTTWindowPtr - 1 + m_iRWSize) % m_iRWSize] - m_piRTTWindow[m_iRTTWindowPtr]) / pdt;
-
-   // PCT/PDT judgement
-   // reference: M. Jain, C. Dovrolis, Pathload: a measurement tool for end-to-end available bandwidth
-   return ((pct > 0.66) && (pdt > 0.45)) || ((pct > 0.54) && (pdt > 0.55));
 }
 
 int CPktTimeWindow::getBandwidth() const
@@ -338,17 +291,6 @@ void CPktTimeWindow::onPktArrival()
 
    // remember last packet arrival time
    m_LastArrTime = m_CurrArrTime;
-}
-
-void CPktTimeWindow::ack2Arrival(const int& rtt)
-{
-   // record RTT, comparison (1 or 0), and absolute difference
-   m_piRTTWindow[m_iRTTWindowPtr] = rtt;
-   m_piPCTWindow[m_iRTTWindowPtr] = (rtt > m_piRTTWindow[(m_iRTTWindowPtr - 1 + m_iRWSize) % m_iRWSize]) ? 1 : 0;
-   m_piPDTWindow[m_iRTTWindowPtr] = abs(rtt - m_piRTTWindow[(m_iRTTWindowPtr - 1 + m_iRWSize) % m_iRWSize]);
-
-   // the window is logically circular
-   m_iRTTWindowPtr = (m_iRTTWindowPtr + 1) % m_iRWSize;
 }
 
 void CPktTimeWindow::probe1Arrival()
