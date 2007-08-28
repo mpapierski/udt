@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/26/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/28/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -523,7 +523,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    req->m_iType = m_iSockType;
    req->m_iMSS = m_iMSS;
    req->m_iFlightFlagSize = (m_iUDTBufSize < m_iFlightFlagSize)? m_iUDTBufSize : m_iFlightFlagSize;
-   req->m_iReqType = (!m_bRendezvous) ? 1 : 2;
+   req->m_iReqType = (!m_bRendezvous) ? 1 : 0;
    req->m_iID = m_SocketID;
 
    // Random Initial Sequence Number
@@ -566,7 +566,7 @@ void CUDT::connect(const sockaddr* serv_addr)
             if (1 == res->m_iReqType)
                response.setLength(-1);
             else
-               req->m_iReqType = -2;
+               req->m_iReqType = -1;
          }
       }
 

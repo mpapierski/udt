@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
    hints.ai_socktype = SOCK_STREAM;
    //hints.ai_socktype = SOCK_DGRAM;
 
-   if (0 != getaddrinfo(NULL, "0", &hints, &local))
+   if (0 != getaddrinfo(NULL, "9000", &hints, &local))
    {
       cout << "incorrect network address.\n" << endl;
       return 0;

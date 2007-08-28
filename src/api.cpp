@@ -30,7 +30,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/26/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/28/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -936,19 +936,19 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
    if (0 != i->second->m_ListenSocket)
    {
       // if it is an accepted socket, remove it from the listener's queue
-      map<UDTSOCKET, CUDTSocket*>::iterator j = m_Sockets.find(i->second->m_ListenSocket);
-      if (j != m_Sockets.end())
+      map<UDTSOCKET, CUDTSocket*>::iterator j1 = m_Sockets.find(i->second->m_ListenSocket);
+      if (j1 != m_Sockets.end())
       {
          #ifndef WIN32
-            pthread_mutex_lock(&(j->second->m_AcceptLock));
+            pthread_mutex_lock(&(j1->second->m_AcceptLock));
          #else
-            WaitForSingleObject(j->second->m_AcceptLock, INFINITE);
+            WaitForSingleObject(j1->second->m_AcceptLock, INFINITE);
          #endif
-         j->second->m_pAcceptSockets->erase(u);
+         j1->second->m_pAcceptSockets->erase(u);
          #ifndef WIN32
-            pthread_mutex_unlock(&(j->second->m_AcceptLock));
+            pthread_mutex_unlock(&(j1->second->m_AcceptLock));
          #else
-            ReleaseMutex(j->second->m_AcceptLock);
+            ReleaseMutex(j1->second->m_AcceptLock);
          #endif
       }
    }
@@ -960,11 +960,11 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
          WaitForSingleObject(i->second->m_AcceptLock, INFINITE);
       #endif
       // if it is a listener, remove all un-accepted sockets in its queue
-      for (set<UDTSOCKET>::iterator j = i->second->m_pQueuedSockets->begin(); j != i->second->m_pQueuedSockets->end(); ++ j)
+      for (set<UDTSOCKET>::iterator j2 = i->second->m_pQueuedSockets->begin(); j2 != i->second->m_pQueuedSockets->end(); ++ j2)
       {
-         m_Sockets[*j]->m_pUDT->close();
-         delete m_Sockets[*j];
-         m_Sockets.erase(*j);
+         m_Sockets[*j2]->m_pUDT->close();
+         delete m_Sockets[*j2];
+         m_Sockets.erase(*j2);
 
          if (m != m_vMultiplexer.end())
             m->m_iRefCount --;
