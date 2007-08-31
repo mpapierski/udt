@@ -30,7 +30,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/28/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/31/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -825,8 +825,11 @@ CUDTSocket* CUDTUnited::locate(const UDTSOCKET u)
 
    if (i == m_Sockets.end())
       return NULL;
-   else
-      return i->second;
+
+   if (i->second->m_Status == CUDTSocket::CLOSED)
+      return NULL;
+
+   return i->second;
 }
 
 CUDTSocket* CUDTUnited::locate(const UDTSOCKET u, const sockaddr* peer, const UDTSOCKET& id, const int32_t& isn)

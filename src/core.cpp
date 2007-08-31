@@ -719,7 +719,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pCC->setBandwidth(m_iBandwidth);
    m_pCC->init();
 
-   // register this socket for receiving data packet
+   // register this socket for receiving data packets
    m_pRcvQueue->m_pRcvUList->newEntry(this);
 
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;

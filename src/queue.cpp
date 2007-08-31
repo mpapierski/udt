@@ -28,7 +28,7 @@ This file contains the implementation of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/29/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 08/31/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1071,7 +1071,10 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
          if (u->m_bConnected && !u->m_bBroken)
             self->m_pRcvUList->update(id);
          else
+         {
             self->m_pRcvUList->remove(id);
+            self->m_pHash->remove(id);
+         }
       }
 
 TIMER_CHECK:
