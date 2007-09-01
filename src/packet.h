@@ -46,7 +46,7 @@ class CPacket
 {
 friend class CChannel;
 friend class CSndQueue;
-friend class CHash;
+friend class CRcvQueue;
 
 public:
    int32_t& m_iSeqNo;                   // alias: sequence number
@@ -162,6 +162,15 @@ public:
       //    packet header field [1] (bit 3~31).
 
    int32_t getMsgSeq() const;
+
+      // Functionality:
+      //    Clone this packet.
+      // Parameters:
+      //    None.
+      // Returned value:
+      //    Pointer to the new packet.
+
+   CPacket* clone() const;
 
 protected:
    uint32_t m_nHeader[4];               // The 128-bit header field

@@ -39,6 +39,7 @@ written by
 #include "packet.h"
 #include "channel.h"
 #include <vector>
+#include <map>
 
 class CUDT;
 
@@ -294,26 +295,6 @@ public:
    CUDT* lookup(const int32_t& id);
 
       // Functionality:
-      //    Retrive a received packet that is temporally stored in the hash table.
-      // Parameters:
-      //    1) [in] id: socket ID
-      //    2) [out] packet: the returned packet
-      // Returned value:
-      //    Data length of the packet, or -1.
-
-   int retrieve(const int32_t& id, CPacket& packet);
-
-      // Functionality:
-      //    Store a packet in the hash table.
-      // Parameters:
-      //    1) [in] id: socket ID
-      //    2) [in] unit: information for the packet
-      // Returned value:
-      //    None.
-
-   void setUnit(const int32_t& id, CUnit* unit);
-
-      // Functionality:
       //    Insert an entry to the hash table.
       // Parameters:
       //    1) [in] id: socket ID
@@ -339,8 +320,6 @@ private:
       CUDT* m_pUDT;		// Socket instance
 
       CBucket* m_pNext;		// next bucket
-
-      CUnit* m_pUnit;		// tempory buffer for a received packet
    } **m_pBucket;		// list of buckets (the hash table)
 
    int m_iHashSize;		// size of hash table
@@ -478,8 +457,10 @@ private:
    CChannel* m_pChannel;	// UDP channel for receving packets
    CTimer* m_pTimer;		// shared timer with the snd queue
 
+   std::map<int32_t, CPacket*> m_mBuffer;
    pthread_mutex_t m_PassLock;
    pthread_cond_t m_PassCond;
+
    pthread_mutex_t m_IDLock;
 
    volatile UDTSOCKET m_ListenerID;		// The only listening socket that is associated to the queue, if there is one
