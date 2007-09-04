@@ -28,7 +28,7 @@ This header file contains the definition of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/23/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/04/2007
 *****************************************************************************/
 
 
@@ -231,41 +231,11 @@ public:
 
    void update(const int32_t& id);
 
-      // Functionality:
-      //    Insert a new UDT instance to the new entry list.
-      // Parameters:
-      //    1) [in] u: pointer to the UDT instance
-      // Returned value:
-      //    None.
-
-   void newEntry(CUDT* u);
-
-      // Functionality:
-      //    Check if there is a new entry to be inserted to the rcv u list
-      // Parameters:
-      //    None.
-      // Returned value:
-      //    True if yes, otherwise false.
-
-   bool ifNewEntry();
-
-      // Functionality:
-      //    Pick the first new entry on the waiting list.
-      // Parameters:
-      //    None.
-      // Returned value:
-      //    Pointer to a UDT instance.
-
-   CUDT* newEntry();
-
 public:
    CUDTList* m_pUList;		// the head node
 
 private:
    CUDTList* m_pLast;		// the last node
-
-   std::vector<CUDT*> m_vNewEntry;	// newly added entries, to be inserted
-   pthread_mutex_t m_ListLock;
 };
 
 class CHash
@@ -332,9 +302,9 @@ public:
    ~CRendezvousQueue();
 
 public:
-   void insert(const UDTSOCKET& id, const int& ipv, const sockaddr* addr);
+   void insert(const UDTSOCKET& id, const int& ipv, const sockaddr* addr, CUDT* u);
    void remove(const UDTSOCKET& id);
-   bool retrieve(const sockaddr* addr, UDTSOCKET& id, const UDTSOCKET& peerid);
+   bool retrieve(const sockaddr* addr, UDTSOCKET& id, const UDTSOCKET& peerid, CUDT*& u);
 
 private:
    struct CRL
@@ -343,6 +313,7 @@ private:
       UDTSOCKET m_iPeerID;
       int m_iIPversion;
       sockaddr* m_pPeerAddr;
+      CUDT* m_pUDT;
    };
    std::vector<CRL> m_vRendezvousID;         // The sockets currently in rendezvous mode
 
@@ -437,10 +408,6 @@ public:
    int recvfrom(const int32_t& id, CPacket& packet);
 
 private:
-   int setListenerID(const UDTSOCKET& id);
-   void removeListenerID(const UDTSOCKET& id);
-
-private:
 #ifndef WIN32
    static void* worker(void* param);
 #else
@@ -457,18 +424,29 @@ private:
    CChannel* m_pChannel;	// UDP channel for receving packets
    CTimer* m_pTimer;		// shared timer with the snd queue
 
+   int m_iPayloadSize;                  // packet payload size
+
+   volatile bool m_bClosing;            // closing the workder
+
    std::map<int32_t, CPacket*> m_mBuffer;
    pthread_mutex_t m_PassLock;
    pthread_cond_t m_PassCond;
 
-   pthread_mutex_t m_IDLock;
+private:
+   int setListener(const CUDT* u);
+   void removeListener(const CUDT* u);
 
-   volatile UDTSOCKET m_ListenerID;		// The only listening socket that is associated to the queue, if there is one
+   void setNewEntry(CUDT* u);
+   bool ifNewEntry();
+   CUDT* getNewEntry();
+
+private:
+   pthread_mutex_t m_LSLock;
+   volatile CUDT* m_pListener;			// pointer to the (unique, if any) listening UDT entity
    CRendezvousQueue* m_pRendezvousQueue;	// The list of sockets in rendezvous mode
 
-   int m_iPayloadSize;			// packet payload size
-
-   volatile bool m_bClosing;		// closing the workder
+   std::vector<CUDT*> m_vNewEntry;              // newly added entries, to be inserted
+   pthread_mutex_t m_IDLock;
 };
 
 

@@ -30,7 +30,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/31/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/04/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1044,7 +1044,6 @@ void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr)
                ++ i->m_iRefCount;
                u->m_pSndQueue = i->m_pSndQueue;
                u->m_pRcvQueue = i->m_pRcvQueue;
-               u->m_pRcvQueue->m_pHash->insert(u->m_SocketID, u);
                return;
             }
          }
@@ -1089,7 +1088,6 @@ void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr)
 
    u->m_pSndQueue = m.m_pSndQueue;
    u->m_pRcvQueue = m.m_pRcvQueue;
-   u->m_pRcvQueue->m_pHash->insert(u->m_SocketID, u);
 }
 
 void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
@@ -1107,7 +1105,6 @@ void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
          ++ i->m_iRefCount;
          u->m_pSndQueue = i->m_pSndQueue;
          u->m_pRcvQueue = i->m_pRcvQueue;
-         u->m_pRcvQueue->m_pHash->insert(u->m_SocketID, u);
          return;
       }
    }

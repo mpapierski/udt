@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/29/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/04/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -487,7 +487,7 @@ void CUDT::listen()
       return;
 
    // if there is already another socket listening on the same port
-   if (m_pRcvQueue->setListenerID(m_SocketID) < 0)
+   if (m_pRcvQueue->setListener(this) < 0)
       throw CUDTException(5, 11, 0);
 
    m_bListening = true;
@@ -508,7 +508,7 @@ void CUDT::connect(const sockaddr* serv_addr)
 
    // rendezvous mode check in
    if (m_bRendezvous)
-      m_pRcvQueue->m_pRendezvousQueue->insert(m_SocketID, m_iIPversion, serv_addr);
+      m_pRcvQueue->m_pRendezvousQueue->insert(m_SocketID, m_iIPversion, serv_addr, this);
 
    CPacket request;
    char* reqdata = new char [m_iPayloadSize];
@@ -643,7 +643,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pCC->init();
 
    // register this socket for receiving data packets
-   m_pRcvQueue->m_pRcvUList->newEntry(this);
+   m_pRcvQueue->setNewEntry(this);
 
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
    memcpy(m_pPeerAddr, serv_addr, (AF_INET == m_iIPversion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
@@ -720,7 +720,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pCC->init();
 
    // register this socket for receiving data packets
-   m_pRcvQueue->m_pRcvUList->newEntry(this);
+   m_pRcvQueue->setNewEntry(this);
 
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
    memcpy(m_pPeerAddr, peer, (AF_INET == m_iIPversion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
@@ -763,7 +763,7 @@ void CUDT::close()
    if (m_bListening)
    {
       m_bListening = false;
-      m_pRcvQueue->removeListenerID(m_SocketID);
+      m_pRcvQueue->removeListener(this);
    }
    if (m_bConnected)
    {
