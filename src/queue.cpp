@@ -840,7 +840,7 @@ m_pRendezvousQueue(NULL)
       m_PassLock = CreateMutex(NULL, false, NULL);
       m_PassCond = CreateEvent(NULL, false, false, NULL);
       m_LSLock = CreateMutex(NULL, false, NULL);
-      m_LDLock = CreateMutex(NULL, false, NULL);
+      m_IDLock = CreateMutex(NULL, false, NULL);
    #endif
 
    m_vNewEntry.clear();
