@@ -29,7 +29,7 @@ mutex facility, and exception processing.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/26/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/06/2007
 *****************************************************************************/
 
 
@@ -571,7 +571,7 @@ bool CIPAddress::ipcmp(const sockaddr* addr1, const sockaddr* addr2, const int& 
       if (a1->sin6_port == a2->sin6_port)
       {
          for (int i = 0; i < 16; ++ i)
-            if (*((char*)&(a1->sin6_addr) + i) != *((char*)&(a1->sin6_addr) + i))
+            if (*((char*)&(a1->sin6_addr) + i) != *((char*)&(a2->sin6_addr) + i))
                return false;
 
          return true;
