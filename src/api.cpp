@@ -30,12 +30,10 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/04/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/07/2007
 *****************************************************************************/
 
-#ifndef WIN32
-   #include <unistd.h>
-#else
+#ifdef _WIN32
    #include <winsock2.h>
    #include <ws2tcpip.h>
 #endif
