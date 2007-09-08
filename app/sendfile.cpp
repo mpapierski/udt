@@ -1,4 +1,4 @@
-#ifndef __WIN32
+#ifndef WIN32
    #include <cstdlib>
 #else
    #include <winsock2.h>

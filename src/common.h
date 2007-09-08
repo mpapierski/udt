@@ -28,7 +28,7 @@ This header file contains the definitions of common types and utility classes.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 04/14/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/08/2007
 *****************************************************************************/
 
 #ifndef __UDT_COMMON_H__
@@ -38,9 +38,6 @@ written by
 #ifndef WIN32
    #include <sys/time.h>
    #include <sys/uio.h>
-   #include <sys/types.h>
-   #include <sys/socket.h>
-   #include <netinet/in.h>
    #include <pthread.h>
 #else
    #include <windows.h>
@@ -60,16 +57,6 @@ written by
       int iov_len;
       char* iov_base;
    };
-#endif
-
-#ifdef UNIX
-   #define usleep(usec) \
-   { \
-      struct timeval _timeout; \
-      _timeout.tv_sec  = 0; \
-      _timeout.tv_usec = usec; \
-      ::select (0, NULL, NULL, NULL, &_timeout); \
-   }
 #endif
 
 

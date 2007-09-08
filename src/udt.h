@@ -28,7 +28,7 @@ This is the (only) header file of the UDT API, needed for programming with UDT.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/23/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/08/2007
 *****************************************************************************/
 
 #ifndef _UDT_H_

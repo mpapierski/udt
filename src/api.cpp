@@ -33,7 +33,7 @@ written by
    Yunhong Gu [gu@lac.uic.edu], last updated 09/07/2007
 *****************************************************************************/
 
-#ifdef _WIN32
+#ifdef WIN32
    #include <winsock2.h>
    #include <ws2tcpip.h>
 #endif

@@ -29,12 +29,11 @@ mutex facility, and exception processing.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/06/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/07/2007
 *****************************************************************************/
 
 
 #ifndef WIN32
-   #include <unistd.h>
    #include <cstring>
    #include <cstdlib>
    #include <cerrno>
@@ -116,7 +115,10 @@ uint64_t CTimer::readCPUFrequency()
       uint64_t t1, t2;
 
       rdtsc(t1);
-      usleep(100000);
+      timespec ts;
+      ts.tv_sec = 0;
+      ts.tv_nsec = 100000000;
+      nanosleep(&ts, NULL);
       rdtsc(t2);
 
       // CPU clocks per microsecond
