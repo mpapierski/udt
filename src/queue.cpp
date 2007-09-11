@@ -28,7 +28,7 @@ This file contains the implementation of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/08/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/10/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -174,7 +174,7 @@ int CUnitQueue::increase()
 
 int CUnitQueue::shrink()
 {
-   // currently queue cannot be shrinked.
+   // currently queue cannot be shrunk.
    return -1;
 }
 
@@ -944,51 +944,56 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
       if (0 == id)
       {
          if (NULL != self->m_pListener)
-            u = (CUDT*)self->m_pListener;
-         else
-            self->m_pRendezvousQueue->retrieve(addr, id, ((CHandShake*)unit->m_Packet.m_pcData)->m_iID, u);
-      }
-      else
-         u = self->m_pHash->lookup(id);
-
-      if (NULL != u)
-      {
-         if (0 == unit->m_Packet.getFlag())
+            ((CUDT*)self->m_pListener)->listen(addr, unit->m_Packet);
+         else if (self->m_pRendezvousQueue->retrieve(addr, id, ((CHandShake*)unit->m_Packet.m_pcData)->m_iID, u))
          {
             if (u->m_bConnected && !u->m_bBroken)
-            {
-               u->processData(unit);
-               u->checkTimers();
-               self->m_pRcvUList->update(id);
-            }
-         }
-         else
-         {
-            // process the control packet, pass the connection request to listening socket, or temporally store in hash table
-
-            if (u->m_bConnected && !u->m_bBroken)
-            {
                u->processCtrl(unit->m_Packet);
+            else
+            {
+               #ifndef WIN32
+                  pthread_mutex_lock(&self->m_PassLock);
+                  self->m_mBuffer[id] = unit->m_Packet.clone();
+                  pthread_mutex_unlock(&self->m_PassLock);
+                  pthread_cond_signal(&self->m_PassCond);
+               #else
+                  WaitForSingleObject(self->m_PassLock, INFINITE);
+                  self->m_mBuffer[id] = unit->m_Packet.clone();
+                  ReleaseMutex(self->m_PassLock);
+                  SetEvent(self->m_PassCond);
+               #endif
+            }
+         }
+      }
+      else 
+      {
+         if (NULL != (u = self->m_pHash->lookup(id)))
+         {
+            if (u->m_bConnected && !u->m_bBroken)
+            {
+               if (0 == unit->m_Packet.getFlag())
+                  u->processData(unit);
+               else
+                  u->processCtrl(unit->m_Packet);
+
                u->checkTimers();
                self->m_pRcvUList->update(id);
             }
-            else if (u->m_bListening)
-               u->listen(addr, unit->m_Packet);
          }
-      }
-      else
-      {
-         #ifndef WIN32
-            pthread_mutex_lock(&self->m_PassLock);
-            self->m_mBuffer[id] = unit->m_Packet.clone();
-            pthread_mutex_unlock(&self->m_PassLock);
-            pthread_cond_signal(&self->m_PassCond);
-         #else
-            WaitForSingleObject(self->m_PassLock, INFINITE);
-            self->m_mBuffer[id] = unit->m_Packet.clone();
-            ReleaseMutex(self->m_PassLock);
-            SetEvent(self->m_PassCond);
-         #endif
+         else
+         {
+            #ifndef WIN32
+               pthread_mutex_lock(&self->m_PassLock);
+               self->m_mBuffer[id] = unit->m_Packet.clone();
+               pthread_mutex_unlock(&self->m_PassLock);
+               pthread_cond_signal(&self->m_PassCond);
+            #else
+               WaitForSingleObject(self->m_PassLock, INFINITE);
+               self->m_mBuffer[id] = unit->m_Packet.clone();
+               ReleaseMutex(self->m_PassLock);
+               SetEvent(self->m_PassCond);
+            #endif
+         }
       }
 
 TIMER_CHECK:
@@ -1043,7 +1048,7 @@ int CRcvQueue::recvfrom(const int32_t& id, CPacket& packet)
          timespec timeout;
 
          timeout.tv_sec = now / 1000000 + 1;
-         timeout.tv_nsec = now % 1000000 * 1000;
+         timeout.tv_nsec = (now % 1000000) * 1000;
 
          pthread_cond_timedwait(&m_PassCond, &m_PassLock, &timeout);
       #else
