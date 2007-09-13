@@ -32,7 +32,7 @@ The receiving buffer is a logically circular memeory block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/29/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/13/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -312,11 +312,9 @@ CRcvBuffer::~CRcvBuffer()
 
 int CRcvBuffer::addData(CUnit* unit, int offset)
 {
-   int pos = m_iLastAckPos + offset;
-   if (pos > m_iMaxPos)
-      m_iMaxPos = pos;
-
-   pos %= m_iSize;
+   int pos = (m_iLastAckPos + offset) % m_iSize;
+   if (offset > m_iMaxPos)
+      m_iMaxPos = offset;
 
    if (NULL != m_pUnit[pos])
       return -1;
@@ -406,7 +404,7 @@ void CRcvBuffer::ackData(const int& len)
 {
    m_iLastAckPos = (m_iLastAckPos + len) % m_iSize;
 
-   m_iMaxPos -= len - 1;
+   m_iMaxPos -= len;
 
    CTimer::triggerEvent();
 }
@@ -427,7 +425,7 @@ int CRcvBuffer::getRcvDataSize() const
 
 void CRcvBuffer::dropMsg(const int32_t& msgno)
 {
-   for (int i = 0, n = m_iMaxPos + getRcvDataSize(); i < n; ++ i)
+   for (int i = m_iStartPos, n = (m_iLastAckPos + m_iMaxPos) % m_iSize; i != n; i = (i + 1) % m_iSize)
       if ((NULL != m_pUnit[i]) && (msgno == m_pUnit[i]->m_Packet.m_iMsgNo))
          m_pUnit[i]->m_iFlag = 3;
 }

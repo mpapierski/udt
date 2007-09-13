@@ -28,7 +28,7 @@ This header file contains the definition of structures related to UDT API.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 06/27/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/13/2007
 *****************************************************************************/
 
 #ifndef __UDT_API_H__
@@ -95,6 +95,7 @@ public:
       //    1) [in] type: socket type, SOCK_STREAM or SOCK_DGRAM
       // Returned value:
       //    The new UDT socket ID, or INVALID_SOCK.
+
    UDTSOCKET newSocket(const int& af, const int& type);
 
       // Functionality:
