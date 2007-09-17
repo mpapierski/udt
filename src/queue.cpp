@@ -1008,9 +1008,6 @@ TIMER_CHECK:
          CUDT* u = ul->m_pUDT;
          int32_t id = ul->m_iID;
 
-         CPacket packet;
-         packet.setLength(0);
-
          if (u->m_bConnected && !u->m_bBroken)
          {
             u->checkTimers();
@@ -1037,8 +1034,6 @@ TIMER_CHECK:
 
 int CRcvQueue::recvfrom(const int32_t& id, CPacket& packet)
 {
-   packet.setLength(-1);
-
    CGuard bufferlock(m_PassLock);
 
    map<int32_t, CPacket*>::iterator i = m_mBuffer.find(id);
@@ -1061,11 +1056,17 @@ int CRcvQueue::recvfrom(const int32_t& id, CPacket& packet)
 
       i = m_mBuffer.find(id);
       if (i == m_mBuffer.end())
+      {
+         packet.setLength(-1);
          return -1;
+      }
    }
 
    if (packet.getLength() < i->second->getLength())
+   {
+      packet.setLength(-1);
       return -1;
+   }
 
    memcpy(packet.m_nHeader, i->second->m_nHeader, CPacket::m_iPktHdrSize);
    memcpy(packet.m_pcData, i->second->m_pcData, i->second->getLength());
