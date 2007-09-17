@@ -28,7 +28,7 @@ This header file contains the definition of UDT buffer structure and operations.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 07/28/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/17/2007
 *****************************************************************************/
 
 #ifndef __UDT_BUFFER_H__
@@ -51,9 +51,9 @@ public:
       // Parameters:
       //    0) [in] data: pointer to the user data block.
       //    1) [in] len: size of the block.
-      //    5) [in] ttl: time to live in milliseconds
-      //    6) [in] seqno: sequence number of the first packet in the block, for DGRAM only
-      //    7) [in] order: if the block should be delivered in order, for DGRAM only
+      //    2) [in] ttl: time to live in milliseconds
+      //    3) [in] seqno: sequence number of the first packet in the block, for DGRAM only
+      //    4) [in] order: if the block should be delivered in order, for DGRAM only
       // Returned value:
       //    None.
 
@@ -112,7 +112,7 @@ private:
       int m_iLength;                    // length of the block
 
       uint64_t m_OriginTime;            // original request time
-      int m_iTTL;                       // time to live
+      int m_iTTL;                       // time to live (milliseconds)
       int32_t m_iMsgNo;                 // message number
       int32_t m_iSeqNo;                 // sequence number of first packet
       int m_iInOrder;                   // flag indicating if the block should be delivered in order

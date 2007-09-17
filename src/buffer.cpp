@@ -196,7 +196,7 @@ int CSndBuffer::readData(char** data, const int offset, const int& len, int32_t&
 
    if (p->m_iTTL >= 0)
    {
-      if (int(CTimer::getTime() - p->m_OriginTime) > p->m_iTTL)
+      if ((CTimer::getTime() - p->m_OriginTime) / 1000 > (uint64_t)p->m_iTTL)
       {
          msgno = p->m_iMsgNo;
          seqno = p->m_iSeqNo;
