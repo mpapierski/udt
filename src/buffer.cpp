@@ -32,7 +32,7 @@ The receiving buffer is a logically circular memeory block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/13/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/17/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -487,13 +487,16 @@ bool CRcvBuffer::scanMsg(int& p, int& q, bool& passack)
    //skip all bad msgs at the beginning
    while (m_iStartPos != m_iLastAckPos)
    {
-      if ((1 == m_pUnit[m_iStartPos]->m_iFlag) && (m_pUnit[m_iStartPos]->m_Packet.getMsgBoundary() > 1))
-         break;
+      if (NULL != m_pUnit[m_iStartPos])
+      {
+         if ((1 == m_pUnit[m_iStartPos]->m_iFlag) && (m_pUnit[m_iStartPos]->m_Packet.getMsgBoundary() > 1))
+            break;
 
-      CUnit* tmp = m_pUnit[m_iStartPos];
-      m_pUnit[m_iStartPos] = NULL;
-      tmp->m_iFlag = 0;
-      -- m_pUnitQueue->m_iCount;
+         CUnit* tmp = m_pUnit[m_iStartPos];
+         m_pUnit[m_iStartPos] = NULL;
+         tmp->m_iFlag = 0;
+         -- m_pUnitQueue->m_iCount;
+      }
 
       if (++ m_iStartPos == m_iSize)
          m_iStartPos = 0;
