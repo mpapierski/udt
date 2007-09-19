@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/18/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/19/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -806,7 +806,7 @@ int CUDT::send(char* data, const int& len)
    if (len <= 0)
       return 0;
 
-   if (m_pSndBuffer->getCurrBufSize() > m_iSndQueueLimit)
+   if (m_pSndBuffer->getCurrBufSize() >= m_iSndQueueLimit)
    {
       if (!m_bSynSending)
          throw CUDTException(6, 1, 0);
@@ -850,17 +850,20 @@ int CUDT::send(char* data, const int& len)
    if ((m_iSndTimeOut >= 0) && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize())) 
       return 0; 
 
-   char* buf = new char[len];
-   memcpy(buf, data, len);
+   int size = m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize();
+   if (size > len)
+      size = len;
+   char* buf = new char[size];
+   memcpy(buf, data, size);
 
    // insert the user buffer into the sening list
-   m_pSndBuffer->addBuffer(buf, len);
+   m_pSndBuffer->addBuffer(buf, size);
 
    // insert this socket to snd list if it is not on the list yet
    m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
 
    // UDT either sends nothing or sends all 
-   return len;
+   return size;
 }
 
 int CUDT::recv(char* data, const int& len)
@@ -934,7 +937,10 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
    if (len <= 0)
       return 0;
 
-   if (m_pSndBuffer->getCurrBufSize() > m_iSndQueueLimit)
+   if (len > m_iSndQueueLimit)
+      throw CUDTException(5, 12, 0);
+
+   if (m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize() < len)
    {
       if (!m_bSynSending)
          throw CUDTException(6, 1, 0);
@@ -975,7 +981,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
       }
    }
 
-   if ((m_iSndTimeOut >= 0) && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+   if ((m_iSndTimeOut >= 0) && (m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize() < len))
       return 0;
 
    char* buf = new char[len];

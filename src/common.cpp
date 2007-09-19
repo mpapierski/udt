@@ -29,7 +29,7 @@ mutex facility, and exception processing.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/07/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/19/2007
 *****************************************************************************/
 
 
@@ -456,6 +456,10 @@ const char* CUDTException::getErrorMessage()
            m_strMsg += ": Another socket is already listening on the same port";
            break;
 
+        case 12:
+           m_strMsg += ": Message is too large to send (it must be less than the UDT send buffer size)";
+           break;
+
         default:
            break;
         }
@@ -548,6 +552,7 @@ const int CUDTException::ERDVUNBOUND = 5008;
 const int CUDTException::ESTREAMILL = 5009;
 const int CUDTException::EDGRAMILL = 5010;
 const int CUDTException::EDUPLISTEN = 5011;
+const int CUDTException::ELARGEMSG = 5012;
 const int CUDTException::EASYNCFAIL = 6000;
 const int CUDTException::EASYNCSND = 6001;
 const int CUDTException::EASYNCRCV = 6002;
