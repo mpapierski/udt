@@ -245,7 +245,7 @@ void CSndBuffer::ackData(const int& len, const int& payloadsize)
 
       // Update the size error between regular and irregular packets
       if (0 != m_pCurrAckBlk->m_iLength % payloadsize)
-         m_iCurrAckPnt -= payloadsize - m_pCurrAckBlk->m_iLength % payloadsize;
+         m_iCurrAckPnt -= payloadsize - (m_pCurrAckBlk->m_iLength % payloadsize);
 
       m_iCurrBufSize -= m_pCurrAckBlk->m_iLength;
       m_pCurrAckBlk = m_pCurrAckBlk->m_next;
@@ -486,16 +486,13 @@ bool CRcvBuffer::scanMsg(int& p, int& q, bool& passack)
    //skip all bad msgs at the beginning
    while (m_iStartPos != m_iLastAckPos)
    {
-      if (NULL != m_pUnit[m_iStartPos])
-      {
-         if ((1 == m_pUnit[m_iStartPos]->m_iFlag) && (m_pUnit[m_iStartPos]->m_Packet.getMsgBoundary() > 1))
-            break;
+      if ((1 == m_pUnit[m_iStartPos]->m_iFlag) && (m_pUnit[m_iStartPos]->m_Packet.getMsgBoundary() > 1))
+         break;
 
-         CUnit* tmp = m_pUnit[m_iStartPos];
-         m_pUnit[m_iStartPos] = NULL;
-         tmp->m_iFlag = 0;
-         -- m_pUnitQueue->m_iCount;
-      }
+      CUnit* tmp = m_pUnit[m_iStartPos];
+      m_pUnit[m_iStartPos] = NULL;
+      tmp->m_iFlag = 0;
+      -- m_pUnitQueue->m_iCount;
 
       if (++ m_iStartPos == m_iSize)
          m_iStartPos = 0;
