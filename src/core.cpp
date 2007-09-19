@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/10/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/18/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1381,6 +1381,9 @@ void CUDT::sendCtrl(const int& pkttype, void* lparam, void* rparam, const int& s
       else
          ack = m_pRcvLossList->getFirstLostSeq();
 
+      if (ack == m_iRcvLastAckAck)
+         break;
+
       // send out a lite ACK
       // to save time on buffer processing and bandwidth/AS measurement, a lite ACK only feeds back an ACK number
       if (4 == size)
@@ -1407,11 +1410,11 @@ void CUDT::sendCtrl(const int& pkttype, void* lparam, void* rparam, const int& s
          // signal a waiting "recv" call if there is any data available
          #ifndef WIN32
             pthread_mutex_lock(&m_RecvDataLock);
-            if ((m_bSynRecving) && (0 != m_pRcvBuffer->getRcvDataSize()))
+            if (m_bSynRecving)
                pthread_cond_signal(&m_RecvDataCond);
             pthread_mutex_unlock(&m_RecvDataLock);
          #else
-            if ((m_bSynRecving) && (0 != m_pRcvBuffer->getRcvDataSize()))
+            if (m_bSynRecving)
                SetEvent(m_RecvDataCond);
          #endif
       }
@@ -2054,7 +2057,7 @@ void CUDT::checkTimers()
 
    if ((currtime > m_ullNextACKTime) || ((m_pCC->m_iACKInterval > 0) && (m_pCC->m_iACKInterval <= m_iPktCount)))
    {
-      // ACK timer expired, or user buffer is fulfilled, or ACK interval reached
+      // ACK timer expired or ACK interval reached
 
       sendCtrl(2);
       CTimer::rdtsc(currtime);

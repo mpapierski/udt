@@ -32,7 +32,7 @@ The receiving buffer is a logically circular memeory block.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/19/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -276,7 +276,7 @@ m_iSize(65536),
 m_pUnitQueue(queue),
 m_iStartPos(0),
 m_iLastAckPos(0),
-m_iMaxPos(0),
+m_iMaxPos(-1),
 m_iNotch(0)
 {
    m_pUnit = new CUnit* [m_iSize];
@@ -288,7 +288,7 @@ m_iSize(bufsize),
 m_pUnitQueue(queue),
 m_iStartPos(0),
 m_iLastAckPos(0),
-m_iMaxPos(0),
+m_iMaxPos(-1),
 m_iNotch(0)
 {
    m_pUnit = new CUnit* [m_iSize];
@@ -403,7 +403,6 @@ int CRcvBuffer::readBufferToFile(ofstream& file, const int& len)
 void CRcvBuffer::ackData(const int& len)
 {
    m_iLastAckPos = (m_iLastAckPos + len) % m_iSize;
-
    m_iMaxPos -= len;
 
    CTimer::triggerEvent();
@@ -504,11 +503,11 @@ bool CRcvBuffer::scanMsg(int& p, int& q, bool& passack)
 
    p = -1;                  // message head
    q = m_iStartPos;         // message tail
-   passack = false;
+   passack = m_iStartPos == m_iLastAckPos;
    bool found = false;
 
    // looking for the first message
-   for (int i = 0, n = m_iMaxPos + getRcvDataSize(); i < n; ++ i)
+   for (int i = 0, n = m_iMaxPos + getRcvDataSize(); i <= n; ++ i)
    {
       if ((NULL != m_pUnit[q]) && (1 == m_pUnit[q]->m_iFlag))
       {
