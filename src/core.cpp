@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/19/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/20/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -737,7 +737,7 @@ void CUDT::close()
    if (!m_bOpened)
       return;
 
-   if (0 != m_Linger.l_onoff)
+   if ((0 != m_Linger.l_onoff) && m_bConnected && !m_bBroken)
    {
       uint64_t entertime = CTimer::getTime();
 
@@ -1223,6 +1223,11 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
 
 void CUDT::sample(CPerfMon* perf, bool clear)
 {
+   if (!m_bConnected)
+      throw CUDTException(2, 2, 0);
+   if (m_bBroken)
+      throw CUDTException(2, 1, 0);
+
    uint64_t currtime = CTimer::getTime();
 
    perf->msTimeStamp = (currtime - m_StartTime) / 1000;
