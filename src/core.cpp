@@ -737,7 +737,7 @@ void CUDT::close()
    if (!m_bOpened)
       return;
 
-   if ((0 != m_Linger.l_onoff) && m_bConnected && !m_bBroken)
+   if (0 != m_Linger.l_onoff)
    {
       uint64_t entertime = CTimer::getTime();
 
