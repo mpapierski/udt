@@ -806,7 +806,7 @@ int CUDT::send(char* data, const int& len)
    if (len <= 0)
       return 0;
 
-   if (m_pSndBuffer->getCurrBufSize() >= m_iSndQueueLimit)
+   if (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize())
    {
       if (!m_bSynSending)
          throw CUDTException(6, 1, 0);
@@ -817,7 +817,7 @@ int CUDT::send(char* data, const int& len)
             pthread_mutex_lock(&m_SendBlockLock);
             if (m_iSndTimeOut < 0) 
             { 
-               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize()))
                   pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
             }
             else
@@ -834,7 +834,7 @@ int CUDT::send(char* data, const int& len)
          #else
             if (m_iSndTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize()))
                   WaitForSingleObject(m_SendBlockCond, INFINITE);
             }
             else 
@@ -847,7 +847,7 @@ int CUDT::send(char* data, const int& len)
       }
    }
 
-   if ((m_iSndTimeOut >= 0) && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize())) 
+   if ((m_iSndTimeOut >= 0) || (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize())) 
       return 0; 
 
    int size = m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize();
@@ -981,7 +981,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
       }
    }
 
-   if ((m_iSndTimeOut >= 0) && (m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize() < len))
+   if ((m_iSndTimeOut >= 0) || (m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize() < len))
       return 0;
 
    char* buf = new char[len];
@@ -1134,11 +1134,11 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
 
       #ifndef WIN32
          pthread_mutex_lock(&m_SendBlockLock);
-         while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+         while (!m_bBroken && m_bConnected && (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize()))
             pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
          pthread_mutex_unlock(&m_SendBlockLock);
       #else
-         while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+         while (!m_bBroken && m_bConnected && (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize()))
             WaitForSingleObject(m_SendBlockCond, INFINITE);
       #endif
 
