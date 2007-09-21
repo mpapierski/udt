@@ -988,7 +988,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
    memcpy(buf, data, len);
 
    // insert the user buffer into the sening list
-   m_pSndBuffer->addBuffer(buf, len, msttl, m_iSndCurrSeqNo, inorder);
+   m_pSndBuffer->addBuffer(buf, len, msttl, CSeqNo::incseq(m_iSndCurrSeqNo), inorder);
 
    // insert this socket to the snd list if it is not on the list yet
    m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
@@ -1861,7 +1861,7 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
 
       if (-1 == payload)
       {
-         seqpair[1] = CSeqNo::incseq(seqpair[0], msglen / m_iPayloadSize);
+         seqpair[1] = CSeqNo::incseq(seqpair[0], msglen / m_iPayloadSize - ((0 != msglen % m_iPayloadSize) ? 0 : 1));
          sendCtrl(7, &packet.m_iMsgNo, seqpair, 8);
 
          // only one msg drop request is necessary

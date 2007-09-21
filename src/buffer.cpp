@@ -91,7 +91,7 @@ void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, con
       // Insert a block to the empty list   
   
       m_pBlock = new Block;
-      m_pBlock->m_pcData = const_cast<char *>(data);
+      m_pBlock->m_pcData = const_cast<char*>(data);
       m_pBlock->m_iLength = len;
       m_pBlock->m_OriginTime = CTimer::getTime();
       m_pBlock->m_iTTL = ttl;
@@ -115,7 +115,7 @@ void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, con
 
       m_pLastBlock->m_next = new Block;
       m_pLastBlock = m_pLastBlock->m_next;
-      m_pLastBlock->m_pcData = const_cast<char *>(data);
+      m_pLastBlock->m_pcData = const_cast<char*>(data);
       m_pLastBlock->m_iLength = len;
       m_pLastBlock->m_OriginTime = CTimer::getTime();
       m_pLastBlock->m_iTTL = ttl;
