@@ -653,7 +653,6 @@ int CUDTUnited::close(const UDTSOCKET u)
       throw CUDTException(5, 4, 0);
 
    s->m_pUDT->close();
-   CTimer::triggerEvent();
 
    // a socket will not be immediated removed when it is closed
    // in order to prevent other methods from accessing invalid address
@@ -687,6 +686,8 @@ int CUDTUnited::close(const UDTSOCKET u)
          SetEvent(s->m_AcceptCond);
       #endif
    }
+
+   CTimer::triggerEvent();
 
    return 0;
 }
