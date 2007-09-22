@@ -145,7 +145,7 @@ struct CPerfMon
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class CUDTException
+class UDT_API CUDTException
 {
 public:
    CUDTException(int major = 0, int minor = 0, int err = -1);
