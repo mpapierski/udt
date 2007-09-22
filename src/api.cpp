@@ -30,7 +30,7 @@ reference: UDT programming manual and socket programming reference
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/07/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 09/22/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -652,6 +652,15 @@ int CUDTUnited::close(const UDTSOCKET u)
    if (NULL == s)
       throw CUDTException(5, 4, 0);
 
+   s->m_pUDT->close();
+   CTimer::triggerEvent();
+
+   // a socket will not be immediated removed when it is closed
+   // in order to prevent other methods from accessing invalid address
+   // a timer is started and the socket will be removed after approximately 1 second
+   s->m_TimeStamp = CTimer::getTime();
+
+
    CUDTSocket::UDTSTATUS os = s->m_Status;
 
    // synchronize with garbage collection.
@@ -678,15 +687,6 @@ int CUDTUnited::close(const UDTSOCKET u)
          SetEvent(s->m_AcceptCond);
       #endif
    }
-
-   s->m_pUDT->close();
-
-   // a socket will not be immediated removed when it is closed
-   // in order to prevent other methods from accessing invalid address
-   // a timer is started and the socket will be removed after approximately 1 second
-   s->m_TimeStamp = CTimer::getTime();
-
-   CTimer::triggerEvent();
 
    return 0;
 }
