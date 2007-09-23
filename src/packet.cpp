@@ -30,7 +30,7 @@ A UDT packet is a 2-dimension vector of packet header and data.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/22/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 04/27/2007
 *****************************************************************************/
 
 
@@ -190,8 +190,10 @@ void CPacket::pack(const int& pkttype, void* lparam, void* rparam, const int& si
       // ACK packet seq. no.
       m_nHeader[1] = *(int32_t *)lparam;
 
-      m_PacketVector[1].iov_base = NULL;
-      m_PacketVector[1].iov_len = 0;
+      // control info field should be none
+      // but "writev" does not allow this
+      m_PacketVector[1].iov_base = (char *)&__pad; //NULL;
+      m_PacketVector[1].iov_len = 4; //0;
 
       break;
 
@@ -203,14 +205,18 @@ void CPacket::pack(const int& pkttype, void* lparam, void* rparam, const int& si
       break;
 
    case 4: //0100 - Congestion Warning
-      m_PacketVector[1].iov_base = NULL;
-      m_PacketVector[1].iov_len = 0;
+      // control info field should be none
+      // but "writev" does not allow this
+      m_PacketVector[1].iov_base = (char *)&__pad; //NULL;
+      m_PacketVector[1].iov_len = 4; //0;
   
       break;
 
    case 1: //0001 - Keep-alive
-      m_PacketVector[1].iov_base = NULL;
-      m_PacketVector[1].iov_len = 0;
+      // control info field should be none
+      // but "writev" does not allow this
+      m_PacketVector[1].iov_base = (char *)&__pad; //NULL;
+      m_PacketVector[1].iov_len = 4; //0;
 
       break;
 
@@ -222,8 +228,10 @@ void CPacket::pack(const int& pkttype, void* lparam, void* rparam, const int& si
       break;
 
    case 5: //0101 - Shutdown
-      m_PacketVector[1].iov_base = NULL;
-      m_PacketVector[1].iov_len = 0;
+      // control info field should be none
+      // but "writev" does not allow this
+      m_PacketVector[1].iov_base = (char *)&__pad; //NULL;
+      m_PacketVector[1].iov_len = 4; //0;
 
       break;
 
@@ -243,8 +251,16 @@ void CPacket::pack(const int& pkttype, void* lparam, void* rparam, const int& si
       // "rparam" is the control information
       m_nHeader[0] |= (*(int32_t *)lparam) << 16;
 
-      m_PacketVector[1].iov_base = (char *)rparam;
-      m_PacketVector[1].iov_len = size;
+      if (NULL != rparam)
+      {
+         m_PacketVector[1].iov_base = (char *)rparam;
+         m_PacketVector[1].iov_len = size;
+      }
+      else
+      {
+         m_PacketVector[1].iov_base = (char *)&__pad;
+         m_PacketVector[1].iov_len = 4;
+      }
 
       break;
 
