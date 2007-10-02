@@ -28,7 +28,7 @@ This header file contains the definition of UDT/CCC base class.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 10/01/2007
 *****************************************************************************/
 
 
@@ -169,7 +169,7 @@ void CUDTCC::onACK(const int32_t& ack)
       return;
    }
 
-   int B = (int)(m_iBandwidth - 1000000.0 / m_dPktSndPeriod);
+   int64_t B = (int64_t)(m_iBandwidth - 1000000.0 / m_dPktSndPeriod);
    if ((m_dPktSndPeriod > m_dLastDecPeriod) && ((m_iBandwidth / 9) < B))
       B = m_iBandwidth / 9;
 

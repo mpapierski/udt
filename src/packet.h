@@ -178,6 +178,7 @@ protected:
 
    int32_t __pad;
 
+protected:
    void operator = (const CPacket&) {}
 };
 
