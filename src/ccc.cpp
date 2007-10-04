@@ -28,7 +28,7 @@ This header file contains the definition of UDT/CCC base class.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 10/01/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 10/03/2007
 *****************************************************************************/
 
 
@@ -157,7 +157,7 @@ void CUDTCC::onACK(const int32_t& ack)
       }
    }
    else
-      m_dCWndSize = m_dCWndSize * 0.875 + m_iRcvRate / 1000000.0 * (m_iRTT + m_iRCInterval) * 0.125 + 16;
+      m_dCWndSize = m_dCWndSize * 0.875 + m_iRcvRate / 1000000.0 * (m_iRTT + m_iRCInterval) * 0.125;
 
    // During Slow Start, no rate increase
    if (m_bSlowStart)
