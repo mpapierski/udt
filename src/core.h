@@ -28,7 +28,7 @@ This header file contains the definition of UDT core structure and operations.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 08/17/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 10/04/2007
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -284,6 +284,7 @@ private: // Status
    int m_iBandwidth;                            // Estimated bandwidth
    int m_iRTT;                                  // RTT
    int m_iRTTVar;                               // RTT varianc
+   int m_iDeliveryRate;				// Packet arrival rate at the receiver side
 
 private: // Sending related data
    CSndBuffer* m_pSndBuffer;                    // Sender buffer

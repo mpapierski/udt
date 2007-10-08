@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 10/03/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 10/04/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -98,7 +98,7 @@ CUDT::CUDT()
    m_bSynRecving = true;
    m_iFlightFlagSize = 25600;
    m_iSndQueueLimit = 20000000;
-   m_iUDTBufSize = 25600;
+   m_iUDTBufSize = 6400;
    m_Linger.l_onoff = 1;
    m_Linger.l_linger = 180;
    m_iUDPSndBufSize = 65536;
@@ -420,6 +420,7 @@ void CUDT::open()
 
    m_iEXPCount = 1;
    m_iBandwidth = 1;
+   m_iDeliveryRate = 16;
    m_iAckSeqNo = 0;
    m_ullLastAckTime = 0;
 
@@ -637,7 +638,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pCC->setMSS(m_iMSS);
    m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
    m_pCC->setSndCurrSeqNo(m_iSndCurrSeqNo);
-   m_pCC->setRcvRate(0);
+   m_pCC->setRcvRate(m_iDeliveryRate);
    m_pCC->setRTT(m_iRTT);
    m_pCC->setBandwidth(m_iBandwidth);
    m_pCC->init();
@@ -714,7 +715,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pCC->setMSS(m_iMSS);
    m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
    m_pCC->setSndCurrSeqNo(m_iSndCurrSeqNo);
-   m_pCC->setRcvRate(0);
+   m_pCC->setRcvRate(m_iDeliveryRate);
    m_pCC->setRTT(m_iRTT);
    m_pCC->setBandwidth(m_iBandwidth);
    m_pCC->init();
@@ -1624,7 +1625,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
       if (CSeqNo::seqcmp(ack, const_cast<int32_t&>(m_iSndLastAck)) >= 0)
       {
-         // Update Flow Window Size, must update before and together m_iSndLastAck
+         // Update Flow Window Size, must update before and together with m_iSndLastAck
          m_iFlowWindowSize = *((int32_t *)ctrlpkt.m_pcData + 3);
          m_iSndLastAck = ack;
       }
@@ -1681,11 +1682,14 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
       if (ctrlpkt.getLength() > 16)
       {
-         // Update Estimated Bandwidth
+         // Update Estimated Bandwidth and packet delivery rate
+         if (*((int32_t *)ctrlpkt.m_pcData + 4) > 0)
+            m_iDeliveryRate = (m_iDeliveryRate * 7 + *((int32_t *)ctrlpkt.m_pcData + 4)) >> 3;
+
          if (*((int32_t *)ctrlpkt.m_pcData + 5) > 0)
             m_iBandwidth = (m_iBandwidth * 7 + *((int32_t *)ctrlpkt.m_pcData + 5)) >> 3;
 
-         m_pCC->setRcvRate(*((int32_t *)ctrlpkt.m_pcData + 4));
+         m_pCC->setRcvRate(m_iDeliveryRate);
          m_pCC->setBandwidth(m_iBandwidth);
       }
 
