@@ -33,7 +33,7 @@ UDT protocol specification (draft-gg-udt-xx.txt)
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 10/04/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 10/10/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1574,26 +1574,11 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 {
    // Just heard from the peer, reset the expiration count.
    m_iEXPCount = 1;
-   m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-   if (CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck)
+   if ((CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck) || (2 == ctrlpkt.getType()) || (3 == ctrlpkt.getType()))
    {
       CTimer::rdtsc(m_ullNextEXPTime);
       m_ullNextEXPTime += m_ullEXPInt;
    }
-
-   if ((2 == ctrlpkt.getType()) || (6 == ctrlpkt.getType()))
-   {
-      m_ullNAKInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency;
-      //do not resent the loss report within too short period
-      if (m_ullNAKInt < m_ullSYNInt)
-         m_ullNAKInt = m_ullSYNInt;
-   }
-
-   uint64_t currtime;
-   CTimer::rdtsc(currtime);
-   if ((2 <= ctrlpkt.getType()) && (4 >= ctrlpkt.getType()))
-      m_ullNextEXPTime = currtime + m_ullEXPInt;
-
 
    switch (ctrlpkt.getType())
    {
@@ -1678,6 +1663,10 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       // Update RTT
       m_iRTT = *((int32_t *)ctrlpkt.m_pcData + 1);
       m_iRTTVar = *((int32_t *)ctrlpkt.m_pcData + 2);
+
+      m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+      m_ullNAKInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+
       m_pCC->setRTT(m_iRTT);
 
       if (ctrlpkt.getLength() > 16)
@@ -1707,7 +1696,6 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       {
       int32_t ack;
       int rtt = -1;
-      //timeval currtime;
 
       // update RTT
       rtt = m_pACKWindow->acknowledge(ctrlpkt.getAckSeqNo(), ack);
@@ -1721,6 +1709,9 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       // RTT EWMA
       m_iRTTVar = (m_iRTTVar * 3 + abs(rtt - m_iRTT)) >> 2;
       m_iRTT = (m_iRTT * 7 + rtt) >> 3;
+
+      m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+      m_ullNAKInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
 
       // update last ACK that has been received by the sender
       if (CSeqNo::seqcmp(ack, m_iRcvLastAckAck) > 0)

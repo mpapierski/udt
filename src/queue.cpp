@@ -28,7 +28,7 @@ This file contains the implementation of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/16/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 10/11/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -844,6 +844,7 @@ m_pRendezvousQueue(NULL)
    #endif
 
    m_vNewEntry.clear();
+   m_mBuffer.clear();
 }
 
 CRcvQueue::~CRcvQueue()
@@ -868,6 +869,12 @@ CRcvQueue::~CRcvQueue()
    delete m_pRcvUList;
    delete m_pHash;
    delete m_pRendezvousQueue;
+
+   for (map<int32_t, CPacket*>::iterator i = m_mBuffer.begin(); i != m_mBuffer.end(); ++ i)
+   {
+      delete [] i->second->m_pcData;
+      delete i->second;
+   }
 }
 
 void CRcvQueue::init(const int& qsize, const int& payload, const int& version, const int& hsize, const CChannel* cc, const CTimer* t)
@@ -950,19 +957,7 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
             if (u->m_bConnected && !u->m_bBroken)
                u->processCtrl(unit->m_Packet);
             else
-            {
-               #ifndef WIN32
-                  pthread_mutex_lock(&self->m_PassLock);
-                  self->m_mBuffer[id] = unit->m_Packet.clone();
-                  pthread_mutex_unlock(&self->m_PassLock);
-                  pthread_cond_signal(&self->m_PassCond);
-               #else
-                  WaitForSingleObject(self->m_PassLock, INFINITE);
-                  self->m_mBuffer[id] = unit->m_Packet.clone();
-                  ReleaseMutex(self->m_PassLock);
-                  SetEvent(self->m_PassCond);
-               #endif
-            }
+               self->storePkt(id, unit->m_Packet.clone());
          }
       }
       else 
@@ -981,19 +976,7 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
             }
          }
          else
-         {
-            #ifndef WIN32
-               pthread_mutex_lock(&self->m_PassLock);
-               self->m_mBuffer[id] = unit->m_Packet.clone();
-               pthread_mutex_unlock(&self->m_PassLock);
-               pthread_cond_signal(&self->m_PassCond);
-            #else
-               WaitForSingleObject(self->m_PassLock, INFINITE);
-               self->m_mBuffer[id] = unit->m_Packet.clone();
-               ReleaseMutex(self->m_PassLock);
-               SetEvent(self->m_PassCond);
-            #endif
-         }
+            self->storePkt(id, unit->m_Packet.clone());
       }
 
 TIMER_CHECK:
@@ -1073,6 +1056,7 @@ int CRcvQueue::recvfrom(const int32_t& id, CPacket& packet)
    packet.setLength(i->second->getLength());
 
    delete [] i->second->m_pcData;
+   delete i->second;
    m_mBuffer.erase(i);
 
    return packet.getLength();
@@ -1119,4 +1103,32 @@ CUDT* CRcvQueue::getNewEntry()
    m_vNewEntry.erase(m_vNewEntry.begin());
 
    return u;
+}
+
+void CRcvQueue::storePkt(const int32_t& id, CPacket* pkt)
+{
+   #ifndef WIN32
+      pthread_mutex_lock(&m_PassLock);
+   #else
+      WaitForSingleObject(m_PassLock, INFINITE);
+   #endif
+
+   map<int32_t, CPacket*>::iterator i = m_mBuffer.find(id);
+
+   if (i == m_mBuffer.end())
+      m_mBuffer[id] = pkt;
+   else
+   {
+      delete [] i->second->m_pcData;
+      delete i->second;
+      i->second = pkt;
+   }
+
+   #ifndef WIN32
+      pthread_mutex_unlock(&m_PassLock);
+      pthread_cond_signal(&m_PassCond);
+   #else
+      ReleaseMutex(m_PassLock);
+      SetEvent(m_PassCond);
+   #endif
 }

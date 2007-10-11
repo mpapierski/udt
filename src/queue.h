@@ -28,7 +28,7 @@ This header file contains the definition of UDT multiplexer.
 
 /*****************************************************************************
 written by
-   Yunhong Gu [gu@lac.uic.edu], last updated 09/04/2007
+   Yunhong Gu [gu@lac.uic.edu], last updated 10/11/2007
 *****************************************************************************/
 
 
@@ -417,20 +417,16 @@ private:
    pthread_t m_WorkerThread;
 
 private:
-   CUnitQueue m_UnitQueue;	// The received packet queue
+   CUnitQueue m_UnitQueue;		// The received packet queue
 
-   CRcvUList* m_pRcvUList;	// List of UDT instances that will read packets from the queue
-   CHash* m_pHash;		// Hash table for UDT socket looking up
-   CChannel* m_pChannel;	// UDP channel for receving packets
-   CTimer* m_pTimer;		// shared timer with the snd queue
+   CRcvUList* m_pRcvUList;		// List of UDT instances that will read packets from the queue
+   CHash* m_pHash;			// Hash table for UDT socket looking up
+   CChannel* m_pChannel;		// UDP channel for receving packets
+   CTimer* m_pTimer;			// shared timer with the snd queue
 
    int m_iPayloadSize;                  // packet payload size
 
    volatile bool m_bClosing;            // closing the workder
-
-   std::map<int32_t, CPacket*> m_mBuffer;
-   pthread_mutex_t m_PassLock;
-   pthread_cond_t m_PassCond;
 
 private:
    int setListener(const CUDT* u);
@@ -440,6 +436,8 @@ private:
    bool ifNewEntry();
    CUDT* getNewEntry();
 
+   void storePkt(const int32_t& id, CPacket* pkt);
+
 private:
    pthread_mutex_t m_LSLock;
    volatile CUDT* m_pListener;			// pointer to the (unique, if any) listening UDT entity
@@ -447,6 +445,10 @@ private:
 
    std::vector<CUDT*> m_vNewEntry;              // newly added entries, to be inserted
    pthread_mutex_t m_IDLock;
+
+   std::map<int32_t, CPacket*> m_mBuffer;	// temporary buffer for rendezvous connection request
+   pthread_mutex_t m_PassLock;
+   pthread_cond_t m_PassCond;
 };
 
 
