@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 10/04/2007
+   Yunhong Gu, last updated 11/02/2007
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -53,6 +53,8 @@ written by
 #include "ccc.h"
 #include "control.h"
 #include "queue.h"
+
+enum UDTSockType {UDT_STREAM = 1, UDT_DGRAM};
 
 class CUDT
 {
@@ -250,7 +252,7 @@ public:
 
 private: // Identification
    UDTSOCKET m_SocketID;                        // UDT socket number
-   int m_iSockType;                             // Type of the UDT connection (SOCK_STREAM or SOCK_DGRAM)
+   UDTSockType m_iSockType;                     // Type of the UDT connection (SOCK_STREAM or SOCK_DGRAM)
    UDTSOCKET m_PeerID;				// peer id, for multiplexer
    static const int m_iVersion;                 // UDT version, for compatibility use
 

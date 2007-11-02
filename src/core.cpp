@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 10/18/2007
+   Yunhong Gu, last updated 11/02/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -795,7 +795,7 @@ void CUDT::close()
 
 int CUDT::send(char* data, const int& len)
 {
-   if (SOCK_DGRAM == m_iSockType)
+   if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
 
    CGuard sendguard(m_SendLock);
@@ -870,7 +870,7 @@ int CUDT::send(char* data, const int& len)
 
 int CUDT::recv(char* data, const int& len)
 {
-   if (SOCK_DGRAM == m_iSockType)
+   if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
 
    CGuard recvguard(m_RecvLock);
@@ -925,7 +925,7 @@ int CUDT::recv(char* data, const int& len)
 
 int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool& inorder)
 {
-   if (SOCK_STREAM == m_iSockType)
+   if (UDT_STREAM == m_iSockType)
       throw CUDTException(5, 9, 0);
 
    CGuard sendguard(m_SendLock);
@@ -1000,7 +1000,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
 
 int CUDT::recvmsg(char* data, const int& len)
 {
-   if (SOCK_STREAM == m_iSockType)
+   if (UDT_STREAM == m_iSockType)
       throw CUDTException(5, 9, 0);
 
    CGuard recvguard(m_RecvLock);
@@ -1082,7 +1082,7 @@ int CUDT::recvmsg(char* data, const int& len)
 
 int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size, const int& block)
 {
-   if (SOCK_DGRAM == m_iSockType)
+   if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
 
    CGuard sendguard(m_SendLock);
@@ -1171,7 +1171,7 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
 
 int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size, const int& block)
 {
-   if (SOCK_DGRAM == m_iSockType)
+   if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
 
    CGuard recvguard(m_RecvLock);
