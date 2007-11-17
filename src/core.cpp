@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/07/2007
+   Yunhong Gu, last updated 11/16/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1582,6 +1582,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
    if ((CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck) || (2 == ctrlpkt.getType()) || (3 == ctrlpkt.getType()))
    {
       CTimer::rdtsc(m_ullNextEXPTime);
+      m_ullEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;
       m_ullNextEXPTime += m_ullEXPInt;
    }
 
