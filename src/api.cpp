@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/02/2007
+   Yunhong Gu, last updated 11/18/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -130,10 +130,16 @@ CUDTUnited::CUDTUnited()
 
    m_vMultiplexer.clear();
    m_pController = new CControl;
+
+   m_bClosing = false;
+   pthread_create(&m_GCThread, NULL, garbageCollect, this);
 }
 
 CUDTUnited::~CUDTUnited()
 {
+   m_bClosing = true;
+   pthread_join(m_GCThread, NULL);
+
    #ifndef WIN32
       pthread_mutex_destroy(&m_ControlLock);
       pthread_mutex_destroy(&m_IDLock);
@@ -159,9 +165,6 @@ CUDTUnited::~CUDTUnited()
 
 UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
 {
-   // garbage collection before a new socket is created
-   checkBrokenSockets();
-
    if ((type != SOCK_STREAM) && (type != SOCK_DGRAM))
       throw CUDTException(5, 3, 0);
 
@@ -237,9 +240,6 @@ UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
 
 int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHandShake* hs)
 {
-   // garbage collection before a new socket is created
-   checkBrokenSockets();
-
    CUDTSocket* ns;
    CUDTSocket* ls = locate(listen);
 
@@ -1112,6 +1112,27 @@ void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
          return;
       }
    }
+}
+
+#ifndef WIN32
+   void* CUDTUnited::garbageCollect(void* p)
+#else
+   DWORD CUDTUnited::garbageCollect(LPVOID p)
+#endif
+{
+   CUDTUnited* self = (CUDTUnited*)p;
+
+   while (!self->m_bClosing)
+   {
+      self->checkBrokenSockets();
+      sleep(1);
+   }
+
+   #ifndef WIN32
+      return NULL;
+   #else
+      return 0;
+   #endif   
 }
 
 ////////////////////////////////////////////////////////////////////////////////
