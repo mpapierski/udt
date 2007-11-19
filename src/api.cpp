@@ -132,13 +132,22 @@ CUDTUnited::CUDTUnited()
    m_pController = new CControl;
 
    m_bClosing = false;
-   pthread_create(&m_GCThread, NULL, garbageCollect, this);
+   #ifndef WIN32
+      pthread_create(&m_GCThread, NULL, garbageCollect, this);
+   #else
+      DWORD ThreadID;
+      m_GCThread = CreateThread(NULL, 0, garbageCollect, this, NULL, &ThreadID);
+   #endif
 }
 
 CUDTUnited::~CUDTUnited()
 {
    m_bClosing = true;
-   pthread_join(m_GCThread, NULL);
+   #ifndef WIN32
+      pthread_join(m_GCThread, NULL);
+   #else
+      WaitForSingleObject(m_GCThread, INFINITE);
+   #endif
 
    #ifndef WIN32
       pthread_mutex_destroy(&m_ControlLock);
@@ -1117,7 +1126,7 @@ void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
 #ifndef WIN32
    void* CUDTUnited::garbageCollect(void* p)
 #else
-   DWORD CUDTUnited::garbageCollect(LPVOID p)
+   DWORD WINAPI CUDTUnited::garbageCollect(LPVOID p)
 #endif
 {
    CUDTUnited* self = (CUDTUnited*)p;
@@ -1125,7 +1134,11 @@ void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
    while (!self->m_bClosing)
    {
       self->checkBrokenSockets();
-      sleep(1);
+      #ifndef WIN32
+         sleep(1);
+      #else
+         Sleep(1);
+      #endif
    }
 
    #ifndef WIN32

@@ -187,7 +187,7 @@ private:
    #ifndef WIN32
       static void* garbageCollect(void*);
    #else
-      static DWORD garbageCollect(LPVOID);
+      static DWORD WINAPI garbageCollect(LPVOID);
    #endif
 };
 
