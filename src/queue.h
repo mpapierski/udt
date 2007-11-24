@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 10/11/2007
+   Yunhong Gu, last updated 11/24/2007
 *****************************************************************************/
 
 
@@ -136,6 +136,8 @@ struct CUDTList
 
    CUDTList* m_pPrev;		// previous link
    CUDTList* m_pNext;		// next link
+
+   bool m_bOnList;		// if the node is already on the list
 };
 
 
@@ -159,15 +161,6 @@ public:
       //    None.
 
    void insert(const int64_t& ts, const int32_t& id, const CUDT* u);
-
-      // Functionality:
-      //    Remove UDT instance from the list.
-      // Parameters:
-      //    1) [in] id: Socket ID
-      // Returned value:
-      //    None.
-
-   void remove(const int32_t& id);
 
       // Functionality:
       //    Update the timestamp of the UDT instance on the list.

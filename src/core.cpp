@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/16/2007
+   Yunhong Gu, last updated 11/24/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -439,6 +439,7 @@ void CUDT::open()
    m_pSNode->m_pUDT = this;
    m_pSNode->m_llTimeStamp = 1;
    m_pSNode->m_pPrev = m_pSNode->m_pNext = NULL;
+   m_pSNode->m_bOnList = false;
 
    if (NULL == m_pRNode)
       m_pRNode = new CUDTList;
@@ -446,6 +447,7 @@ void CUDT::open()
    m_pRNode->m_pUDT = this;
    m_pRNode->m_llTimeStamp = 1;
    m_pRNode->m_pPrev = m_pRNode->m_pNext = NULL;
+   m_pRNode->m_bOnList = false;
 
    m_iRTT = 10 * m_iSYNInterval;
    m_iRTTVar = m_iRTT >> 1;
@@ -1582,7 +1584,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
    if ((CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck) || (2 == ctrlpkt.getType()) || (3 == ctrlpkt.getType()))
    {
       CTimer::rdtsc(m_ullNextEXPTime);
-      m_ullEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;
+      m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
       m_ullNextEXPTime += m_ullEXPInt;
    }
 

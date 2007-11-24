@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 10/11/2007
+   Yunhong Gu, last updated 11/24/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -230,11 +230,11 @@ m_pLast(NULL)
 
 CSndUList::~CSndUList()
 {
-#ifndef WIN32
-   pthread_mutex_destroy(&m_ListLock);
-#else
-   CloseHandle(m_ListLock);
-#endif
+   #ifndef WIN32
+      pthread_mutex_destroy(&m_ListLock);
+   #else
+      CloseHandle(m_ListLock);
+   #endif
 }
 
 void CSndUList::insert(const int64_t& ts, const int32_t& id, const CUDT* u)
@@ -242,6 +242,13 @@ void CSndUList::insert(const int64_t& ts, const int32_t& id, const CUDT* u)
    CGuard listguard(m_ListLock);
 
    CUDTList* n = u->m_pSNode;
+
+   // do not insert repeated node
+   if (n->m_bOnList)
+      return;
+
+   n->m_bOnList = true;
+
    n->m_llTimeStamp = ts;
 
    if (NULL == m_pUList)
@@ -262,13 +269,8 @@ void CSndUList::insert(const int64_t& ts, const int32_t& id, const CUDT* u)
    }
 
    // SndUList is sorted by the next processing time
-
    if (n->m_llTimeStamp >= m_pLast->m_llTimeStamp)
    {
-      // do not insert repeated node
-      if (id == m_pLast->m_iID)
-         return;
-
       // insert as the last node
       n->m_pPrev = m_pLast;
       n->m_pNext = NULL;
@@ -277,12 +279,9 @@ void CSndUList::insert(const int64_t& ts, const int32_t& id, const CUDT* u)
 
       return;
    }
-   else if (n->m_llTimeStamp <= m_pUList->m_llTimeStamp)
-   {
-      // do not insert repeated node
-      if (id == m_pUList->m_iID)
-         return;
 
+   if (n->m_llTimeStamp <= m_pUList->m_llTimeStamp)
+   {
       // insert as the first node
       n->m_pPrev = NULL;
       n->m_pNext = m_pUList;
@@ -297,62 +296,53 @@ void CSndUList::insert(const int64_t& ts, const int32_t& id, const CUDT* u)
    while (p->m_llTimeStamp > n->m_llTimeStamp)
       p = p->m_pPrev;
 
-   // do not insert repeated node
-   if ((id == p->m_iID) || (id == p->m_pNext->m_iID) || ((NULL != p->m_pPrev) && (id == p->m_pPrev->m_iID)))
-      return;
-
    n->m_pPrev = p;
    n->m_pNext = p->m_pNext;
    p->m_pNext->m_pPrev = n;
    p->m_pNext = n;
 }
 
-void CSndUList::remove(const int32_t& id)
-{
-   CGuard listguard(m_ListLock);
-
-   if (NULL == m_pUList)
-      return;
-
-   if (id == m_pUList->m_iID)
-   {
-      // check and remove the first node
-      m_pUList = m_pUList->m_pNext;
-      if (NULL == m_pUList)
-         m_pLast = NULL;
-      else
-         m_pUList->m_pPrev = NULL;
-
-      return;
-   }
-
-   // check further
-   CUDTList* p = m_pUList->m_pNext;
-   while (NULL != p)
-   {
-      if (id == p->m_iID)
-      {
-         p->m_pPrev->m_pNext = p->m_pNext;
-         if (NULL != p->m_pNext)
-            p->m_pNext->m_pPrev = p->m_pPrev;
-         else
-            m_pLast = p->m_pPrev;
-
-         return;
-      }
-
-      p = p->m_pNext;
-   }
-}
-
 void CSndUList::update(const int32_t& id, const CUDT* u, const bool& reschedule)
 {
    CGuard listguard(m_ListLock);
 
+   CUDTList* n = u->m_pSNode;
+
+   if (n->m_bOnList)
+   {
+      if (!reschedule)
+         return;
+
+      if (id == m_pUList->m_iID)
+      {
+         m_pUList->m_llTimeStamp = 1;
+         return;
+      }
+
+      // remove the old entry
+      CUDTList* p = m_pUList->m_pNext;
+      while (NULL != p)
+      {
+         if (id == p->m_iID)
+         {
+            p->m_pPrev->m_pNext = p->m_pNext;
+            if (NULL != p->m_pNext)
+               p->m_pNext->m_pPrev = p->m_pPrev;
+            else
+               m_pLast = p->m_pPrev;
+
+            break;
+         }
+
+         p = p->m_pNext;
+      }
+   }
+
+   n->m_bOnList = true;
+
    if (NULL == m_pUList)
    {
       // insert a new entry if the list was empty
-      CUDTList* n = u->m_pSNode;
       n->m_llTimeStamp = 1;
       n->m_pPrev = n->m_pNext = NULL;
       m_pLast = m_pUList = n;
@@ -368,36 +358,7 @@ void CSndUList::update(const int32_t& id, const CUDT* u, const bool& reschedule)
       return;
    }
 
-   if (id == m_pUList->m_iID)
-   {
-      if (reschedule)
-         m_pUList->m_llTimeStamp = 1;
-      return;
-   }
-
-   // remove the old entry
-   CUDTList* p = m_pUList->m_pNext;
-   while (NULL != p)
-   {
-      if (id == p->m_iID)
-      {
-         if (!reschedule)
-            return;
-
-         p->m_pPrev->m_pNext = p->m_pNext;
-         if (NULL != p->m_pNext)
-            p->m_pNext->m_pPrev = p->m_pPrev;
-         else
-            m_pLast = p->m_pPrev;
-
-         break;
-      }
-
-      p = p->m_pNext;
-   }
-
    // insert at head
-   CUDTList* n = u->m_pSNode;
    n->m_llTimeStamp = 1;
    n->m_pPrev = NULL;
    n->m_pNext = m_pUList;
@@ -411,6 +372,8 @@ int CSndUList::pop(int32_t& id, CUDT*& u)
 
    if (NULL == m_pUList)
       return -1;
+
+   m_pUList->m_bOnList = false;
 
    id = m_pUList->m_iID;
    u = m_pUList->m_pUDT;
