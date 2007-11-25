@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/02/2007
+   Yunhong Gu, last updated 11/25/2007
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -153,7 +153,7 @@ private:
       // Returned value:
       //    Actual size of data sent.
 
-   int send(char* data, const int& len);
+   int send(const char* data, const int& len);
 
       // Functionality:
       //    Request UDT to receive data to a memory block "data" with size of "len".

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/24/2007
+   Yunhong Gu, last updated 11/25/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -799,7 +799,7 @@ void CUDT::close()
    m_bOpened = false;
 }
 
-int CUDT::send(char* data, const int& len)
+int CUDT::send(const char* data, const int& len)
 {
    if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
@@ -862,11 +862,9 @@ int CUDT::send(char* data, const int& len)
    int size = m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize();
    if (size > len)
       size = len;
-   char* buf = new char[size];
-   memcpy(buf, data, size);
 
    // insert the user buffer into the sening list
-   m_pSndBuffer->addBuffer(buf, size);
+   m_pSndBuffer->addBuffer(data, size);
 
    // insert this socket to snd list if it is not on the list yet
    m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);

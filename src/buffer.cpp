@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/19/2007
+   Yunhong Gu, last updated 11/25/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -49,6 +49,7 @@ m_pBlock(NULL),
 m_pLastBlock(NULL),
 m_pCurrSendBlk(NULL),
 m_pCurrAckBlk(NULL),
+m_pCachedBlk(NULL),
 m_iCurrBufSize(0),
 m_iCurrSendPnt(0),
 m_iCurrAckPnt(0),
@@ -78,6 +79,8 @@ CSndBuffer::~CSndBuffer()
       m_pBlock = pb;
    }
 
+   delete [] m_pCachedBlk;
+
    #ifndef WIN32
       pthread_mutex_destroy(&m_BufLock);
    #else
@@ -89,13 +92,30 @@ void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, con
 {
    CGuard bufferguard(m_BufLock);
 
+   char* buf = NULL;
+   int plen = 0;
+   if ((NULL != m_pCachedBlk) && (m_pCachedBlk->m_iPhysicalLength >= len))
+   {
+      buf = m_pCachedBlk->m_pcData;
+      plen = m_pCachedBlk->m_iPhysicalLength;
+      m_pCachedBlk = NULL;
+   }
+   else
+   {
+      buf = new char[len];
+      plen = len;
+   }
+
+   memcpy(buf, data, len);
+
    if (NULL == m_pBlock)
    {
       // Insert a block to the empty list   
   
       m_pBlock = new Block;
-      m_pBlock->m_pcData = const_cast<char*>(data);
+      m_pBlock->m_pcData = buf;
       m_pBlock->m_iLength = len;
+      m_pBlock->m_iPhysicalLength = plen;
       m_pBlock->m_OriginTime = CTimer::getTime();
       m_pBlock->m_iTTL = ttl;
       m_pBlock->m_iMsgNo = m_iNextMsgNo;
@@ -118,8 +138,9 @@ void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, con
 
       m_pLastBlock->m_next = new Block;
       m_pLastBlock = m_pLastBlock->m_next;
-      m_pLastBlock->m_pcData = const_cast<char*>(data);
+      m_pLastBlock->m_pcData = buf;
       m_pLastBlock->m_iLength = len;
+      m_pLastBlock->m_iPhysicalLength = plen;
       m_pLastBlock->m_OriginTime = CTimer::getTime();
       m_pLastBlock->m_iTTL = ttl;
       m_pLastBlock->m_iMsgNo = m_iNextMsgNo;
@@ -253,10 +274,13 @@ void CSndBuffer::ackData(const int& len, const int& payloadsize)
       m_iCurrBufSize -= m_pCurrAckBlk->m_iLength;
       m_pCurrAckBlk = m_pCurrAckBlk->m_next;
 
-      // release the buffer
-      delete [] m_pBlock->m_pcData;
+      if (NULL != m_pCachedBlk)
+      {
+         delete [] m_pCachedBlk->m_pcData;
+         delete m_pCachedBlk;
+      }
+      m_pCachedBlk = m_pBlock;
 
-      delete m_pBlock;
       m_pBlock = m_pCurrAckBlk;
 
       CTimer::triggerEvent();

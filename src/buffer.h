@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/17/2007
+   Yunhong Gu, last updated 11/25/2007
 *****************************************************************************/
 
 #ifndef __UDT_BUFFER_H__
@@ -117,6 +117,7 @@ private:
    {
       char* m_pcData;                   // pointer to the data block
       int m_iLength;                    // length of the block
+      int m_iPhysicalLength;		// physical length of the buffer
 
       uint64_t m_OriginTime;            // original request time
       int m_iTTL;                       // time to live (milliseconds)
@@ -125,12 +126,13 @@ private:
       int m_iInOrder;                   // flag indicating if the block should be delivered in order
 
       Block* m_next;                    // next block
-   } *m_pBlock, *m_pLastBlock, *m_pCurrSendBlk, *m_pCurrAckBlk;
+   } *m_pBlock, *m_pLastBlock, *m_pCurrSendBlk, *m_pCurrAckBlk, *m_pCachedBlk;
 
    // m_pBlock:         The first block
    // m_pLastBlock:     The last block
    // m_pCurrSendBlk:   The block contains the data with the largest seq. no. that has been sent
    // m_pCurrAckBlk:    The block contains the data with the latest ACK (= m_pBlock)
+   // m_pCachedBlk:	The buffer that may be reused for next data block, avoid too frequent new/delete
 
    int m_iCurrBufSize;                  // Total size of the blocks
    int m_iCurrSendPnt;                  // pointer to the data with the largest current seq. no.
