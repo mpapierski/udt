@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/29/2007
+   Yunhong Gu, last updated 11/27/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -792,7 +792,7 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
             if (NULL == (s = locate(*i)))
                throw CUDTException(5, 4, 0);
 
-            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pSndBuffer->getCurrBufSize() < s->m_pUDT->m_iSndQueueLimit))
+            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pSndBuffer->getCurrBufSize() < s->m_pUDT->m_iSndBufSize))
                || s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected || (s->m_Status == CUDTSocket::CLOSED))
             {
                ws.insert(*i);
@@ -1051,7 +1051,7 @@ void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr)
       // find a reusable address
       for (vector<CMultiplexer>::iterator i = m_vMultiplexer.begin(); i != m_vMultiplexer.end(); ++ i)
       {
-         if ((i->m_iIPversion == u->m_iIPversion) && (i->m_iMTU == u->m_iMSS) && i->m_bReusable)
+         if ((i->m_iIPversion == u->m_iIPversion) && (i->m_iMSS == u->m_iMSS) && i->m_bReusable)
          {
             if ((0 == port) || (i->m_iPort == port))
             {
@@ -1067,7 +1067,7 @@ void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr)
 
    // a new multiplexer is needed
    CMultiplexer m;
-   m.m_iMTU = u->m_iMSS;
+   m.m_iMSS = u->m_iMSS;
    m.m_iIPversion = u->m_iIPversion;
    m.m_iRefCount = 1;
    m.m_bReusable = u->m_bReuseAddr;
@@ -1097,7 +1097,7 @@ void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr)
    m.m_pSndQueue = new CSndQueue;
    m.m_pSndQueue->init(m.m_pChannel, m.m_pTimer);
    m.m_pRcvQueue = new CRcvQueue;
-   m.m_pRcvQueue->init((m.m_iMTU > 1500) ? 32 : 128, u->m_iPayloadSize, m.m_iIPversion, 1024, m.m_pChannel, m.m_pTimer);
+   m.m_pRcvQueue->init((m.m_iMSS > 1500) ? 32 : 128, u->m_iPayloadSize, m.m_iIPversion, 1024, m.m_pChannel, m.m_pTimer);
 
    m_vMultiplexer.insert(m_vMultiplexer.end(), m);
 

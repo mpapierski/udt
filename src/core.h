@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/25/2007
+   Yunhong Gu, last updated 11/27/2007
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -265,8 +265,8 @@ private: // Options
    bool m_bSynSending;                          // Sending syncronization mode
    bool m_bSynRecving;                          // Receiving syncronization mode
    int m_iFlightFlagSize;                       // Maximum number of packets in flight from the peer side
-   int m_iSndQueueLimit;                        // Maximum length of the sending buffer queue
-   int m_iUDTBufSize;                           // UDT buffer size (for receiving)
+   int m_iSndBufSize;                           // Maximum UDT sender buffer size
+   int m_iRcvBufSize;                           // Maximum UDT receiver buffer size
    linger m_Linger;                             // Linger information on close
    int m_iUDPSndBufSize;                        // UDP sending buffer size
    int m_iUDPRcvBufSize;                        // UDP receiving buffer size

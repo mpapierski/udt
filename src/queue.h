@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/24/2007
+   Yunhong Gu, last updated 11/27/2007
 *****************************************************************************/
 
 
@@ -462,7 +462,7 @@ public:
 
    int m_iPort;			// The UDP port number of this multiplexer
    int m_iIPversion;		// IP version
-   int m_iMTU;			// MTU
+   int m_iMSS;			// Maximum Segment Size
    int m_iRefCount;		// number of UDT instances that are associated with this multiplexer
    bool m_bReusable;		// if this one can be shared with others
 };

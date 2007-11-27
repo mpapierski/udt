@@ -99,12 +99,12 @@ CUDT::CUDT()
    m_bSynSending = true;
    m_bSynRecving = true;
    m_iFlightFlagSize = 25600;
-   m_iSndQueueLimit = 8192;
-   m_iUDTBufSize = 8192;
+   m_iSndBufSize = 8192;
+   m_iRcvBufSize = 8192;
    m_Linger.l_onoff = 1;
    m_Linger.l_linger = 180;
    m_iUDPSndBufSize = 65536;
-   m_iUDPRcvBufSize = m_iUDTBufSize * m_iMSS;
+   m_iUDPRcvBufSize = m_iRcvBufSize * m_iMSS;
    m_iIPversion = AF_INET;
    m_bRendezvous = false;
    m_iSndTimeOut = -1;
@@ -148,8 +148,8 @@ CUDT::CUDT(const CUDT& ancestor)
    m_bSynSending = ancestor.m_bSynSending;
    m_bSynRecving = ancestor.m_bSynRecving;
    m_iFlightFlagSize = ancestor.m_iFlightFlagSize;
-   m_iSndQueueLimit = ancestor.m_iSndQueueLimit;
-   m_iUDTBufSize = ancestor.m_iUDTBufSize;
+   m_iSndBufSize = ancestor.m_iSndBufSize;
+   m_iRcvBufSize = ancestor.m_iRcvBufSize;
    m_Linger = ancestor.m_Linger;
    m_iUDPSndBufSize = ancestor.m_iUDPSndBufSize;
    m_iUDPRcvBufSize = ancestor.m_iUDPRcvBufSize;
@@ -253,7 +253,7 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
       if (*(int*)optval <= 0)
          throw CUDTException(5, 3, 0);
 
-      m_iSndQueueLimit = *(int*)optval / (m_iMSS - 28);
+      m_iSndBufSize = *(int*)optval / (m_iMSS - 28);
 
       break;
 
@@ -266,9 +266,9 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
 
       // Mimimum recv buffer size is 32 packets
       if (*(int*)optval > (m_iMSS - 28) * 32)
-         m_iUDTBufSize = *(int*)optval / (m_iMSS - 28);
+         m_iRcvBufSize = *(int*)optval / (m_iMSS - 28);
       else
-         m_iUDTBufSize = 32;
+         m_iRcvBufSize = 32;
 
       break;
 
@@ -360,12 +360,12 @@ void CUDT::getOpt(UDTOpt optName, void* optval, int& optlen)
       break;
 
    case UDT_SNDBUF:
-      *(int*)optval = m_iSndQueueLimit * (m_iMSS - 28);
+      *(int*)optval = m_iSndBufSize * (m_iMSS - 28);
       optlen = sizeof(int);
       break;
 
    case UDT_RCVBUF:
-      *(int*)optval = m_iUDTBufSize * (m_iMSS - 28);
+      *(int*)optval = m_iRcvBufSize * (m_iMSS - 28);
       optlen = sizeof(int);
       break;
 
@@ -527,7 +527,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    req->m_iVersion = m_iVersion;
    req->m_iType = m_iSockType;
    req->m_iMSS = m_iMSS;
-   req->m_iFlightFlagSize = (m_iUDTBufSize < m_iFlightFlagSize)? m_iUDTBufSize : m_iFlightFlagSize;
+   req->m_iFlightFlagSize = (m_iRcvBufSize < m_iFlightFlagSize)? m_iRcvBufSize : m_iFlightFlagSize;
    req->m_iReqType = (!m_bRendezvous) ? 1 : 0;
    req->m_iID = m_SocketID;
 
@@ -628,7 +628,7 @@ void CUDT::connect(const sockaddr* serv_addr)
 
    // Prepare all structures
    m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
-   m_pRcvBuffer = new CRcvBuffer(m_iUDTBufSize, &(m_pRcvQueue->m_UnitQueue));
+   m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
 
    // after introducing lite ACK, the sndlosslist may not be cleared in time, so it requires twice space.
    m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
@@ -677,7 +677,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
 
    // exchange info for maximum flow window size
    m_iFlowWindowSize = ci.m_iFlightFlagSize;
-   ci.m_iFlightFlagSize = (m_iUDTBufSize < m_iFlightFlagSize)? m_iUDTBufSize : m_iFlightFlagSize;
+   ci.m_iFlightFlagSize = (m_iRcvBufSize < m_iFlightFlagSize)? m_iRcvBufSize : m_iFlightFlagSize;
 
    m_iPeerISN = ci.m_iISN;
 
@@ -707,7 +707,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
 
    // Prepare all structures
    m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
-   m_pRcvBuffer = new CRcvBuffer(m_iUDTBufSize, &(m_pRcvQueue->m_UnitQueue));
+   m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
    m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
    m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
    m_pACKWindow = new CACKWindow(4096);
@@ -815,7 +815,7 @@ int CUDT::send(const char* data, const int& len)
    if (len <= 0)
       return 0;
 
-   if (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize())
+   if (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())
    {
       if (!m_bSynSending)
          throw CUDTException(6, 1, 0);
@@ -826,7 +826,7 @@ int CUDT::send(const char* data, const int& len)
             pthread_mutex_lock(&m_SendBlockLock);
             if (m_iSndTimeOut < 0) 
             { 
-               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize()))
+               while (!m_bBroken && m_bConnected && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
                   pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
             }
             else
@@ -843,7 +843,7 @@ int CUDT::send(const char* data, const int& len)
          #else
             if (m_iSndTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize()))
+               while (!m_bBroken && m_bConnected && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
                   WaitForSingleObject(m_SendBlockCond, INFINITE);
             }
             else 
@@ -856,10 +856,10 @@ int CUDT::send(const char* data, const int& len)
       }
    }
 
-   if ((m_iSndTimeOut >= 0) || (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize())) 
+   if ((m_iSndTimeOut >= 0) || (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())) 
       return 0; 
 
-   int size = (m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize;
+   int size = (m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize;
    if (size > len)
       size = len;
 
@@ -943,10 +943,10 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
    if (len <= 0)
       return 0;
 
-   if (len > m_iSndQueueLimit * m_iPayloadSize)
+   if (len > m_iSndBufSize * m_iPayloadSize)
       throw CUDTException(5, 12, 0);
 
-   if ((m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len)
+   if ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len)
    {
       if (!m_bSynSending)
          throw CUDTException(6, 1, 0);
@@ -957,7 +957,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
             pthread_mutex_lock(&m_SendBlockLock);
             if (m_iSndTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && ((m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
+               while (!m_bBroken && m_bConnected && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
                   pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
             }
             else
@@ -974,7 +974,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
          #else
             if (m_iSndTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && ((m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
+               while (!m_bBroken && m_bConnected && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
                   WaitForSingleObject(m_SendBlockCond, INFINITE);
             }
             else
@@ -987,7 +987,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
       }
    }
 
-   if ((m_iSndTimeOut >= 0) && ((m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
+   if ((m_iSndTimeOut >= 0) && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
       return 0;
 
    char* buf = new char[len];
@@ -1140,11 +1140,11 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
 
       #ifndef WIN32
          pthread_mutex_lock(&m_SendBlockLock);
-         while (!m_bBroken && m_bConnected && (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize()))
+         while (!m_bBroken && m_bConnected && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
             pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
          pthread_mutex_unlock(&m_SendBlockLock);
       #else
-         while (!m_bBroken && m_bConnected && (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize()))
+         while (!m_bBroken && m_bConnected && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
             WaitForSingleObject(m_SendBlockCond, INFINITE);
       #endif
 
@@ -1286,7 +1286,7 @@ void CUDT::sample(CPerfMon* perf, bool clear)
       if (WAIT_OBJECT_0 == WaitForSingleObject(m_ConnectionLock, 0))
    #endif
    {
-      perf->byteAvailSndBuf = (NULL == m_pSndBuffer) ? 0 : m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize();
+      perf->byteAvailSndBuf = (NULL == m_pSndBuffer) ? 0 : m_iSndBufSize - m_pSndBuffer->getCurrBufSize();
       perf->byteAvailRcvBuf = (NULL == m_pRcvBuffer) ? 0 : m_pRcvBuffer->getAvailBufSize();
 
       #ifndef WIN32
