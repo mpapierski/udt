@@ -116,8 +116,6 @@ CSndBuffer::~CSndBuffer()
 
 void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, const bool& order)
 {
-   CGuard bufferguard(m_BufLock);
-
    int size = len / m_iMSS;
    if ((len % m_iMSS) != 0)
       size ++;
@@ -160,8 +158,6 @@ void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, con
 
 int CSndBuffer::readData(char** data, int32_t& msgno)
 {
-   CGuard bufferguard(m_BufLock);
-
    // No data to read
    if (m_pCurrBlock == m_pLastBlock)
       return 0;
