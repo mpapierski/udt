@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/25/2007
+   Yunhong Gu, last updated 11/27/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -44,18 +44,43 @@ written by
 
 using namespace std;
 
-CSndBuffer::CSndBuffer(const int& mss):
+CSndBuffer::CSndBuffer(const int& size, const int& mss):
 m_pBlock(NULL),
+m_pFirstBlock(NULL),
+m_pCurrBlock(NULL),
 m_pLastBlock(NULL),
-m_pCurrSendBlk(NULL),
-m_pCurrAckBlk(NULL),
-m_pCachedBlk(NULL),
-m_iCurrBufSize(0),
-m_iCurrSendPnt(0),
-m_iCurrAckPnt(0),
 m_iNextMsgNo(0),
-m_iMSS(mss)
+m_iSize(size),
+m_iMSS(mss),
+m_iCount(0)
 {
+   // initial physical buffer of "size"
+   m_pBuffer = new Buffer;
+   m_pBuffer->m_pcData = new char [m_iSize * m_iMSS];
+   m_pBuffer->m_iSize = m_iSize;
+   m_pBuffer->m_pNext = NULL;
+
+   // circular linked list for out bound packets
+   m_pBlock = new Block;
+   Block* pb = m_pBlock;
+   for (int i = 1; i < m_iSize; ++ i)
+   {
+      pb->m_pNext = new Block;
+      pb = pb->m_pNext;
+   }
+   pb->m_pNext = m_pBlock;
+
+   pb = m_pBlock;
+   char* pc = m_pBuffer->m_pcData;
+   for (int i = 0; i < m_iSize; ++ i)
+   {
+      pb->m_pcData = pc;
+      pb = pb->m_pNext;
+      pc += m_iMSS;
+   }
+
+   m_pFirstBlock = m_pCurrBlock = m_pLastBlock = m_pBlock;
+
    #ifndef WIN32
       pthread_mutex_init(&m_BufLock, NULL);
    #else
@@ -65,21 +90,22 @@ m_iMSS(mss)
 
 CSndBuffer::~CSndBuffer()
 {
-   Block* pb = m_pBlock;
-
-   // Release allocated data structure if there is any
-   while (NULL != m_pBlock)
+   Block* pb = m_pBlock->m_pNext;
+   while (pb != m_pBlock)
    {
-      pb = pb->m_next;
-
-      // release sender buffer
-      delete [] m_pBlock->m_pcData;
-
-      delete m_pBlock;
-      m_pBlock = pb;
+      Block* temp = pb;
+      pb = pb->m_pNext;
+      delete temp;
    }
+   delete m_pBlock;
 
-   delete [] m_pCachedBlk;
+   while (m_pBuffer != NULL)
+   {
+      Buffer* temp = m_pBuffer;
+      m_pBuffer = m_pBuffer->m_pNext;
+      delete [] temp->m_pcData;
+      delete temp;
+   }
 
    #ifndef WIN32
       pthread_mutex_destroy(&m_BufLock);
@@ -88,211 +114,154 @@ CSndBuffer::~CSndBuffer()
    #endif
 }
 
-void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, const int32_t& seqno, const bool& order)
+void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, const bool& order)
 {
    CGuard bufferguard(m_BufLock);
 
-   char* buf = NULL;
-   int plen = 0;
-   if ((NULL != m_pCachedBlk) && (m_pCachedBlk->m_iPhysicalLength >= len))
+   int size = len / m_iMSS;
+   if ((len % m_iMSS) != 0)
+      size ++;
+
+   // dynamically increase sender buffer
+   while (size + m_iCount >= m_iSize)
+      increase();
+
+   uint64_t time = CTimer::getTime();
+   int32_t inorder = order;
+   inorder <<= 29;
+
+   Block* s = m_pLastBlock;
+   for (int i = 0; i < size; ++ i)
    {
-      buf = m_pCachedBlk->m_pcData;
-      plen = m_pCachedBlk->m_iPhysicalLength;
-      m_pCachedBlk = NULL;
+      int pktlen = len - i * m_iMSS;
+      if (pktlen > m_iMSS)
+         pktlen = m_iMSS;
+
+      memcpy(s->m_pcData, data + i * m_iMSS, pktlen);
+      s->m_iLength = pktlen;
+
+      s->m_iMsgNo = m_iNextMsgNo | inorder;
+      if (i == 0)
+         s->m_iMsgNo |= 0x80000000;
+      if (i == size - 1)
+         s->m_iMsgNo |= 0x40000000;
+
+      s->m_OriginTime = time;
+      s->m_iTTL = ttl;
+
+      s = s->m_pNext;
    }
-   else
-   {
-      buf = new char[len];
-      plen = len;
-   }
+   m_pLastBlock = s;
 
-   memcpy(buf, data, len);
+   m_iCount += size;
 
-   if (NULL == m_pBlock)
-   {
-      // Insert a block to the empty list   
-  
-      m_pBlock = new Block;
-      m_pBlock->m_pcData = buf;
-      m_pBlock->m_iLength = len;
-      m_pBlock->m_iPhysicalLength = plen;
-      m_pBlock->m_OriginTime = CTimer::getTime();
-      m_pBlock->m_iTTL = ttl;
-      m_pBlock->m_iMsgNo = m_iNextMsgNo;
-      m_pBlock->m_iSeqNo = seqno;
-      m_pBlock->m_iInOrder = order;
-      m_pBlock->m_iInOrder <<= 29;
-      m_pBlock->m_next = NULL;
-      m_pLastBlock = m_pBlock;
-      m_pCurrSendBlk = m_pBlock;
-      m_iCurrSendPnt = 0;
-      m_pCurrAckBlk = m_pBlock;
-      m_iCurrAckPnt = 0;
-   }
-   else
-   {
-      // Insert a new block to the tail of the list
-
-      int32_t lastseq = m_pLastBlock->m_iSeqNo;
-      int offset = m_pLastBlock->m_iLength;
-
-      m_pLastBlock->m_next = new Block;
-      m_pLastBlock = m_pLastBlock->m_next;
-      m_pLastBlock->m_pcData = buf;
-      m_pLastBlock->m_iLength = len;
-      m_pLastBlock->m_iPhysicalLength = plen;
-      m_pLastBlock->m_OriginTime = CTimer::getTime();
-      m_pLastBlock->m_iTTL = ttl;
-      m_pLastBlock->m_iMsgNo = m_iNextMsgNo;
-      m_pLastBlock->m_iSeqNo = lastseq + (int32_t)ceil(double(offset) / m_iMSS);
-      m_pLastBlock->m_iInOrder = order;
-      m_pLastBlock->m_iInOrder <<= 29;
-      m_pLastBlock->m_next = NULL;
-      if (NULL == m_pCurrSendBlk)
-         m_pCurrSendBlk = m_pLastBlock;
-   }
-
-   m_iNextMsgNo = CMsgNo::incmsg(m_iNextMsgNo);
-
-   m_iCurrBufSize += len;
+   m_iNextMsgNo ++;
 }
 
-int CSndBuffer::readData(char** data, const int& len, int32_t& msgno)
+int CSndBuffer::readData(char** data, int32_t& msgno)
 {
    CGuard bufferguard(m_BufLock);
 
    // No data to read
-   if (NULL == m_pCurrSendBlk)
+   if (m_pCurrBlock == m_pLastBlock)
       return 0;
 
-   // read data in the current sending block
-   if (m_iCurrSendPnt + len < m_pCurrSendBlk->m_iLength)
-   {
-      *data = m_pCurrSendBlk->m_pcData + m_iCurrSendPnt;
+   *data = m_pCurrBlock->m_pcData;
+   int readlen = m_pCurrBlock->m_iLength;
+   msgno = m_pCurrBlock->m_iMsgNo;
 
-      msgno = m_pCurrSendBlk->m_iMsgNo | m_pCurrSendBlk->m_iInOrder;
-      if (0 == m_iCurrSendPnt)
-         msgno |= 0x80000000;
-      if (m_pCurrSendBlk->m_iLength == m_iCurrSendPnt + len)
-         msgno |= 0x40000000;
-
-      m_iCurrSendPnt += len;
-
-      return len;
-   }
-
-   // Not enough data to read. 
-   // Read an irregular packet and move the current sending block pointer to the next block
-   int readlen = m_pCurrSendBlk->m_iLength - m_iCurrSendPnt;
-   *data = m_pCurrSendBlk->m_pcData + m_iCurrSendPnt;
-
-   if (0 == m_iCurrSendPnt)
-      msgno = m_pCurrSendBlk->m_iMsgNo | 0xC0000000 | m_pCurrSendBlk->m_iInOrder;
-   else
-      msgno = m_pCurrSendBlk->m_iMsgNo | 0x40000000 | m_pCurrSendBlk->m_iInOrder;
-
-   m_pCurrSendBlk = m_pCurrSendBlk->m_next;
-   m_iCurrSendPnt = 0;
+   m_pCurrBlock = m_pCurrBlock->m_pNext;
 
    return readlen;
 }
 
-int CSndBuffer::readData(char** data, const int offset, const int& len, int32_t& msgno, int32_t& seqno, int& msglen)
+int CSndBuffer::readData(char** data, const int offset, int32_t& msgno, int& msglen)
 {
    CGuard bufferguard(m_BufLock);
 
-   Block* p = m_pCurrAckBlk;
+   Block* p = m_pFirstBlock;
 
-   // No data to read
-   if (NULL == p)
-      return 0;
+   for (int i = 0; i < offset; ++ i)
+      p = p->m_pNext;
 
-   // Locate to the data position by the offset
-   int loffset = offset + m_iCurrAckPnt;
-   while (p->m_iLength <= loffset)
+   if ((p->m_iTTL > 0) && ((CTimer::getTime() - p->m_OriginTime) / 1000 > (uint64_t)p->m_iTTL))
    {
-      loffset -= p->m_iLength;
-      loffset -= len - ((0 == p->m_iLength % len) ? len : (p->m_iLength % len));
-      p = p->m_next;
-      if (NULL == p)
-         return 0;
-   }
+      msgno = p->m_iMsgNo & 0x1FFFFFFF;
 
-   if (p->m_iTTL >= 0)
-   {
-      if ((CTimer::getTime() - p->m_OriginTime) / 1000 > (uint64_t)p->m_iTTL)
+      msglen = 1;
+      p = p->m_pNext;
+      while (msgno == p->m_iMsgNo & 0x1FFFFFFF)
       {
-         msgno = p->m_iMsgNo;
-         seqno = p->m_iSeqNo;
-         msglen = p->m_iLength;
-
-         return -1;
+         p = p->m_pNext;
+         msglen ++;
       }
+
+      return -1;
    }
 
-   // Read a regular data
-   if (loffset + len <= p->m_iLength)
-   {
-      *data = p->m_pcData + loffset;
-      msgno = p->m_iMsgNo | p->m_iInOrder;
+   *data = p->m_pcData;
+   int readlen = p->m_iLength;
+   msgno = p->m_iMsgNo;
 
-      if (0 == loffset)
-         msgno |= 0x80000000;
-      if (p->m_iLength == loffset + len)
-         msgno |= 0x40000000;
-
-      return len;
-   }
-
-   // Read an irrugular data at the end of a block
-   *data = p->m_pcData + loffset;
-   msgno = p->m_iMsgNo | p->m_iInOrder;
-
-   if (0 == loffset)
-      msgno |= 0xC0000000;
-   else
-      msgno |= 0x40000000;
-
-   return p->m_iLength - loffset;
+   return readlen;
 }
 
-void CSndBuffer::ackData(const int& len, const int& payloadsize)
+void CSndBuffer::ackData(const int& offset)
 {
    CGuard bufferguard(m_BufLock);
 
-   m_iCurrAckPnt += len;
+   for (int i = 0; i < offset; ++ i)
+      m_pFirstBlock = m_pFirstBlock->m_pNext;
 
-   // Remove the block if it is acknowledged
-   while (m_iCurrAckPnt >= m_pCurrAckBlk->m_iLength)
-   {
-      m_iCurrAckPnt -= m_pCurrAckBlk->m_iLength;
+   m_iCount -= offset;
 
-      // Update the size error between regular and irregular packets
-      if (0 != m_pCurrAckBlk->m_iLength % payloadsize)
-         m_iCurrAckPnt -= payloadsize - (m_pCurrAckBlk->m_iLength % payloadsize);
-
-      m_iCurrBufSize -= m_pCurrAckBlk->m_iLength;
-      m_pCurrAckBlk = m_pCurrAckBlk->m_next;
-
-      if (NULL != m_pCachedBlk)
-      {
-         delete [] m_pCachedBlk->m_pcData;
-         delete m_pCachedBlk;
-      }
-      m_pCachedBlk = m_pBlock;
-
-      m_pBlock = m_pCurrAckBlk;
-
-      CTimer::triggerEvent();
-
-      if (NULL == m_pBlock)
-         break;
-   }
+   CTimer::triggerEvent();
 }
 
 int CSndBuffer::getCurrBufSize() const
 {
-   return m_iCurrBufSize - m_iCurrAckPnt;
+   return m_iCount;
+}
+
+void CSndBuffer::increase()
+{
+   int unitsize = m_pBuffer->m_iSize;
+
+   // new physical buffer
+   Buffer* nbuf  = new Buffer;
+   nbuf->m_pcData = new char [unitsize * m_iMSS];
+   nbuf->m_iSize = unitsize;
+   nbuf->m_pNext = NULL;
+
+   // insert the buffer at the end of the buffer list
+   Buffer* p = m_pBuffer;
+   while (NULL != p->m_pNext)
+      p = p->m_pNext;
+   p->m_pNext = nbuf;
+
+   // new packet blocks
+   Block* nblk = new Block;
+   Block* pb = nblk;
+   for (int i = 1; i < unitsize; ++ i)
+   {
+      pb->m_pNext = new Block;
+      pb = pb->m_pNext;
+   }
+
+   // insert the new blocks onto the existing one
+   pb->m_pNext = m_pLastBlock->m_pNext;
+   m_pLastBlock->m_pNext = nblk;
+
+   pb = nblk;
+   char* pc = nbuf->m_pcData;
+   for (int i = 0; i < unitsize; ++ i)
+   {
+      pb->m_pcData = pc;
+      pb = pb->m_pNext;
+      pc += m_iMSS;
+   }
+
+   m_iSize += unitsize;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

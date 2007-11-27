@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/25/2007
+   Yunhong Gu, last updated 11/26/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -99,7 +99,7 @@ CUDT::CUDT()
    m_bSynSending = true;
    m_bSynRecving = true;
    m_iFlightFlagSize = 25600;
-   m_iSndQueueLimit = 20000000;
+   m_iSndQueueLimit = 8192;
    m_iUDTBufSize = 8192;
    m_Linger.l_onoff = 1;
    m_Linger.l_linger = 180;
@@ -253,7 +253,7 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
       if (*(int*)optval <= 0)
          throw CUDTException(5, 3, 0);
 
-      m_iSndQueueLimit = *(int*)optval;
+      m_iSndQueueLimit = *(int*)optval / (m_iMSS - 28);
 
       break;
 
@@ -360,7 +360,7 @@ void CUDT::getOpt(UDTOpt optName, void* optval, int& optlen)
       break;
 
    case UDT_SNDBUF:
-      *(int*)optval = m_iSndQueueLimit;
+      *(int*)optval = m_iSndQueueLimit * (m_iMSS - 28);
       optlen = sizeof(int);
       break;
 
@@ -627,7 +627,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    delete [] resdata;
 
    // Prepare all structures
-   m_pSndBuffer = new CSndBuffer(m_iPayloadSize);
+   m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
    m_pRcvBuffer = new CRcvBuffer(m_iUDTBufSize, &(m_pRcvQueue->m_UnitQueue));
 
    // after introducing lite ACK, the sndlosslist may not be cleared in time, so it requires twice space.
@@ -706,7 +706,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_iPayloadSize = m_iPktSize - CPacket::m_iPktHdrSize;
 
    // Prepare all structures
-   m_pSndBuffer = new CSndBuffer(m_iPayloadSize);
+   m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
    m_pRcvBuffer = new CRcvBuffer(m_iUDTBufSize, &(m_pRcvQueue->m_UnitQueue));
    m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
    m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
@@ -859,7 +859,7 @@ int CUDT::send(const char* data, const int& len)
    if ((m_iSndTimeOut >= 0) || (m_iSndQueueLimit <= m_pSndBuffer->getCurrBufSize())) 
       return 0; 
 
-   int size = m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize();
+   int size = (m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize;
    if (size > len)
       size = len;
 
@@ -943,10 +943,10 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
    if (len <= 0)
       return 0;
 
-   if (len > m_iSndQueueLimit)
+   if (len > m_iSndQueueLimit * m_iPayloadSize)
       throw CUDTException(5, 12, 0);
 
-   if (m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize() < len)
+   if ((m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len)
    {
       if (!m_bSynSending)
          throw CUDTException(6, 1, 0);
@@ -957,7 +957,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
             pthread_mutex_lock(&m_SendBlockLock);
             if (m_iSndTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+               while (!m_bBroken && m_bConnected && ((m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
                   pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
             }
             else
@@ -974,7 +974,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
          #else
             if (m_iSndTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && (m_iSndQueueLimit < m_pSndBuffer->getCurrBufSize()))
+               while (!m_bBroken && m_bConnected && ((m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
                   WaitForSingleObject(m_SendBlockCond, INFINITE);
             }
             else
@@ -987,14 +987,14 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
       }
    }
 
-   if ((m_iSndTimeOut >= 0) && (m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize() < len))
+   if ((m_iSndTimeOut >= 0) && ((m_iSndQueueLimit - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
       return 0;
 
    char* buf = new char[len];
    memcpy(buf, data, len);
 
    // insert the user buffer into the sening list
-   m_pSndBuffer->addBuffer(buf, len, msttl, CSeqNo::incseq(m_iSndCurrSeqNo), inorder);
+   m_pSndBuffer->addBuffer(buf, len, msttl, inorder);
 
    // insert this socket to the snd list if it is not on the list yet
    m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
@@ -1644,7 +1644,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       }
 
       // acknowledge the sending buffer
-      m_pSndBuffer->ackData(offset * m_iPayloadSize, m_iPayloadSize);
+      m_pSndBuffer->ackData(offset);
 
       // update sending variables
       m_iSndLastDataAck = ack;
@@ -1850,18 +1850,19 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
       // protect m_iSndLastDataAck from updating by ACK processing
       CGuard ackguard(m_AckLock);
 
-      int offset = CSeqNo::seqoff(m_iSndLastDataAck, packet.m_iSeqNo) * m_iPayloadSize;
+      int offset = CSeqNo::seqoff(m_iSndLastDataAck, packet.m_iSeqNo);
       if (offset < 0)
          return 0;
 
-      int32_t seqpair[2];
       int msglen;
 
-      payload = m_pSndBuffer->readData(&(packet.m_pcData), offset, m_iPayloadSize, packet.m_iMsgNo, seqpair[0], msglen);
+      payload = m_pSndBuffer->readData(&(packet.m_pcData), offset, packet.m_iMsgNo, msglen);
 
       if (-1 == payload)
       {
-         seqpair[1] = CSeqNo::incseq(seqpair[0], msglen / m_iPayloadSize - ((0 != msglen % m_iPayloadSize) ? 0 : 1));
+         int32_t seqpair[2];
+         seqpair[0] = packet.m_iSeqNo;
+         seqpair[1] = CSeqNo::incseq(seqpair[0], msglen);
          sendCtrl(7, &packet.m_iMsgNo, seqpair, 8);
 
          // only one msg drop request is necessary
@@ -1882,7 +1883,7 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
       int cwnd = (m_iFlowWindowSize < (int)m_dCongestionWindow) ? m_iFlowWindowSize : (int)m_dCongestionWindow;
       if (cwnd >= CSeqNo::seqlen(const_cast<int32_t&>(m_iSndLastAck), CSeqNo::incseq(m_iSndCurrSeqNo)))
       {
-         if (0 != (payload = m_pSndBuffer->readData(&(packet.m_pcData), m_iPayloadSize, packet.m_iMsgNo)))
+         if (0 != (payload = m_pSndBuffer->readData(&(packet.m_pcData), packet.m_iMsgNo)))
          {
             m_iSndCurrSeqNo = CSeqNo::incseq(m_iSndCurrSeqNo);
             m_pCC->setSndCurrSeqNo(m_iSndCurrSeqNo);
