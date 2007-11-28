@@ -249,9 +249,10 @@ void CSndBuffer::increase()
    int unitsize = m_pBuffer->m_iSize;
 
    // new physical buffer
+   Buffer* nbuf = NULL;
    try
    {
-      Buffer* nbuf  = new Buffer;
+      nbuf  = new Buffer;
       nbuf->m_pcData = new char [unitsize * m_iMSS];
    }
    catch (...)
@@ -268,9 +269,10 @@ void CSndBuffer::increase()
    p->m_pNext = nbuf;
 
    // new packet blocks
+   Block* nblk = NULL;
    try
    {
-      Block* nblk = new Block;
+      nblk = new Block;
    }
    catch (...)
    {
