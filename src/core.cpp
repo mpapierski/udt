@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/26/2007
+   Yunhong Gu, last updated 11/28/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -990,11 +990,8 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
    if ((m_iSndTimeOut >= 0) && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
       return 0;
 
-   char* buf = new char[len];
-   memcpy(buf, data, len);
-
    // insert the user buffer into the sening list
-   m_pSndBuffer->addBuffer(buf, len, msttl, inorder);
+   m_pSndBuffer->addBuffer(data, len, msttl, inorder);
 
    // insert this socket to the snd list if it is not on the list yet
    m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
