@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/27/2007
+   Yunhong Gu, last updated 11/28/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -156,6 +156,31 @@ void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, con
    m_iNextMsgNo ++;
 }
 
+void CSndBuffer::addBufferFromFile(ifstream& ifs, const int& len)
+{
+   int size = len / m_iMSS;
+   if ((len % m_iMSS) != 0)
+      size ++;
+
+   // dynamically increase sender buffer
+   while (size + m_iCount >= m_iSize)
+      increase();
+
+   Block* s = m_pLastBlock;
+   for (int i = 0; i < size; ++ i)
+   {
+      int pktlen = len - i * m_iMSS;
+      if (pktlen > m_iMSS)
+         pktlen = m_iMSS;
+
+      ifs.read(s->m_pcData, pktlen);
+      s->m_iLength = pktlen;
+   }
+   m_pLastBlock = s;
+
+   m_iCount += size;
+}
+
 int CSndBuffer::readData(char** data, int32_t& msgno)
 {
    // No data to read
@@ -224,8 +249,15 @@ void CSndBuffer::increase()
    int unitsize = m_pBuffer->m_iSize;
 
    // new physical buffer
-   Buffer* nbuf  = new Buffer;
-   nbuf->m_pcData = new char [unitsize * m_iMSS];
+   try
+   {
+      Buffer* nbuf  = new Buffer;
+      nbuf->m_pcData = new char [unitsize * m_iMSS];
+   }
+   catch (...)
+   {
+      throw CUDTException(3, 2, 0);
+   }
    nbuf->m_iSize = unitsize;
    nbuf->m_pNext = NULL;
 
@@ -236,7 +268,14 @@ void CSndBuffer::increase()
    p->m_pNext = nbuf;
 
    // new packet blocks
-   Block* nblk = new Block;
+   try
+   {
+      Block* nblk = new Block;
+   }
+   catch (...)
+   {
+      throw CUDTException(3, 2, 0);
+   }
    Block* pb = nblk;
    for (int i = 1; i < unitsize; ++ i)
    {

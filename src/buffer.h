@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/26/2007
+   Yunhong Gu, last updated 11/28/2007
 *****************************************************************************/
 
 #ifndef __UDT_BUFFER_H__
@@ -64,6 +64,16 @@ public:
       //    None.
 
    void addBuffer(const char* data, const int& len, const int& ttl = -1, const bool& order = false);
+
+      // Functionality:
+      //    Read a block of data from file and insert it into the sending list.
+      // Parameters:
+      //    0) [in] ifs: input file stream.
+      //    1) [in] len: size of the block.
+      // Returned value:
+      //    None.
+
+   void addBufferFromFile(std::ifstream& ifs, const int& len);
 
       // Functionality:
       //    Find data position to pack a DATA packet from the furthest reading point.

@@ -626,16 +626,22 @@ void CUDT::connect(const sockaddr* serv_addr)
 
    delete [] resdata;
 
-   // Prepare all structures
-   m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
-   m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
-
-   // after introducing lite ACK, the sndlosslist may not be cleared in time, so it requires twice space.
-   m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
-   m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
-   m_pACKWindow = new CACKWindow(4096);
-   m_pRcvTimeWindow = new CPktTimeWindow(16, 64);
-   m_pSndTimeWindow = new CPktTimeWindow();
+   // Prepare all data structures
+   try
+   {
+      m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
+      m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
+      // after introducing lite ACK, the sndlosslist may not be cleared in time, so it requires twice space.
+      m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
+      m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
+      m_pACKWindow = new CACKWindow(4096);
+      m_pRcvTimeWindow = new CPktTimeWindow(16, 64);
+      m_pSndTimeWindow = new CPktTimeWindow();
+   }
+   catch (...)
+   {
+      throw CUDTException(3, 2, 0);
+   }
 
    m_pCC = m_pCCFactory->create();
    m_pCC->m_UDT = m_SocketID;
@@ -706,13 +712,20 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_iPayloadSize = m_iPktSize - CPacket::m_iPktHdrSize;
 
    // Prepare all structures
-   m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
-   m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
-   m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
-   m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
-   m_pACKWindow = new CACKWindow(4096);
-   m_pRcvTimeWindow = new CPktTimeWindow(16, 64);
-   m_pSndTimeWindow = new CPktTimeWindow();
+   try
+   {
+      m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
+      m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
+      m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
+      m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
+      m_pACKWindow = new CACKWindow(4096);
+      m_pRcvTimeWindow = new CPktTimeWindow(16, 64);
+      m_pSndTimeWindow = new CPktTimeWindow();
+   }
+   catch (...)
+   {
+      throw CUDTException(3, 2, 0);
+   }
 
    m_pCC = m_pCCFactory->create();
    m_pCC->m_UDT = m_SocketID;
@@ -1096,7 +1109,6 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
    if (size <= 0)
       return 0;
 
-   char* tempbuf = NULL;
    int64_t tosend = size;
    int unitsize;
 
@@ -1115,26 +1127,6 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
    {
       unitsize = int((tosend >= block) ? block : tosend);
 
-      try
-      {
-         tempbuf = NULL;
-         tempbuf = new char[unitsize];
-      }
-      catch (...)
-      {
-         throw CUDTException(3, 2, 0);
-      }
-
-      try
-      {
-         ifs.read(tempbuf, unitsize);
-      }
-      catch (...)
-      {
-         delete [] tempbuf;
-         throw CUDTException(4, 2);
-      }
-
       #ifndef WIN32
          pthread_mutex_lock(&m_SendBlockLock);
          while (!m_bBroken && m_bConnected && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
@@ -1148,7 +1140,7 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
       if (m_bBroken)
          throw CUDTException(2, 1, 0);
 
-      m_pSndBuffer->addBuffer(tempbuf, unitsize);
+      m_pSndBuffer->addBufferFromFile(ifs, unitsize);
 
       tosend -= unitsize;
    }
