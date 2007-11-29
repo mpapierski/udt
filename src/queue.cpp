@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/24/2007
+   Yunhong Gu, last updated 11/29/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -237,7 +237,7 @@ CSndUList::~CSndUList()
    #endif
 }
 
-void CSndUList::insert(const int64_t& ts, const int32_t& id, const CUDT* u)
+void CSndUList::insert(const int64_t& ts, const CUDT* u)
 {
    CGuard listguard(m_ListLock);
 
@@ -366,17 +366,16 @@ void CSndUList::update(const int32_t& id, const CUDT* u, const bool& reschedule)
    m_pUList = n;
 }
 
-int CSndUList::pop(int32_t& id, CUDT*& u)
+CUDT* CSndUList::pop()
 {
    CGuard listguard(m_ListLock);
 
    if (NULL == m_pUList)
-      return -1;
+      return NULL;
 
    m_pUList->m_bOnList = false;
 
-   id = m_pUList->m_iID;
-   u = m_pUList->m_pUDT;
+   CUDT* u = m_pUList->m_pUDT;
 
    m_pUList = m_pUList->m_pNext;
    if (NULL == m_pUList)
@@ -384,7 +383,7 @@ int CSndUList::pop(int32_t& id, CUDT*& u)
    else
       m_pUList->m_pPrev = NULL;
 
-   return id;
+   return u;
 }
 
 
@@ -463,9 +462,8 @@ void CSndQueue::init(const CChannel* c, const CTimer* t)
             self->m_pTimer->sleepto(self->m_pSndUList->m_pUList->m_llTimeStamp);
 
          // it is time to process it, pop it out/remove from the list
-         int32_t id;
-         CUDT* u;
-         if (self->m_pSndUList->pop(id, u) < 0)
+         CUDT* u = self->m_pSndUList->pop();
+         if (NULL == u)
             continue;
 
          // pack a packet from the socket
@@ -475,7 +473,7 @@ void CSndQueue::init(const CChannel* c, const CTimer* t)
 
          // insert a new entry, ts is the next processing time
          if (ts > 0)
-            self->m_pSndUList->insert(ts, id, u);
+            self->m_pSndUList->insert(ts, u);
       }
       else
       {

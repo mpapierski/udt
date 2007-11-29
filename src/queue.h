@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/27/2007
+   Yunhong Gu, last updated 11/29/2007
 *****************************************************************************/
 
 
@@ -155,12 +155,11 @@ public:
       //    Insert a new UDT instance into the list.
       // Parameters:
       //    1) [in] ts: time stamp: next processing time
-      //    2) [in] id: socket ID
-      //    3) [in] u: pointer to the UDT instance
+      //    2) [in] u: pointer to the UDT instance
       // Returned value:
       //    None.
 
-   void insert(const int64_t& ts, const int32_t& id, const CUDT* u);
+   void insert(const int64_t& ts, const CUDT* u);
 
       // Functionality:
       //    Update the timestamp of the UDT instance on the list.
@@ -176,12 +175,11 @@ public:
       // Functionality:
       //    Get and remove the first UDT instance on the list.
       // Parameters:
-      //    1) [out] id: socket ID
-      //    2) [out] u: pointer to the UDT instance
+      //    None
       // Returned value:
-      //    UDT Socket ID if found one, otherwise -1.
+      //    UDT instance.
 
-   int pop(int32_t& id, CUDT*& u);
+   CUDT* pop();
 
 public:
    CUDTList* m_pUList;		// The head node

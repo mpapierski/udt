@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/28/2007
+   Yunhong Gu, last updated 11/29/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -776,11 +776,13 @@ void CUDT::close()
       }
    }
 
+   // update snd U list to remove this socket
+   m_pSndQueue->m_pSndUList->update(m_SocketID, this, true);
+
    CGuard cg(m_ConnectionLock);
 
    // Inform the threads handler to stop.
    m_bClosing = true;
-   m_bBroken = true;
 
    // Signal the sender and recver if they are waiting for data.
    releaseSynch();
@@ -866,6 +868,8 @@ int CUDT::send(const char* data, const int& len)
          // check the connection status
          if (m_bBroken)
             throw CUDTException(2, 1, 0);
+         else if (!m_bConnected)
+            throw CUDTException(2, 2, 0);
       }
    }
 
@@ -911,7 +915,7 @@ int CUDT::recv(char* data, const int& len)
             pthread_mutex_lock(&m_RecvDataLock);
             if (m_iRcvTimeOut < 0) 
             { 
-               while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+               while (!m_bBroken && m_bConnected && (0 == m_pRcvBuffer->getRcvDataSize()))
                   pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
             }
             else
@@ -928,7 +932,7 @@ int CUDT::recv(char* data, const int& len)
          #else
             if (m_iRcvTimeOut < 0)
             {
-               while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+               while (!m_bBroken && m_bConnected && (0 == m_pRcvBuffer->getRcvDataSize()))
                   WaitForSingleObject(m_RecvDataCond, INFINITE);
             }
             else
@@ -997,6 +1001,8 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
          // check the connection status
          if (m_bBroken)
             throw CUDTException(2, 1, 0);
+         else if (!m_bConnected)
+            throw CUDTException(2, 2, 0);
       }
    }
 
@@ -1054,7 +1060,7 @@ int CUDT::recvmsg(char* data, const int& len)
 
          if (m_iRcvTimeOut < 0)
          {
-            while (!m_bBroken && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
+            while (!m_bBroken && m_bConnected && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
                pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
          }
          else
@@ -1074,7 +1080,7 @@ int CUDT::recvmsg(char* data, const int& len)
       #else
          if (m_iRcvTimeOut < 0)
          {
-            while (!m_bBroken && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
+            while (!m_bBroken && m_bConnected && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
                WaitForSingleObject(m_RecvDataCond, INFINITE);
          }
          else
@@ -1088,7 +1094,8 @@ int CUDT::recvmsg(char* data, const int& len)
 
       if (m_bBroken)
          throw CUDTException(2, 1, 0);
-
+      else if (!m_bConnected)
+         throw CUDTException(2, 2, 0);
    } while ((0 == res) && !timeout);
 
    return res;
@@ -1139,25 +1146,16 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
 
       if (m_bBroken)
          throw CUDTException(2, 1, 0);
+      else if (!m_bConnected)
+         throw CUDTException(2, 2, 0);
 
       m_pSndBuffer->addBufferFromFile(ifs, unitsize);
 
+      // insert this socket to snd list if it is not on the list yet
+      m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
+
       tosend -= unitsize;
    }
-
-   // Wait until all the data is sent out
-   #ifndef WIN32
-      pthread_mutex_lock(&m_SendBlockLock);
-      while (!m_bBroken && m_bConnected && (m_pSndBuffer->getCurrBufSize() > 0))
-         pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
-      pthread_mutex_unlock(&m_SendBlockLock);
-   #else
-      while (!m_bBroken && m_bConnected && (m_pSndBuffer->getCurrBufSize() > 0))
-         WaitForSingleObject(m_SendBlockCond, INFINITE);
-   #endif
-
-   if (m_bBroken && (m_pSndBuffer->getCurrBufSize() > 0))
-      throw CUDTException(2, 1, 0);
 
    return size;
 }
@@ -1196,11 +1194,11 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
    {
       #ifndef WIN32
          pthread_mutex_lock(&m_RecvDataLock);
-         while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+         while (!m_bBroken && m_bConnected && (0 == m_pRcvBuffer->getRcvDataSize()))
             pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
          pthread_mutex_unlock(&m_RecvDataLock);
       #else
-         while (!m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+         while (!m_bBroken && m_bConnected && (0 == m_pRcvBuffer->getRcvDataSize()))
             WaitForSingleObject(m_RecvDataCond, INFINITE);
       #endif
 
@@ -2103,6 +2101,9 @@ void CUDT::checkTimers()
          //
          m_bClosing = true;
          m_bBroken = true;
+
+         // update snd U list to remove this socket
+         m_pSndQueue->m_pSndUList->update(m_SocketID, this, true);
 
          releaseSynch();
 

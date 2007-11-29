@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/28/2007
+   Yunhong Gu, last updated 11/29/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -211,7 +211,7 @@ int CSndBuffer::readData(char** data, const int offset, int32_t& msgno, int& msg
 
       msglen = 1;
       p = p->m_pNext;
-      while (msgno == p->m_iMsgNo & 0x1FFFFFFF)
+      while (msgno == (p->m_iMsgNo & 0x1FFFFFFF))
       {
          p = p->m_pNext;
          msglen ++;

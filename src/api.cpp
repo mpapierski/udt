@@ -675,7 +675,6 @@ int CUDTUnited::close(const UDTSOCKET u)
    // a timer is started and the socket will be removed after approximately 1 second
    s->m_TimeStamp = CTimer::getTime();
 
-
    CUDTSocket::UDTSTATUS os = s->m_Status;
 
    // synchronize with garbage collection.
@@ -891,8 +890,8 @@ void CUDTUnited::checkBrokenSockets()
    {
       if (CUDTSocket::CLOSED != i->second->m_Status)
       {
-         // garbage collection
-         if ((i->second->m_pUDT->m_bBroken) && (0 == i->second->m_pUDT->m_pRcvBuffer->getRcvDataSize()))
+         // check broken connection
+         if (i->second->m_pUDT->m_bBroken)
          {
             //close broken connections and start removal timer
             i->second->m_Status = CUDTSocket::CLOSED;
