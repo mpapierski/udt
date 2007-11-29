@@ -753,11 +753,11 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
 
 void CUDT::close()
 {
-   if (!m_bConnected)
-      m_bClosing = true;
-
    if (!m_bOpened)
       return;
+
+   if (!m_bConnected)
+      m_bClosing = true;
 
    if (0 != m_Linger.l_onoff)
    {
@@ -940,6 +940,12 @@ int CUDT::recv(char* data, const int& len)
          #endif
       }
    }
+
+   // throw an exception if not connected
+   if (!m_bConnected)
+      throw CUDTException(2, 2, 0);
+   else if (m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+      throw CUDTException(2, 1, 0);
 
    return m_pRcvBuffer->readBuffer(data, len);
 }
@@ -1167,10 +1173,10 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
 
    CGuard recvguard(m_RecvLock);
 
-   if ((m_bBroken) && (0 == m_pRcvBuffer->getRcvDataSize()))
-      throw CUDTException(2, 1, 0);
-   else if (!m_bConnected)
+   if (!m_bConnected)
       throw CUDTException(2, 2, 0);
+   else if ((m_bBroken) && (0 == m_pRcvBuffer->getRcvDataSize()))
+      throw CUDTException(2, 1, 0);
 
    if (size <= 0)
       return 0;
@@ -1202,7 +1208,9 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
             WaitForSingleObject(m_RecvDataCond, INFINITE);
       #endif
 
-      if (m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+      if (!m_bConnected)
+         throw CUDTException(2, 2, 0);
+      else if (m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
          throw CUDTException(2, 1, 0);
 
       unitsize = int((torecv >= block) ? block : torecv);
