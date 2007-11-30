@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/27/2007
+   Yunhong Gu, last updated 11/30/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -207,7 +207,7 @@ UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
    #else
       WaitForSingleObject(m_IDLock, INFINITE);
    #endif
-   ns->m_Socket = -- m_SocketID;
+   ns->m_SocketID = -- m_SocketID;
    #ifndef WIN32
       pthread_mutex_unlock(&m_IDLock);
    #else
@@ -216,7 +216,7 @@ UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
 
    ns->m_Status = CUDTSocket::INIT;
    ns->m_ListenSocket = 0;
-   ns->m_pUDT->m_SocketID = ns->m_Socket;
+   ns->m_pUDT->m_SocketID = ns->m_SocketID;
    ns->m_pUDT->m_iSockType = (SOCK_STREAM == type) ? UDT_STREAM : UDT_DGRAM;
    ns->m_pUDT->m_iIPversion = ns->m_iIPversion = af;
    ns->m_pUDT->m_pController = m_pController;
@@ -229,7 +229,7 @@ UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
    #endif
    try
    {
-      m_Sockets[ns->m_Socket] = ns;
+      m_Sockets[ns->m_SocketID] = ns;
    }
    catch (...)
    {
@@ -246,7 +246,7 @@ UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
    if (NULL == ns)
       throw CUDTException(3, 2, 0);
 
-   return ns->m_Socket;
+   return ns->m_SocketID;
 }
 
 int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHandShake* hs)
@@ -268,8 +268,8 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
          #else
             WaitForSingleObject(ls->m_AcceptLock, INFINITE);
          #endif
-         ls->m_pQueuedSockets->erase(ns->m_Socket);
-         ls->m_pAcceptSockets->erase(ns->m_Socket);
+         ls->m_pQueuedSockets->erase(ns->m_SocketID);
+         ls->m_pAcceptSockets->erase(ns->m_SocketID);
          #ifndef WIN32
             pthread_mutex_unlock(&(ls->m_AcceptLock));
          #else
@@ -326,7 +326,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    #else
       WaitForSingleObject(m_IDLock, INFINITE);
    #endif
-   ns->m_Socket = -- m_SocketID;
+   ns->m_SocketID = -- m_SocketID;
    #ifndef WIN32
       pthread_mutex_unlock(&m_IDLock);
    #else
@@ -335,7 +335,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
 
    ns->m_ListenSocket = listen;
    ns->m_iIPversion = ls->m_iIPversion;
-   ns->m_pUDT->m_SocketID = ns->m_Socket;
+   ns->m_pUDT->m_SocketID = ns->m_SocketID;
    ns->m_PeerID = hs->m_iID;
    ns->m_iISN = hs->m_iISN;
 
@@ -367,7 +367,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    #endif
    try
    {
-      m_Sockets[ns->m_Socket] = ns;
+      m_Sockets[ns->m_SocketID] = ns;
    }
    catch (...)
    {
@@ -386,7 +386,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    #endif
    try
    {
-      ls->m_pQueuedSockets->insert(ns->m_Socket);
+      ls->m_pQueuedSockets->insert(ns->m_SocketID);
    }
    catch (...)
    {
@@ -405,7 +405,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    {
       ns->m_pUDT->close();
       if (error > 1)
-         m_Sockets.erase(ns->m_Socket);
+         m_Sockets.erase(ns->m_SocketID);
       delete ns;
 
       return -1;
@@ -438,8 +438,12 @@ int CUDTUnited::bind(const UDTSOCKET u, const sockaddr* name, const int& namelen
 {
    CUDTSocket* s = locate(u);
 
-   if (NULL == s)
+   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
       throw CUDTException(5, 4, 0);
+
+   // cannot bind a socket more than once
+   if (CUDTSocket::INIT != s->m_Status)
+      throw CUDTException(5, 0, 0);
 
    // check the size of SOCKADDR structure
    if (AF_INET == s->m_iIPversion)
@@ -452,10 +456,6 @@ int CUDTUnited::bind(const UDTSOCKET u, const sockaddr* name, const int& namelen
       if (namelen != sizeof(sockaddr_in6))
          throw CUDTException(5, 3, 0);
    }
-
-   // cannot bind a socket more than once
-   if (CUDTSocket::INIT != s->m_Status)
-      throw CUDTException(5, 0, 0);
 
    s->m_pUDT->open();
    updateMux(s->m_pUDT, name);
@@ -471,8 +471,16 @@ int CUDTUnited::listen(const UDTSOCKET u, const int& backlog)
 {
    CUDTSocket* s = locate(u);
 
-   if (NULL == s)
+   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
       throw CUDTException(5, 4, 0);
+
+   // do nothing if the socket is already listening
+   if (CUDTSocket::LISTENING == s->m_Status)
+      return 0;
+
+   // a socket can listen only if is in OPENED status
+   if (CUDTSocket::OPENED != s->m_Status)
+      throw CUDTException(5, 5, 0);
 
    // listen is not supported in rendezvous connection setup
    if (s->m_pUDT->m_bRendezvous)
@@ -482,14 +490,6 @@ int CUDTUnited::listen(const UDTSOCKET u, const int& backlog)
       throw CUDTException(5, 3, 0);
 
    s->m_uiBackLog = backlog;
-
-   // do nothing if the socket is already listening
-   if (CUDTSocket::LISTENING == s->m_Status)
-      return 0;
-
-   // a socket can listen only if is in OPENED status
-   if (CUDTSocket::OPENED != s->m_Status)
-      throw CUDTException(5, 5, 0);
 
    try
    {
@@ -516,7 +516,7 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
 
    CUDTSocket* ls = locate(listen);
 
-   if (ls == NULL)
+   if ((ls == NULL) || (CUDTSocket::CLOSED == ls->m_Status))
       throw CUDTException(5, 4, 0);
 
    // the "listen" socket must be in LISTENING status
@@ -526,7 +526,6 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
    // no "accept" in rendezvous connection setup
    if (ls->m_pUDT->m_bRendezvous)
       throw CUDTException(5, 7, 0);
-
 
    UDTSOCKET u = CUDT::INVALID_SOCK;
    bool accepted = false;
@@ -610,7 +609,7 @@ int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, const int& name
 {
    CUDTSocket* s = locate(u);
 
-   if (NULL == s)
+   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
       throw CUDTException(5, 4, 0);
 
    // check the size of SOCKADDR structure
@@ -665,7 +664,7 @@ int CUDTUnited::close(const UDTSOCKET u)
 {
    CUDTSocket* s = locate(u);
    
-   if (NULL == s)
+   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
       throw CUDTException(5, 4, 0);
 
    s->m_pUDT->close();
@@ -711,7 +710,7 @@ int CUDTUnited::getpeername(const UDTSOCKET u, sockaddr* name, int* namelen)
 {
    CUDTSocket* s = locate(u);
 
-   if (NULL == s)
+   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
       throw CUDTException(5, 4, 0);
 
    if (!s->m_pUDT->m_bConnected || s->m_pUDT->m_bBroken)
@@ -732,10 +731,10 @@ int CUDTUnited::getsockname(const UDTSOCKET u, sockaddr* name, int* namelen)
 {
    CUDTSocket* s = locate(u);
 
-   if (NULL == s)
+   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
       throw CUDTException(5, 4, 0);
 
-   if ((CUDTSocket::INIT == s->m_Status) || (CUDTSocket::CLOSED == s->m_Status))
+   if (CUDTSocket::INIT == s->m_Status)
       throw CUDTException(2, 2, 0);
 
    if (AF_INET == s->m_iIPversion)
@@ -759,59 +758,70 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
    else
       to = timeout->tv_sec * 1000000 + timeout->tv_usec;
 
-   int count = 0;
+   // retrieve related UDT sockets
+   vector<CUDTSocket*> ru, wu, eu;
+   CUDTSocket* s;
+   if (NULL != readfds)
+      for (set<UDTSOCKET>::iterator i = readfds->begin(); i != readfds->end(); ++ i)
+      {
+         if (NULL == (s = locate(*i)))
+            throw CUDTException(5, 4, 0);
+         ru.insert(ru.end(), s);
+      }
+   if (NULL != writefds)
+      for (set<UDTSOCKET>::iterator i = writefds->begin(); i != writefds->end(); ++ i)
+      {
+         if (NULL == (s = locate(*i)))
+            throw CUDTException(5, 4, 0);
+         wu.insert(wu.end(), s);
+      }
+   if (NULL != exceptfds)
+      for (set<UDTSOCKET>::iterator i = exceptfds->begin(); i != exceptfds->end(); ++ i)
+      {
+         if (NULL == (s = locate(*i)))
+            throw CUDTException(5, 4, 0);
+         eu.insert(eu.end(), s);
+      }
 
+   // initialize results
+   int count = 0;
    set<UDTSOCKET> rs, ws, es;
 
    do
    {
-      CUDTSocket* s;
-
       // query read sockets
-      if (NULL != readfds)
-         for (set<UDTSOCKET>::iterator i = readfds->begin(); i != readfds->end(); ++ i)
-         {
-            if (NULL == (s = locate(*i)))
-               throw CUDTException(5, 4, 0);
+      for (vector<CUDTSocket*>::iterator i = ru.begin(); i != ru.end(); ++ i)
+      {
+         s = *i;
 
-            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && ((s->m_pUDT->m_iSockType == UDT_STREAM) || (s->m_pUDT->m_pRcvBuffer->getRcvMsgNum() > 0)))
-               || (!s->m_pUDT->m_bListening && (s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected))
-               || (s->m_pUDT->m_bListening && (s->m_pQueuedSockets->size() > 0))
-               || (s->m_Status == CUDTSocket::CLOSED))
-            {
-               rs.insert(*i);
-               ++ count;
-            }
+         if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && ((s->m_pUDT->m_iSockType == UDT_STREAM) || (s->m_pUDT->m_pRcvBuffer->getRcvMsgNum() > 0)))
+            || (!s->m_pUDT->m_bListening && (s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected))
+            || (s->m_pUDT->m_bListening && (s->m_pQueuedSockets->size() > 0))
+            || (s->m_Status == CUDTSocket::CLOSED))
+         {
+            rs.insert(s->m_SocketID);
+            ++ count;
          }
+      }
 
       // query write sockets
-      if (NULL != writefds)
-         for (set<UDTSOCKET>::iterator i = writefds->begin(); i != writefds->end(); ++ i)
-         {
-            if (NULL == (s = locate(*i)))
-               throw CUDTException(5, 4, 0);
+      for (vector<CUDTSocket*>::iterator i = wu.begin(); i != wu.end(); ++ i)
+      {
+         s = *i;
 
-            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pSndBuffer->getCurrBufSize() < s->m_pUDT->m_iSndBufSize))
-               || s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected || (s->m_Status == CUDTSocket::CLOSED))
-            {
-               ws.insert(*i);
-               ++ count;
-            }
+         if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pSndBuffer->getCurrBufSize() < s->m_pUDT->m_iSndBufSize))
+            || s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected || (s->m_Status == CUDTSocket::CLOSED))
+         {
+            ws.insert(s->m_SocketID);
+            ++ count;
          }
+      }
 
       // query expections on sockets
-      /*
-      if (NULL != exceptfds)
-         for (set<UDTSOCKET>::iterator i = exceptfds->begin(); i != exceptfds->end(); ++ i)
-         {
-            if (NULL == (s = locate(*i)))
-               throw CUDTException(5, 4, 0);
-
-            // check connection request status
-               es.insert(*i);
-               ++ count;
-         }
-      */
+      for (vector<CUDTSocket*>::iterator i = eu.begin(); i != eu.end(); ++ i)
+      {
+         // check connection request status, not supported now
+      }
 
       if (0 < count)
          break;
@@ -838,9 +848,6 @@ CUDTSocket* CUDTUnited::locate(const UDTSOCKET u)
    map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.find(u);
 
    if (i == m_Sockets.end())
-      return NULL;
-
-   if (i->second->m_Status == CUDTSocket::CLOSED)
       return NULL;
 
    return i->second;
@@ -906,7 +913,7 @@ void CUDTUnited::checkBrokenSockets()
                #else
                   WaitForSingleObject(j->second->m_AcceptLock, INFINITE);
                #endif
-               j->second->m_pQueuedSockets->erase(i->second->m_Socket);
+               j->second->m_pQueuedSockets->erase(i->second->m_SocketID);
                #ifndef WIN32
                   pthread_mutex_unlock(&(j->second->m_AcceptLock));
                #else
@@ -919,7 +926,7 @@ void CUDTUnited::checkBrokenSockets()
       {
          // timeout 1 second to destroy a socket
          if (CTimer::getTime() - i->second->m_TimeStamp > 1000000)
-            tbr.insert(i->second->m_Socket);
+            tbr.insert(i->second->m_SocketID);
 
          // sockets cannot be removed here because it will invalidate the map iterator
       }

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/18/2007
+   Yunhong Gu, last updated 11/30/2007
 *****************************************************************************/
 
 #ifndef __UDT_API_H__
@@ -66,7 +66,7 @@ struct CUDTSocket
    sockaddr* m_pSelfAddr;                    // pointer to the local address of the socket
    sockaddr* m_pPeerAddr;                    // pointer to the peer address of the socket
 
-   UDTSOCKET m_Socket;                       // socket ID
+   UDTSOCKET m_SocketID;                     // socket ID
    UDTSOCKET m_ListenSocket;                 // ID of the listener socket; 0 means this is an independent socket
 
    UDTSOCKET m_PeerID;                       // peer socket ID
