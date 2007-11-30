@@ -428,17 +428,33 @@ CUDT* CUDTUnited::lookup(const UDTSOCKET u)
 
    map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.find(u);
 
-   if (i == m_Sockets.end())
+   if ((i == m_Sockets.end()) || (i->second->m_Status == CUDTSocket::CLOSED))
       throw CUDTException(5, 4, 0);
 
    return i->second->m_pUDT;
+}
+
+CUDTSocket::UDTSTATUS CUDTUnited::getStatus(const UDTSOCKET u)
+{
+   // protects the m_Sockets structure
+   CGuard cg(m_ControlLock);
+
+   map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.find(u);
+
+   if (i == m_Sockets.end())
+      return CUDTSocket::INIT;
+
+   if (i->second->m_pUDT->m_bBroken)
+      return CUDTSocket::BROKEN;
+
+   return i->second->m_Status;   
 }
 
 int CUDTUnited::bind(const UDTSOCKET u, const sockaddr* name, const int& namelen)
 {
    CUDTSocket* s = locate(u);
 
-   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
+   if (NULL == s)
       throw CUDTException(5, 4, 0);
 
    // cannot bind a socket more than once
@@ -471,7 +487,7 @@ int CUDTUnited::listen(const UDTSOCKET u, const int& backlog)
 {
    CUDTSocket* s = locate(u);
 
-   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
+   if (NULL == s)
       throw CUDTException(5, 4, 0);
 
    // do nothing if the socket is already listening
@@ -516,7 +532,7 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
 
    CUDTSocket* ls = locate(listen);
 
-   if ((ls == NULL) || (CUDTSocket::CLOSED == ls->m_Status))
+   if (ls == NULL)
       throw CUDTException(5, 4, 0);
 
    // the "listen" socket must be in LISTENING status
@@ -609,7 +625,7 @@ int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, const int& name
 {
    CUDTSocket* s = locate(u);
 
-   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
+   if (NULL == s)
       throw CUDTException(5, 4, 0);
 
    // check the size of SOCKADDR structure
@@ -663,9 +679,10 @@ int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, const int& name
 int CUDTUnited::close(const UDTSOCKET u)
 {
    CUDTSocket* s = locate(u);
-   
-   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
-      throw CUDTException(5, 4, 0);
+
+   // silently drop a request to close an invalid ID, rather than return error   
+   if (NULL == s)
+      return 0;
 
    s->m_pUDT->close();
 
@@ -708,9 +725,12 @@ int CUDTUnited::close(const UDTSOCKET u)
 
 int CUDTUnited::getpeername(const UDTSOCKET u, sockaddr* name, int* namelen)
 {
+   if (CUDTSocket::CONNECTED != getStatus(u))
+      throw CUDTException(2, 2, 0);
+
    CUDTSocket* s = locate(u);
 
-   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
+   if (NULL == s)
       throw CUDTException(5, 4, 0);
 
    if (!s->m_pUDT->m_bConnected || s->m_pUDT->m_bBroken)
@@ -731,7 +751,7 @@ int CUDTUnited::getsockname(const UDTSOCKET u, sockaddr* name, int* namelen)
 {
    CUDTSocket* s = locate(u);
 
-   if ((NULL == s) || (CUDTSocket::CLOSED == s->m_Status))
+   if (NULL == s)
       throw CUDTException(5, 4, 0);
 
    if (CUDTSocket::INIT == s->m_Status)
@@ -758,34 +778,52 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
    else
       to = timeout->tv_sec * 1000000 + timeout->tv_usec;
 
+   // initialize results
+   int count = 0;
+   set<UDTSOCKET> rs, ws, es;
+
    // retrieve related UDT sockets
    vector<CUDTSocket*> ru, wu, eu;
    CUDTSocket* s;
    if (NULL != readfds)
       for (set<UDTSOCKET>::iterator i = readfds->begin(); i != readfds->end(); ++ i)
       {
-         if (NULL == (s = locate(*i)))
+         if (CUDTSocket::BROKEN == getStatus(*i))
+         {
+            rs.insert(*i);
+            ++ count;
+         }
+         else if (NULL == (s = locate(*i)))
             throw CUDTException(5, 4, 0);
-         ru.insert(ru.end(), s);
+         else
+            ru.insert(ru.end(), s);
       }
    if (NULL != writefds)
       for (set<UDTSOCKET>::iterator i = writefds->begin(); i != writefds->end(); ++ i)
       {
-         if (NULL == (s = locate(*i)))
+         if (CUDTSocket::BROKEN == getStatus(*i))
+         {
+            ws.insert(*i);
+            ++ count;
+         }
+         else if (NULL == (s = locate(*i)))
             throw CUDTException(5, 4, 0);
-         wu.insert(wu.end(), s);
+         else
+            wu.insert(wu.end(), s);
       }
    if (NULL != exceptfds)
       for (set<UDTSOCKET>::iterator i = exceptfds->begin(); i != exceptfds->end(); ++ i)
       {
-         if (NULL == (s = locate(*i)))
+         if (CUDTSocket::BROKEN == getStatus(*i))
+         {
+            es.insert(*i);
+            ++ count;
+         }
+         else if (NULL == (s = locate(*i)))
             throw CUDTException(5, 4, 0);
-         eu.insert(eu.end(), s);
+         else
+            eu.insert(eu.end(), s);
       }
-
-   // initialize results
-   int count = 0;
-   set<UDTSOCKET> rs, ws, es;
 
    do
    {
@@ -847,7 +885,7 @@ CUDTSocket* CUDTUnited::locate(const UDTSOCKET u)
 
    map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.find(u);
 
-   if (i == m_Sockets.end())
+   if ( (i == m_Sockets.end()) || (i->second->m_Status == CUDTSocket::CLOSED))
       return NULL;
 
    return i->second;
@@ -1368,6 +1406,12 @@ int CUDT::setsockopt(UDTSOCKET u, int, UDTOpt optname, const void* optval, int o
 
 int CUDT::send(UDTSOCKET u, const char* buf, int len, int)
 {
+   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
+   {
+      s_UDTUnited.setError(new CUDTException(2, 1, 0));
+      return ERROR;
+   }
+
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
@@ -1393,6 +1437,12 @@ int CUDT::send(UDTSOCKET u, const char* buf, int len, int)
 
 int CUDT::recv(UDTSOCKET u, char* buf, int len, int)
 {
+   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
+   {
+      s_UDTUnited.setError(new CUDTException(2, 1, 0));
+      return ERROR;
+   }
+
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
@@ -1413,6 +1463,12 @@ int CUDT::recv(UDTSOCKET u, char* buf, int len, int)
 
 int CUDT::sendmsg(UDTSOCKET u, const char* buf, int len, int ttl, bool inorder)
 {
+   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
+   {
+      s_UDTUnited.setError(new CUDTException(2, 1, 0));
+      return ERROR;
+   }
+
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
@@ -1438,6 +1494,12 @@ int CUDT::sendmsg(UDTSOCKET u, const char* buf, int len, int ttl, bool inorder)
 
 int CUDT::recvmsg(UDTSOCKET u, char* buf, int len)
 {
+   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
+   {
+      s_UDTUnited.setError(new CUDTException(2, 1, 0));
+      return ERROR;
+   }
+
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
@@ -1458,6 +1520,12 @@ int CUDT::recvmsg(UDTSOCKET u, char* buf, int len)
 
 int64_t CUDT::sendfile(UDTSOCKET u, ifstream& ifs, const int64_t& offset, const int64_t& size, const int& block)
 {
+   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
+   {
+      s_UDTUnited.setError(new CUDTException(2, 1, 0));
+      return ERROR;
+   }
+
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
@@ -1483,6 +1551,12 @@ int64_t CUDT::sendfile(UDTSOCKET u, ifstream& ifs, const int64_t& offset, const 
 
 int64_t CUDT::recvfile(UDTSOCKET u, ofstream& ofs, const int64_t& offset, const int64_t& size, const int& block)
 {
+   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
+   {
+      s_UDTUnited.setError(new CUDTException(2, 1, 0));
+      return ERROR;
+   }
+
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
@@ -1537,6 +1611,12 @@ CUDTException& CUDT::getlasterror()
 
 int CUDT::perfmon(UDTSOCKET u, CPerfMon* perf, bool clear)
 {
+   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
+   {
+      s_UDTUnited.setError(new CUDTException(2, 1, 0));
+      return ERROR;
+   }
+
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
@@ -1555,11 +1635,6 @@ int CUDT::perfmon(UDTSOCKET u, CPerfMon* perf, bool clear)
       s_UDTUnited.setError(new CUDTException(-1, 0, 0));
       return ERROR;
    }
-}
-
-bool CUDT::isUSock(UDTSOCKET u)
-{
-   return (NULL != s_UDTUnited.lookup(u));
 }
 
 CUDT* CUDT::getUDTHandle(UDTSOCKET u)

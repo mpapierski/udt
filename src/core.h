@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/27/2007
+   Yunhong Gu, last updated 11/30/2007
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -96,7 +96,6 @@ public: //API
    static int perfmon(UDTSOCKET u, CPerfMon* perf, bool clear = true);
 
 public: // internal API
-   static bool isUSock(UDTSOCKET u);
    static CUDT* getUDTHandle(UDTSOCKET u);
 
 private:
