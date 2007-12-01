@@ -776,8 +776,8 @@ void CUDT::close()
       }
    }
 
-   // update snd U list to remove this socket
-   m_pSndQueue->m_pSndUList->update(m_SocketID, this, true);
+   // remove this socket from the snd queue
+   m_pSndQueue->m_pSndUList->remove(m_SocketID);
 
    CGuard cg(m_ConnectionLock);
 

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/29/2007
+   Yunhong Gu, last updated 12/01/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -386,6 +386,47 @@ CUDT* CSndUList::pop()
    return u;
 }
 
+void CSndUList::remove(const int32_t& id)
+{
+   CGuard listguard(m_ListLock);
+
+   if (NULL == m_pUList)
+      return;
+
+   // check and remove the first node
+   if (id == m_pUList->m_iID)
+   {
+      m_pUList->m_bOnList = false;      
+
+      m_pUList = m_pUList->m_pNext;
+      if (NULL == m_pUList)
+         m_pLast = NULL;
+      else
+         m_pUList->m_pPrev = NULL;
+
+      return;
+   }
+
+   // check further
+   CUDTList* p = m_pUList->m_pNext;
+   while (NULL != p)
+   {
+      if (id == p->m_iID)
+      {
+         p->m_bOnList = false;
+
+         p->m_pPrev->m_pNext = p->m_pNext;
+         if (NULL != p->m_pNext)
+            p->m_pNext->m_pPrev = p->m_pPrev;
+         else
+            m_pLast = p->m_pPrev;
+
+         return;
+      }
+
+      p = p->m_pNext;
+   }
+}
 
 //
 CSndQueue::CSndQueue():

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/29/2007
+   Yunhong Gu, last updated 12/01/2007
 *****************************************************************************/
 
 
@@ -180,6 +180,15 @@ public:
       //    UDT instance.
 
    CUDT* pop();
+
+      // Functionality:
+      //    Remove UDT instance from the list.
+      // Parameters:
+      //    1) [in] id: Socket ID
+      // Returned value:
+      //    None.
+
+     void remove(const int32_t& id);
 
 public:
    CUDTList* m_pUList;		// The head node
