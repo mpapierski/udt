@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/01/2007
+   Yunhong Gu, last updated 12/02/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -256,15 +256,6 @@ void CSndUList::insert(const int64_t& ts, const CUDT* u)
       n->m_pPrev = n->m_pNext = NULL;
       m_pLast = m_pUList = n;
 
-      // If UList was empty, signal the sending queue to restart
-      #ifndef WIN32
-         pthread_mutex_lock(m_pWindowLock);
-         pthread_cond_signal(m_pWindowCond);
-         pthread_mutex_unlock(m_pWindowLock);
-      #else
-         SetEvent(*m_pWindowCond);
-      #endif
-
       return;
    }
 
@@ -316,6 +307,9 @@ void CSndUList::update(const int32_t& id, const CUDT* u, const bool& reschedule)
       if (id == m_pUList->m_iID)
       {
          m_pUList->m_llTimeStamp = 1;
+
+         m_pTimer->interrupt();
+
          return;
       }
 
@@ -347,6 +341,8 @@ void CSndUList::update(const int32_t& id, const CUDT* u, const bool& reschedule)
       n->m_pPrev = n->m_pNext = NULL;
       m_pLast = m_pUList = n;
 
+      m_pTimer->interrupt();
+
       #ifndef WIN32
          pthread_mutex_lock(m_pWindowLock);
          pthread_cond_signal(m_pWindowCond);
@@ -364,6 +360,8 @@ void CSndUList::update(const int32_t& id, const CUDT* u, const bool& reschedule)
    n->m_pNext = m_pUList;
    m_pUList->m_pPrev = n;
    m_pUList = n;
+
+   m_pTimer->interrupt();
 }
 
 CUDT* CSndUList::pop()
@@ -428,6 +426,16 @@ void CSndUList::remove(const int32_t& id)
    }
 }
 
+uint64_t CSndUList::getNextProcTime()
+{
+   CGuard listguard(m_ListLock);
+
+   if (NULL == m_pUList)
+      return 0;
+
+   return m_pUList->m_llTimeStamp;
+}
+
 //
 CSndQueue::CSndQueue():
 m_pSndUList(NULL),
@@ -473,6 +481,7 @@ void CSndQueue::init(const CChannel* c, const CTimer* t)
    m_pSndUList = new CSndUList;
    m_pSndUList->m_pWindowLock = &m_WindowLock;
    m_pSndUList->m_pWindowCond = &m_WindowCond;
+   m_pSndUList->m_pTimer = m_pTimer;
 
    #ifndef WIN32
       pthread_create(&m_WorkerThread, NULL, CSndQueue::worker, this);
@@ -494,13 +503,15 @@ void CSndQueue::init(const CChannel* c, const CTimer* t)
 
    while (!self->m_bClosing)
    {
-      if (NULL != self->m_pSndUList->m_pUList)
+      uint64_t ts = self->m_pSndUList->getNextProcTime();
+
+      if (ts > 0)
       {
          // wait until next processing time of the first socket on the list
          uint64_t currtime;
          CTimer::rdtsc(currtime);
-         if (currtime < self->m_pSndUList->m_pUList->m_llTimeStamp)
-            self->m_pTimer->sleepto(self->m_pSndUList->m_pUList->m_llTimeStamp);
+         if (currtime < ts)
+            self->m_pTimer->sleepto(ts);
 
          // it is time to process it, pop it out/remove from the list
          CUDT* u = self->m_pSndUList->pop();
@@ -518,7 +529,7 @@ void CSndQueue::init(const CChannel* c, const CTimer* t)
       }
       else
       {
-         // wait here is there is no sockets with data to be sent
+         // wait here if there is no sockets with data to be sent
          #ifndef WIN32
             pthread_mutex_lock(&self->m_WindowLock);
             if (!self->m_bClosing && (NULL == self->m_pSndUList->m_pUList))

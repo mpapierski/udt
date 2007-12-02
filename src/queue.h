@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/01/2007
+   Yunhong Gu, last updated 12/02/2007
 *****************************************************************************/
 
 
@@ -190,6 +190,15 @@ public:
 
      void remove(const int32_t& id);
 
+      // Functionality:
+      //    Retrieve the next scheduled processing time.
+      // Parameters:
+      //    None.
+      // Returned value:
+      //    Scheduled processing time of the first UDT socket in the list.
+
+     uint64_t getNextProcTime();
+
 public:
    CUDTList* m_pUList;		// The head node
 
@@ -200,6 +209,8 @@ private:
 
    pthread_mutex_t* m_pWindowLock;
    pthread_cond_t* m_pWindowCond;
+
+   CTimer* m_pTimer;
 };
 
 

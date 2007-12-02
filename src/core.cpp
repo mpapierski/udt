@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/29/2007
+   Yunhong Gu, last updated 12/02/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -657,14 +657,14 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pCC->setBandwidth(m_iBandwidth);
    m_pCC->init();
 
-   // register this socket for receiving data packets
-   m_pRcvQueue->setNewEntry(this);
-
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
    memcpy(m_pPeerAddr, serv_addr, (AF_INET == m_iIPversion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
 
    // And, I am connected too.
    m_bConnected = true;
+
+   // register this socket for receiving data packets
+   m_pRcvQueue->setNewEntry(this);
 }
 
 void CUDT::connect(const sockaddr* peer, CHandShake* hs)
@@ -741,14 +741,14 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pCC->setBandwidth(m_iBandwidth);
    m_pCC->init();
 
-   // register this socket for receiving data packets
-   m_pRcvQueue->setNewEntry(this);
-
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
    memcpy(m_pPeerAddr, peer, (AF_INET == m_iIPversion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
 
    // And of course, it is connected.
    m_bConnected = true;
+
+   // register this socket for receiving data packets
+   m_pRcvQueue->setNewEntry(this);
 }
 
 void CUDT::close()
@@ -1647,7 +1647,6 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
       // insert this socket to snd list if it is not on the list yet
       m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
-      m_pSndQueue->m_pTimer->interrupt();
 
       #ifndef WIN32
          pthread_mutex_unlock(&m_AckLock);
@@ -1752,7 +1751,6 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 	  
       // the lost packet (retransmission) should be sent out immediately
       m_pSndQueue->m_pSndUList->update(m_SocketID, this);
-      m_pSndQueue->m_pTimer->interrupt();
 
       ++ m_iRecvNAK;
 
@@ -2134,7 +2132,6 @@ void CUDT::checkTimers()
       {
          // immediately restart transmission
          m_pSndQueue->m_pSndUList->update(m_SocketID, this);
-         m_pSndQueue->m_pTimer->interrupt();
       }
 
       ++ m_iEXPCount;
