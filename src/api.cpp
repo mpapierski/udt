@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/30/2007
+   Yunhong Gu, last updated 12/03/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -285,6 +285,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
          hs->m_iMSS = ns->m_pUDT->m_iMSS;
          hs->m_iFlightFlagSize = ns->m_pUDT->m_iFlightFlagSize;
          hs->m_iReqType = -1;
+         hs->m_iID = ns->m_SocketID;
 
          return 0;
 
