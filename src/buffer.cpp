@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/02/2007
+   Yunhong Gu, last updated 12/04/2007
 *****************************************************************************/
 
 #include <cstring>
@@ -185,6 +185,8 @@ void CSndBuffer::addBufferFromFile(ifstream& ifs, const int& len)
 
       ifs.read(s->m_pcData, pktlen);
       s->m_iLength = pktlen;
+
+      s = s->m_pNext;
    }
    m_pLastBlock = s;
 
