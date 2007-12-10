@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/03/2007
+   Yunhong Gu, last updated 12/10/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -600,7 +600,6 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
       }
    #endif
 
-
    if (u == CUDT::INVALID_SOCK)
    {
       // non-blocking receiving, no connection available
@@ -965,8 +964,8 @@ void CUDTUnited::checkBrokenSockets()
       }
       else
       {
-         // timeout 1 second to destroy a socket
-         if (CTimer::getTime() - i->second->m_TimeStamp > 1000000)
+         // timeout 1 second to destroy a socket AND it has been removed from RcvUList
+         if ((CTimer::getTime() - i->second->m_TimeStamp > 1000000) && ((NULL == i->second->m_pUDT->m_pRNode) || !i->second->m_pUDT->m_pRNode->m_bOnList))
             tbr.insert(i->second->m_SocketID);
 
          // sockets cannot be removed here because it will invalidate the map iterator

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/02/2007
+   Yunhong Gu, last updated 12/10/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -460,12 +460,14 @@ CSndQueue::~CSndQueue()
       pthread_mutex_lock(&m_WindowLock);
       pthread_cond_signal(&m_WindowCond);
       pthread_mutex_unlock(&m_WindowLock);
-      pthread_join(m_WorkerThread, NULL);
+      if (0 != m_WorkerThread)
+         pthread_join(m_WorkerThread, NULL);
       pthread_cond_destroy(&m_WindowCond);
       pthread_mutex_destroy(&m_WindowLock);
    #else
       SetEvent(m_WindowCond);
-      WaitForSingleObject(m_WorkerThread, INFINITE);
+      if (NULL != m_WorkerThread)
+         WaitForSingleObject(m_WorkerThread, INFINITE);
       CloseHandle(m_WorkerThread);
       CloseHandle(m_WindowLock);
       CloseHandle(m_WindowCond);
@@ -484,10 +486,16 @@ void CSndQueue::init(const CChannel* c, const CTimer* t)
    m_pSndUList->m_pTimer = m_pTimer;
 
    #ifndef WIN32
-      pthread_create(&m_WorkerThread, NULL, CSndQueue::worker, this);
+      if (0 != pthread_create(&m_WorkerThread, NULL, CSndQueue::worker, this))
+      {
+         m_WorkerThread = 0;
+         throw CUDTException(3, 1);
+      }
    #else
       DWORD threadID;
       m_WorkerThread = CreateThread(NULL, 0, CSndQueue::worker, this, 0, &threadID);
+      if (NULL == m_WorkerThread)
+         throw CUDTException(3, 1);
    #endif
 }
 
@@ -569,6 +577,8 @@ void CRcvUList::insert(const CUDT* u)
    CUDTList* n = u->m_pRNode;
    CTimer::rdtsc(n->m_llTimeStamp);
 
+   n->m_bOnList = true;
+
    if (NULL == m_pUList)
    {
       // empty list, insert as the single node
@@ -592,12 +602,16 @@ void CRcvUList::remove(const int32_t& id)
 
    if (id == m_pUList->m_iID)
    {
+      CUDTList* n = m_pUList;
+
       // remove first node
       m_pUList = m_pUList->m_pNext;
       if (NULL == m_pUList)
          m_pLast = NULL;
       else
          m_pUList->m_pPrev = NULL;
+
+      n->m_bOnList = false;
 
       return;
    }
@@ -608,11 +622,15 @@ void CRcvUList::remove(const int32_t& id)
    {
       if (id == p->m_pNext->m_iID)
       {
+         CUDTList* n = p->m_pNext;
+
          p->m_pNext = p->m_pNext->m_pNext;
          if (NULL != p->m_pNext)
             p->m_pNext->m_pPrev = p;
          else
             m_pLast = p;
+
+         n->m_bOnList = false;
 
          return;
       }
@@ -872,13 +890,15 @@ CRcvQueue::~CRcvQueue()
    m_bClosing = true;
 
    #ifndef WIN32
-      pthread_join(m_WorkerThread, NULL);
+      if (0 != m_WorkerThread)
+         pthread_join(m_WorkerThread, NULL);
       pthread_mutex_destroy(&m_PassLock);
       pthread_cond_destroy(&m_PassCond);
       pthread_mutex_destroy(&m_LSLock);
       pthread_mutex_destroy(&m_IDLock);
    #else
-      WaitForSingleObject(m_WorkerThread, INFINITE);
+      if (NULL != m_WorkerThread)
+         WaitForSingleObject(m_WorkerThread, INFINITE);
       CloseHandle(m_WorkerThread);
       CloseHandle(m_PassLock);
       CloseHandle(m_PassCond);
@@ -913,10 +933,16 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
    m_pRendezvousQueue = new CRendezvousQueue;
 
    #ifndef WIN32
-      pthread_create(&m_WorkerThread, NULL, CRcvQueue::worker, this);
+      if (0 != pthread_create(&m_WorkerThread, NULL, CRcvQueue::worker, this))
+      {
+         m_WorkerThread = 0;
+         throw CUDTException(3, 1);
+      }
    #else
       DWORD threadID;
       m_WorkerThread = CreateThread(NULL, 0, CRcvQueue::worker, this, 0, &threadID);
+      if (NULL == m_WorkerThread)
+         throw CUDtException(3, 1);
    #endif
 }
 
@@ -944,8 +970,8 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
          CUDT* ne = self->getNewEntry();
          if (NULL != ne)
          {
-            self->m_pHash->insert(ne->m_SocketID, ne);
             self->m_pRcvUList->insert(ne);
+            self->m_pHash->insert(ne->m_SocketID, ne);
          }
       }
 
@@ -980,7 +1006,7 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
                self->storePkt(id, unit->m_Packet.clone());
          }
       }
-      else 
+      else if (id > 0)
       {
          if (NULL != (u = self->m_pHash->lookup(id)))
          {
@@ -1011,15 +1037,15 @@ TIMER_CHECK:
          CUDT* u = ul->m_pUDT;
          int32_t id = ul->m_iID;
 
+         u->checkTimers();
+
          if (u->m_bConnected && !u->m_bBroken)
-         {
-            u->checkTimers();
             self->m_pRcvUList->update(id);
-         }
          else
          {
-            self->m_pRcvUList->remove(id);
+            // the socket must be removed from Hash table first, then RcvUList
             self->m_pHash->remove(id);
+            self->m_pRcvUList->remove(id);
          }
 
          ul = self->m_pRcvUList->m_pUList;
