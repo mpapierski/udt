@@ -942,7 +942,7 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
       DWORD threadID;
       m_WorkerThread = CreateThread(NULL, 0, CRcvQueue::worker, this, 0, &threadID);
       if (NULL == m_WorkerThread)
-         throw CUDtException(3, 1);
+         throw CUDTException(3, 1);
    #endif
 }
 
