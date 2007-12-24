@@ -2043,10 +2043,10 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
    char clienthost[NI_MAXHOST];
    char clientport[NI_MAXSERV];
    getnameinfo(addr, (AF_INET == m_iVersion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6), clienthost, sizeof(clienthost), clientport, sizeof(clientport), NI_NUMERICHOST|NI_NUMERICSERV);
-   int64_t timestamp = (CTimer::getTime() - m_StartTime) / 60000000;
+   int64_t timestamp = (CTimer::getTime() - m_StartTime) / 60000000; // secret changes every one minutes
    char cookiestr[1024];
    sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, timestamp);
-   unsigned char cookie[2038];
+   unsigned char cookie[16];
    CMD5::compute(cookiestr, cookie);
 
    if (1 == hs->m_iReqType)
@@ -2060,7 +2060,14 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
    else
    {
       if (hs->m_iCookie != *(int*)cookie)
-         return -1;
+      {
+         timestamp --;
+         sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, timestamp);
+         CMD5::compute(cookiestr, cookie);
+
+         if (hs->m_iCookie != *(int*)cookie)
+            return -1;
+      }
    }
 
    int32_t id = hs->m_iID;
