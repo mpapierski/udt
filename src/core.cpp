@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/02/2007
+   Yunhong Gu, last updated 12/23/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -574,6 +574,17 @@ void CUDT::connect(const sockaddr* serv_addr)
             {
                req->m_iReqType = -1;
                request.m_iID = res->m_iID;
+               response.setLength(-1);
+            }
+         }
+         else
+         {
+            // set cookie
+            if (1 == res->m_iReqType)
+            {
+               req->m_iReqType = -1;
+               req->m_iCookie = res->m_iCookie;
+
                response.setLength(-1);
             }
          }
@@ -2027,6 +2038,30 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
       return 1002;
 
    CHandShake* hs = (CHandShake *)packet.m_pcData;
+
+   // SYN cookie
+   char clienthost[NI_MAXHOST];
+   char clientport[NI_MAXSERV];
+   getnameinfo(addr, (AF_INET == m_iVersion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6), clienthost, sizeof(clienthost), clientport, sizeof(clientport), NI_NUMERICHOST|NI_NUMERICSERV);
+   int64_t timestamp = (CTimer::getTime() - m_StartTime) / 60000000;
+   char cookiestr[1024];
+   sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, timestamp);
+   unsigned char cookie[2038];
+   CMD5::compute(cookiestr, cookie);
+
+   if (1 == hs->m_iReqType)
+   {
+      hs->m_iCookie = *(int*)cookie;
+      packet.m_iID = hs->m_iID;
+      m_pSndQueue->sendto(addr, packet);
+
+      return 0;
+   }
+   else
+   {
+      if (hs->m_iCookie != *(int*)cookie)
+         return -1;
+   }
 
    int32_t id = hs->m_iID;
 

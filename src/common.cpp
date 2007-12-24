@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/19/2007
+   Yunhong Gu, last updated 12/23/2007
 *****************************************************************************/
 
 
@@ -48,6 +48,7 @@ written by
    #include <ws2tcpip.h>
 #endif
 #include <cmath>
+#include "md5.h"
 #include "common.h"
 
 uint64_t CTimer::s_ullCPUFrequency = CTimer::readCPUFrequency();
@@ -592,4 +593,15 @@ bool CIPAddress::ipcmp(const sockaddr* addr1, const sockaddr* addr2, const int& 
    }
 
    return false;
+}
+
+
+//
+void CMD5::compute(const char* input, unsigned char result[16])
+{
+   md5_state_t state;
+
+   md5_init(&state);
+   md5_append(&state, (const md5_byte_t *)input, strlen(input));
+   md5_finish(&state, result);
 }
