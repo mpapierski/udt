@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/23/2007
+   Yunhong Gu, last updated 12/24/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -584,13 +584,12 @@ void CUDT::connect(const sockaddr* serv_addr)
             {
                req->m_iReqType = -1;
                req->m_iCookie = res->m_iCookie;
-
                response.setLength(-1);
             }
          }
       }
 
-      if ((response.getLength() > 0) && (res->m_iReqType < 0))
+      if (response.getLength() > 0)
          break;
 
       if (CTimer::getTime() - entertime > timeo)
@@ -640,7 +639,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    // Prepare all data structures
    try
    {
-      m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
+      m_pSndBuffer = new CSndBuffer(32, m_iPayloadSize);
       m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
       // after introducing lite ACK, the sndlosslist may not be cleared in time, so it requires twice space.
       m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
@@ -725,7 +724,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    // Prepare all structures
    try
    {
-      m_pSndBuffer = new CSndBuffer((m_iMSS > 1500) ? 32 : 128, m_iPayloadSize);
+      m_pSndBuffer = new CSndBuffer(32, m_iPayloadSize);
       m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
       m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
       m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);

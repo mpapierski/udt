@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/10/2007
+   Yunhong Gu, last updated 12/24/2007
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1143,7 +1143,7 @@ void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr)
    m.m_pSndQueue = new CSndQueue;
    m.m_pSndQueue->init(m.m_pChannel, m.m_pTimer);
    m.m_pRcvQueue = new CRcvQueue;
-   m.m_pRcvQueue->init((m.m_iMSS > 1500) ? 32 : 128, u->m_iPayloadSize, m.m_iIPversion, 1024, m.m_pChannel, m.m_pTimer);
+   m.m_pRcvQueue->init(32, u->m_iPayloadSize, m.m_iIPversion, 1024, m.m_pChannel, m.m_pTimer);
 
    m_vMultiplexer.insert(m_vMultiplexer.end(), m);
 
