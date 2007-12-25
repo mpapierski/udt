@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/02/2007
+   Yunhong Gu, last updated 12/25/2007
 *****************************************************************************/
 
 
@@ -164,13 +164,12 @@ public:
       // Functionality:
       //    Update the timestamp of the UDT instance on the list.
       // Parameters:
-      //    1) [in] id: socket ID
-      //    2) [in] u: pointer to the UDT instance
-      //    3) [in] resechedule: if the timestampe shoudl be rescheduled
+      //    1) [in] u: pointer to the UDT instance
+      //    2) [in] resechedule: if the timestampe shoudl be rescheduled
       // Returned value:
       //    None.
 
-   void update(const int32_t& id, const CUDT* u, const bool& reschedule = true);
+   void update(const CUDT* u, const bool& reschedule = true);
 
       // Functionality:
       //    Get and remove the first UDT instance on the list.
@@ -184,11 +183,11 @@ public:
       // Functionality:
       //    Remove UDT instance from the list.
       // Parameters:
-      //    1) [in] id: Socket ID
+      //    1) [in] u: pointer to the UDT instance
       // Returned value:
       //    None.
 
-     void remove(const int32_t& id);
+     void remove(const CUDT* u);
 
       // Functionality:
       //    Retrieve the next scheduled processing time.
@@ -234,20 +233,20 @@ public:
       // Functionality:
       //    Remove the UDT instance from the list.
       // Parameters:
-      //    1) [in] id: socket ID
+      //    1) [in] u: pointer to the UDT instance
       // Returned value:
       //    None.
 
-   void remove(const int32_t& id);
+   void remove(const CUDT* u);
 
       // Functionality:
       //    Move the UDT instance to the end of the list, if it already exists; otherwise, do nothing.
       // Parameters:
-      //    1) [in] id: socket ID
+      //    1) [in] u: pointer to the UDT instance
       // Returned value:
       //    None.
 
-   void update(const int32_t& id);
+   void update(const CUDT* u);
 
 public:
    CUDTList* m_pUList;		// the head node

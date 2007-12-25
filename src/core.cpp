@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/24/2007
+   Yunhong Gu, last updated 12/25/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -787,7 +787,7 @@ void CUDT::close()
    }
 
    // remove this socket from the snd queue
-   m_pSndQueue->m_pSndUList->remove(m_SocketID);
+   m_pSndQueue->m_pSndUList->remove(this);
 
    CGuard cg(m_ConnectionLock);
 
@@ -894,7 +894,7 @@ int CUDT::send(const char* data, const int& len)
    m_pSndBuffer->addBuffer(data, size);
 
    // insert this socket to snd list if it is not on the list yet
-   m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
+   m_pSndQueue->m_pSndUList->update(this, false);
 
    return size;
 }
@@ -1029,7 +1029,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
    m_pSndBuffer->addBuffer(data, len, msttl, inorder);
 
    // insert this socket to the snd list if it is not on the list yet
-   m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
+   m_pSndQueue->m_pSndUList->update(this, false);
 
    return len;   
 }
@@ -1168,7 +1168,7 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
       m_pSndBuffer->addBufferFromFile(ifs, unitsize);
 
       // insert this socket to snd list if it is not on the list yet
-      m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
+      m_pSndQueue->m_pSndUList->update(this, false);
 
       tosend -= unitsize;
    }
@@ -1656,7 +1656,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       m_pSndLossList->remove(CSeqNo::decseq(m_iSndLastDataAck));
 
       // insert this socket to snd list if it is not on the list yet
-      m_pSndQueue->m_pSndUList->update(m_SocketID, this, false);
+      m_pSndQueue->m_pSndUList->update(this, false);
 
       #ifndef WIN32
          pthread_mutex_unlock(&m_AckLock);
@@ -1760,7 +1760,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), const_cast<int32_t&>(m_iSndLastAck));
 	  
       // the lost packet (retransmission) should be sent out immediately
-      m_pSndQueue->m_pSndUList->update(m_SocketID, this);
+      m_pSndQueue->m_pSndUList->update(this);
 
       ++ m_iRecvNAK;
 
@@ -2150,7 +2150,7 @@ void CUDT::checkTimers()
          m_bBroken = true;
 
          // update snd U list to remove this socket
-         m_pSndQueue->m_pSndUList->update(m_SocketID, this, true);
+         m_pSndQueue->m_pSndUList->update(this);
 
          releaseSynch();
 
@@ -2172,7 +2172,7 @@ void CUDT::checkTimers()
       if (m_pSndBuffer->getCurrBufSize() > 0)
       {
          // immediately restart transmission
-         m_pSndQueue->m_pSndUList->update(m_SocketID, this);
+         m_pSndQueue->m_pSndUList->update(this);
       }
 
       ++ m_iEXPCount;
