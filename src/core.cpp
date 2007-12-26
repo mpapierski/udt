@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/25/2007
+   Yunhong Gu, last updated 12/26/2007
 *****************************************************************************/
 
 #ifndef WIN32
@@ -434,18 +434,15 @@ void CUDT::open()
 
    // structures for queue
    if (NULL == m_pSNode)
-      m_pSNode = new CUDTList;
-   m_pSNode->m_iID = m_SocketID;
+      m_pSNode = new CSNode;
    m_pSNode->m_pUDT = this;
    m_pSNode->m_llTimeStamp = 1;
-   m_pSNode->m_pPrev = m_pSNode->m_pNext = NULL;
-   m_pSNode->m_bOnList = false;
+   m_pSNode->m_iHeapLoc = -1;
 
    if (NULL == m_pRNode)
-      m_pRNode = new CUDTList;
-   m_pRNode->m_iID = m_SocketID;
+      m_pRNode = new CRNode;
    m_pRNode->m_pUDT = this;
-   m_pRNode->m_llTimeStamp = 1;
+   m_pSNode->m_llTimeStamp = 1;
    m_pRNode->m_pPrev = m_pRNode->m_pNext = NULL;
    m_pRNode->m_bOnList = false;
 
@@ -1830,12 +1827,6 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
 int CUDT::packData(CPacket& packet, uint64_t& ts)
 {
-   if (m_bClosing || m_bBroken)
-   {
-      ts = 0;
-      return 0;
-   }
-
    int payload = 0;
    bool probe = false;
 
@@ -1957,9 +1948,6 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
 
 int CUDT::processData(CUnit* unit)
 {
-   if (m_bClosing || m_bBroken)
-      return -1;
-
    CPacket& packet = unit->m_Packet;
 
    // Just heard from the peer, reset the expiration count.
@@ -2042,7 +2030,7 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
    char clienthost[NI_MAXHOST];
    char clientport[NI_MAXSERV];
    getnameinfo(addr, (AF_INET == m_iVersion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6), clienthost, sizeof(clienthost), clientport, sizeof(clientport), NI_NUMERICHOST|NI_NUMERICSERV);
-   int64_t timestamp = (CTimer::getTime() - m_StartTime) / 60000000; // secret changes every one minutes
+   int64_t timestamp = (CTimer::getTime() - m_StartTime) / 60000000; // secret changes every one minute
    char cookiestr[1024];
    sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, timestamp);
    unsigned char cookie[16];
@@ -2090,9 +2078,6 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
 
 void CUDT::checkTimers()
 {
-   if (m_bClosing || m_bBroken)
-      return;
-
    // update CC parameters
    m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
    m_dCongestionWindow = m_pCC->m_dCWndSize;
