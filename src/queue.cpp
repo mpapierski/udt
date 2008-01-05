@@ -965,8 +965,9 @@ TIMER_CHECK:
       CRNode* ul = self->m_pRcvUList->m_pUList;
       uint64_t currtime;
       CTimer::rdtsc(currtime);
+      uint64_t ctime = currtime - 100000 * CTimer::getCPUFrequency();
 
-      while ((NULL != ul) && (ul->m_llTimeStamp < currtime - 10000 * CTimer::getCPUFrequency()))
+      while ((NULL != ul) && (ul->m_llTimeStamp < ctime))
       {
          CUDT* u = ul->m_pUDT;
 
