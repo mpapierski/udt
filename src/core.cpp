@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2007, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/26/2007
+   Yunhong Gu, last updated 01/20/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -848,7 +848,7 @@ int CUDT::send(const char* data, const int& len)
             pthread_mutex_lock(&m_SendBlockLock);
             if (m_iSndTimeOut < 0) 
             { 
-               while (!m_bBroken && m_bConnected && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
+               while (!m_bBroken && m_bConnected && !m_bClosing && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
                   pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
             }
             else
@@ -865,7 +865,7 @@ int CUDT::send(const char* data, const int& len)
          #else
             if (m_iSndTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
+               while (!m_bBroken && m_bConnected && !m_bClosing && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
                   WaitForSingleObject(m_SendBlockCond, INFINITE);
             }
             else 
@@ -922,7 +922,7 @@ int CUDT::recv(char* data, const int& len)
             pthread_mutex_lock(&m_RecvDataLock);
             if (m_iRcvTimeOut < 0) 
             { 
-               while (!m_bBroken && m_bConnected && (0 == m_pRcvBuffer->getRcvDataSize()))
+               while (!m_bBroken && m_bConnected && !m_bClosing && (0 == m_pRcvBuffer->getRcvDataSize()))
                   pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
             }
             else
@@ -939,7 +939,7 @@ int CUDT::recv(char* data, const int& len)
          #else
             if (m_iRcvTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && (0 == m_pRcvBuffer->getRcvDataSize()))
+               while (!m_bBroken && m_bConnected && !m_bClosing && (0 == m_pRcvBuffer->getRcvDataSize()))
                   WaitForSingleObject(m_RecvDataCond, INFINITE);
             }
             else
@@ -987,7 +987,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
             pthread_mutex_lock(&m_SendBlockLock);
             if (m_iSndTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
+               while (!m_bBroken && m_bConnected && !m_bClosing && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
                   pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
             }
             else
@@ -1004,7 +1004,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
          #else
             if (m_iSndTimeOut < 0)
             {
-               while (!m_bBroken && m_bConnected && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
+               while (!m_bBroken && m_bConnected && !m_bClosing && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
                   WaitForSingleObject(m_SendBlockCond, INFINITE);
             }
             else
@@ -1073,7 +1073,7 @@ int CUDT::recvmsg(char* data, const int& len)
 
          if (m_iRcvTimeOut < 0)
          {
-            while (!m_bBroken && m_bConnected && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
+            while (!m_bBroken && m_bConnected && !m_bClosing && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
                pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
          }
          else
@@ -1093,7 +1093,7 @@ int CUDT::recvmsg(char* data, const int& len)
       #else
          if (m_iRcvTimeOut < 0)
          {
-            while (!m_bBroken && m_bConnected && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
+            while (!m_bBroken && m_bConnected && !m_bClosing && (0 == (res = m_pRcvBuffer->readMsg(data, len))))
                WaitForSingleObject(m_RecvDataCond, INFINITE);
          }
          else
@@ -1149,11 +1149,11 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
 
       #ifndef WIN32
          pthread_mutex_lock(&m_SendBlockLock);
-         while (!m_bBroken && m_bConnected && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
+         while (!m_bBroken && m_bConnected && !m_bClosing && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
             pthread_cond_wait(&m_SendBlockCond, &m_SendBlockLock);
          pthread_mutex_unlock(&m_SendBlockLock);
       #else
-         while (!m_bBroken && m_bConnected && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
+         while (!m_bBroken && m_bConnected && !m_bClosing && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()))
             WaitForSingleObject(m_SendBlockCond, INFINITE);
       #endif
 
@@ -1207,11 +1207,11 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
    {
       #ifndef WIN32
          pthread_mutex_lock(&m_RecvDataLock);
-         while (!m_bBroken && m_bConnected && (0 == m_pRcvBuffer->getRcvDataSize()))
+         while (!m_bBroken && m_bConnected && !m_bClosing && (0 == m_pRcvBuffer->getRcvDataSize()))
             pthread_cond_wait(&m_RecvDataCond, &m_RecvDataLock);
          pthread_mutex_unlock(&m_RecvDataLock);
       #else
-         while (!m_bBroken && m_bConnected && (0 == m_pRcvBuffer->getRcvDataSize()))
+         while (!m_bBroken && m_bConnected && !m_bClosing && (0 == m_pRcvBuffer->getRcvDataSize()))
             WaitForSingleObject(m_RecvDataCond, INFINITE);
       #endif
 
