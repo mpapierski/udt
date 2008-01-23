@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/20/2008
+   Yunhong Gu, last updated 01/23/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -784,7 +784,8 @@ void CUDT::close()
    }
 
    // remove this socket from the snd queue
-   m_pSndQueue->m_pSndUList->remove(this);
+   if (m_bConnected)
+      m_pSndQueue->m_pSndUList->remove(this);
 
    CGuard cg(m_ConnectionLock);
 
