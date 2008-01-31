@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2007, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/24/2007
+   Yunhong Gu, last updated 01/30/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1008,6 +1008,7 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
          #else
             WaitForSingleObject(ls->second->m_AcceptLock, INFINITE);
          #endif
+         ls->second->m_pQueuedSockets->erase(u);
          ls->second->m_pAcceptSockets->erase(u);
          #ifndef WIN32
             pthread_mutex_unlock(&(ls->second->m_AcceptLock));
