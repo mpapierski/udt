@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/23/2008
+   Yunhong Gu, last updated 02/05/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -830,7 +830,7 @@ int CUDT::send(const char* data, const int& len)
    CGuard sendguard(m_SendLock);
 
    // throw an exception if not connected
-   if (m_bBroken)
+   if (m_bBroken || m_bClosing)
       throw CUDTException(2, 1, 0);
    else if (!m_bConnected)
       throw CUDTException(2, 2, 0);
@@ -874,7 +874,7 @@ int CUDT::send(const char* data, const int& len)
          #endif
 
          // check the connection status
-         if (m_bBroken)
+         if (m_bBroken || m_bClosing)
             throw CUDTException(2, 1, 0);
          else if (!m_bConnected)
             throw CUDTException(2, 2, 0);
@@ -907,7 +907,7 @@ int CUDT::recv(char* data, const int& len)
    // throw an exception if not connected
    if (!m_bConnected)
       throw CUDTException(2, 2, 0);
-   else if (m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+   else if ((m_bBroken || m_bClosing) && (0 == m_pRcvBuffer->getRcvDataSize()))
       throw CUDTException(2, 1, 0);
 
    if (len <= 0)
@@ -952,7 +952,7 @@ int CUDT::recv(char* data, const int& len)
    // throw an exception if not connected
    if (!m_bConnected)
       throw CUDTException(2, 2, 0);
-   else if (m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+   else if ((m_bBroken || m_bClosing) && (0 == m_pRcvBuffer->getRcvDataSize()))
       throw CUDTException(2, 1, 0);
 
    return m_pRcvBuffer->readBuffer(data, len);
@@ -966,7 +966,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
    CGuard sendguard(m_SendLock);
 
    // throw an exception if not connected
-   if (m_bBroken)
+   if (m_bBroken || m_bClosing)
       throw CUDTException(2, 1, 0);
    else if (!m_bConnected)
       throw CUDTException(2, 2, 0);
@@ -1013,7 +1013,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
          #endif
 
          // check the connection status
-         if (m_bBroken)
+         if (m_bBroken || m_bClosing)
             throw CUDTException(2, 1, 0);
          else if (!m_bConnected)
             throw CUDTException(2, 2, 0);
@@ -1046,7 +1046,7 @@ int CUDT::recvmsg(char* data, const int& len)
    if (len <= 0)
       return 0;
 
-   if (m_bBroken)
+   if (m_bBroken || m_bClosing)
    {
       int res = m_pRcvBuffer->readMsg(data, len);
       if (0 == res)
@@ -1106,7 +1106,7 @@ int CUDT::recvmsg(char* data, const int& len)
          }
       #endif
 
-      if (m_bBroken)
+      if (m_bBroken || m_bClosing)
          throw CUDTException(2, 1, 0);
       else if (!m_bConnected)
          throw CUDTException(2, 2, 0);
@@ -1122,7 +1122,7 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
 
    CGuard sendguard(m_SendLock);
 
-   if (m_bBroken)
+   if (m_bBroken || m_bClosing)
       throw CUDTException(2, 1, 0);
    else if (!m_bConnected)
       throw CUDTException(2, 2, 0);
@@ -1158,7 +1158,7 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
             WaitForSingleObject(m_SendBlockCond, INFINITE);
       #endif
 
-      if (m_bBroken)
+      if (m_bBroken || m_bClosing)
          throw CUDTException(2, 1, 0);
       else if (!m_bConnected)
          throw CUDTException(2, 2, 0);
@@ -1183,7 +1183,7 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
 
    if (!m_bConnected)
       throw CUDTException(2, 2, 0);
-   else if ((m_bBroken) && (0 == m_pRcvBuffer->getRcvDataSize()))
+   else if ((m_bBroken || m_bClosing) && (0 == m_pRcvBuffer->getRcvDataSize()))
       throw CUDTException(2, 1, 0);
 
    if (size <= 0)
@@ -1218,7 +1218,7 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
 
       if (!m_bConnected)
          throw CUDTException(2, 2, 0);
-      else if (m_bBroken && (0 == m_pRcvBuffer->getRcvDataSize()))
+      else if ((m_bBroken || m_bClosing) && (0 == m_pRcvBuffer->getRcvDataSize()))
          throw CUDTException(2, 1, 0);
 
       unitsize = int((torecv >= block) ? block : torecv);
@@ -1234,7 +1234,7 @@ void CUDT::sample(CPerfMon* perf, bool clear)
 {
    if (!m_bConnected)
       throw CUDTException(2, 2, 0);
-   if (m_bBroken)
+   if (m_bBroken || m_bClosing)
       throw CUDTException(2, 1, 0);
 
    uint64_t currtime = CTimer::getTime();
