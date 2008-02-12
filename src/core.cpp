@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/05/2008
+   Yunhong Gu, last updated 02/12/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -567,7 +567,7 @@ void CUDT::connect(const sockaddr* serv_addr)
             // rendezvous connect require 3-way handshake
             if (1 == res->m_iReqType)
                response.setLength(-1);
-            else if (0 == res->m_iReqType)
+            else if ((0 == res->m_iReqType) || (0 == req->m_iReqType))
             {
                req->m_iReqType = -1;
                request.m_iID = res->m_iID;

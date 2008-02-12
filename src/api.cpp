@@ -405,6 +405,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    if (error > 0)
    {
       ns->m_pUDT->close();
+      delete ns->m_pUDT;
       if (error > 1)
          m_Sockets.erase(ns->m_SocketID);
       delete ns;
