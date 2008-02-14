@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/13/2008
+   Yunhong Gu, last updated 02/14/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -551,6 +551,8 @@ void CUDT::connect(const sockaddr* serv_addr)
    uint64_t entertime = CTimer::getTime();
    CUDTException e(0, 0);
 
+   char* tmp = NULL;
+
    while (!m_bClosing)
    {
       m_pSndQueue->sendto(serv_addr, request);
@@ -558,6 +560,15 @@ void CUDT::connect(const sockaddr* serv_addr)
       response.setLength(m_iPayloadSize);
       if (m_pRcvQueue->recvfrom(m_SocketID, response) > 0)
       {
+         if (m_bRendezvous && (0 == response.getFlag()) && (NULL != tmp))
+         {
+            // a data packet comes, which means the peer side is already connected
+            // in this situation, a previously recorded response (tmp) will be used
+            memcpy(resdata, tmp, sizeof(CHandShake));
+            delete [] tmp;
+            break;
+         }
+
          if ((1 != response.getFlag()) || (0 != response.getType()))
             response.setLength(-1);
 
@@ -569,6 +580,9 @@ void CUDT::connect(const sockaddr* serv_addr)
                response.setLength(-1);
             else if ((0 == res->m_iReqType) || (0 == req->m_iReqType))
             {
+               tmp = new char [m_iPayloadSize];
+               memcpy(tmp, resdata, sizeof(CHandShake));
+
                req->m_iReqType = -1;
                request.m_iID = res->m_iID;
                response.setLength(-1);
@@ -2033,7 +2047,7 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
    getnameinfo(addr, (AF_INET == m_iVersion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6), clienthost, sizeof(clienthost), clientport, sizeof(clientport), NI_NUMERICHOST|NI_NUMERICSERV);
    int64_t timestamp = (CTimer::getTime() - m_StartTime) / 60000000; // secret changes every one minute
    char cookiestr[1024];
-   sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, timestamp);
+   sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, (long long int)timestamp);
    unsigned char cookie[16];
    CMD5::compute(cookiestr, cookie);
 
@@ -2050,7 +2064,7 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
       if (hs->m_iCookie != *(int*)cookie)
       {
          timestamp --;
-         sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, timestamp);
+         sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, (long long int)timestamp);
          CMD5::compute(cookiestr, cookie);
 
          if (hs->m_iCookie != *(int*)cookie)
