@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/12/2008
+   Yunhong Gu, last updated 02/13/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -881,7 +881,7 @@ int CUDT::send(const char* data, const int& len)
       }
    }
 
-   if ((m_iSndTimeOut >= 0) || (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())) 
+   if (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())
       return 0; 
 
    int size = (m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize;
@@ -1020,7 +1020,7 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
       }
    }
 
-   if ((m_iSndTimeOut >= 0) && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len))
+   if ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len)
       return 0;
 
    // insert the user buffer into the sening list
