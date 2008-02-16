@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/14/2008
+   Yunhong Gu, last updated 02/15/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1599,8 +1599,8 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
    if ((CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck) || (2 == ctrlpkt.getType()) || (3 == ctrlpkt.getType()))
    {
       m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-      if (m_ullEXPInt < 13 * m_ullSYNInt)
-         m_ullEXPInt = 13 * m_ullSYNInt;
+      if (m_ullEXPInt < 100000 * m_ullCPUFrequency)
+         m_ullEXPInt = 100000 * m_ullCPUFrequency;
       CTimer::rdtsc(m_ullNextEXPTime);
       m_ullNextEXPTime += m_ullEXPInt;
    }
@@ -1968,8 +1968,9 @@ int CUDT::processData(CUnit* unit)
    // Just heard from the peer, reset the expiration count.
    m_iEXPCount = 1;
    m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-   if (m_ullEXPInt < 13 * m_ullSYNInt)
-      m_ullEXPInt = 13 * m_ullSYNInt;
+   if (m_ullEXPInt < 100000 * m_ullCPUFrequency)
+      m_ullEXPInt = 100000 * m_ullCPUFrequency;
+
    if (CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck)
    {
       CTimer::rdtsc(m_ullNextEXPTime);
@@ -2177,8 +2178,8 @@ void CUDT::checkTimers()
 
       ++ m_iEXPCount;
       m_ullEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;
-      if (m_ullEXPInt < 13 * m_ullSYNInt)
-         m_ullEXPInt = 13 * m_ullSYNInt;
+      if (m_ullEXPInt < m_iEXPCount * 100000 * m_ullCPUFrequency)
+         m_ullEXPInt = m_iEXPCount * 100000 * m_ullCPUFrequency;
       CTimer::rdtsc(m_ullNextEXPTime);
       m_ullNextEXPTime += m_ullEXPInt;
 
