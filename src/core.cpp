@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/15/2008
+   Yunhong Gu, last updated 02/18/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -442,7 +442,7 @@ void CUDT::open()
    if (NULL == m_pRNode)
       m_pRNode = new CRNode;
    m_pRNode->m_pUDT = this;
-   m_pSNode->m_llTimeStamp = 1;
+   m_pRNode->m_llTimeStamp = 1;
    m_pRNode->m_pPrev = m_pRNode->m_pNext = NULL;
    m_pRNode->m_bOnList = false;
 
