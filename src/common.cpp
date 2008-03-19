@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/23/2007
+   Yunhong Gu, last updated 03/18/2007
 *****************************************************************************/
 
 
@@ -85,8 +85,14 @@ CTimer::~CTimer()
 void CTimer::rdtsc(uint64_t &x)
 {
    #ifdef WIN32
-      if (!QueryPerformanceCounter((LARGE_INTEGER *)&x))
+      HANDLE hCurThread = ::GetCurrentThread(); 
+      DWORD_PTR dwOldMask = ::SetThreadAffinityMask(hCurThread, 1); 
+      BOOL ret = QueryPerformanceCounter((LARGE_INTEGER *)&x);
+      SetThreadAffinityMask(hCurThread, dwOldMask);
+
+      if (!ret)
          x = getTime() * s_ullCPUFrequency;
+
    #elif IA32
       uint32_t lval, hval;
       //asm volatile ("push %eax; push %ebx; push %ecx; push %edx");
@@ -219,13 +225,19 @@ uint64_t CTimer::getTime()
       return t.tv_sec * 1000000ULL + t.tv_usec;
    #else
       LARGE_INTEGER ccf;
+      HANDLE hCurThread = ::GetCurrentThread(); 
+      DWORD_PTR dwOldMask = ::SetThreadAffinityMask(hCurThread, 1);
       if (QueryPerformanceFrequency(&ccf))
       {
          LARGE_INTEGER cc;
          if (QueryPerformanceCounter(&cc))
+         {
+            SetThreadAffinityMask(hCurThread, dwOldMask); 
             return (cc.QuadPart * 1000000ULL / ccf.QuadPart);
+         }
       }
 
+      SetThreadAffinityMask(hCurThread, dwOldMask); 
       return GetTickCount() * 1000ULL;
    #endif
 }
