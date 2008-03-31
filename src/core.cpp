@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/18/2008
+   Yunhong Gu, last updated 03/31/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1474,7 +1474,7 @@ void CUDT::sendCtrl(const int& pkttype, void* lparam, void* rparam, const int& s
          if (data[3] < 2)
             data[3] = 2;
 
-         if (CTimer::getTime() - m_ullLastAckTime > (uint64_t)m_iSYNInterval)
+         if (currtime - m_ullLastAckTime > (uint64_t)m_iSYNInterval)
          {
             data[4] = m_pRcvTimeWindow->getPktRcvSpeed();
             data[5] = m_pRcvTimeWindow->getBandwidth();

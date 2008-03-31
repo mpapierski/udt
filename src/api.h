@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/30/2007
+   Yunhong Gu, last updated 03/21/2008
 *****************************************************************************/
 
 #ifndef __UDT_API_H__
@@ -191,7 +191,7 @@ private:
    CControl* m_pController;				// UDT congestion control manager
 
 private:
-   bool m_bClosing;
+   volatile bool m_bClosing;
    pthread_t m_GCThread;
    #ifndef WIN32
       static void* garbageCollect(void*);
