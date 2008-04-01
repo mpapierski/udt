@@ -1474,7 +1474,7 @@ void CUDT::sendCtrl(const int& pkttype, void* lparam, void* rparam, const int& s
          if (data[3] < 2)
             data[3] = 2;
 
-         if (currtime - m_ullLastAckTime > (uint64_t)m_iSYNInterval)
+         if (currtime - m_ullLastAckTime > m_ullSYNInt)
          {
             data[4] = m_pRcvTimeWindow->getPktRcvSpeed();
             data[5] = m_pRcvTimeWindow->getBandwidth();
