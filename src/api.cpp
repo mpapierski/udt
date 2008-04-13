@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/30/2008
+   Yunhong Gu, last updated 04/13/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -135,8 +135,12 @@ CUDTUnited::CUDTUnited()
 
    m_bClosing = false;
    #ifndef WIN32
+      pthread_mutex_init(&m_GCStopLock, NULL);
+      pthread_cond_init(&m_GCStopCond, NULL);
       pthread_create(&m_GCThread, NULL, garbageCollect, this);
    #else
+      m_GCStopCond = CreateEvent(NULL, false, false, NULL);
+      m_GCExitCond = CreateEvent(NULL, false, false, NULL);
       DWORD ThreadID;
       m_GCThread = CreateThread(NULL, 0, garbageCollect, this, NULL, &ThreadID);
    #endif
@@ -146,9 +150,17 @@ CUDTUnited::~CUDTUnited()
 {
    m_bClosing = true;
    #ifndef WIN32
+      pthread_cond_signal(&m_GCStopCond);
       pthread_join(m_GCThread, NULL);
+      pthread_mutex_destroy(&m_GCStopLock);
+      pthread_cond_destroy(&m_GCStopCond);
    #else
-      WaitForSingleObject(m_GCThread, INFINITE);
+      SetEvent(m_GCStopCond);
+      WaitForSingleObject(m_GCExitCond, INFINITE);
+      TerminateThread(m_GCThread, 0);
+      CloseHandle(m_GCThread);
+      CloseHandle(m_GCStopCond);
+      CloseHandle(m_GCExitCond);
    #endif
 
    #ifndef WIN32
@@ -1185,15 +1197,22 @@ void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
    {
       self->checkBrokenSockets();
       #ifndef WIN32
-         sleep(1);
+         timeval now;
+         timespec timeout;
+         gettimeofday(&now, 0);
+         timeout.tv_sec = now.tv_sec + 1;
+         timeout.tv_nsec = now.tv_usec * 1000;
+
+         pthread_cond_timedwait(&self->m_GCStopCond, &self->m_GCStopLock, &timeout);
       #else
-         Sleep(1);
+         WaitForSingleObject(self->m_GCStopCond, 1000);
       #endif
    }
 
    #ifndef WIN32
       return NULL;
    #else
+      SetEvent(self->m_GCExitCond);
       return 0;
    #endif   
 }
