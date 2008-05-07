@@ -35,12 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/13/2008
+   Yunhong Gu, last updated 05/07/2008
 *****************************************************************************/
 
 #ifdef WIN32
    #include <winsock2.h>
    #include <ws2tcpip.h>
+   #include <wspiapi.h>
 #else
    #include <unistd.h>
 #endif
