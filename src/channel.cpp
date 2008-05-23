@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /****************************************************************************
 written by
-   Yunhong Gu, last updated 05/07/2008
+   Yunhong Gu, last updated 05/23/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -119,6 +119,17 @@ void CChannel::open(const sockaddr* addr)
       freeaddrinfo(res);
    }
 
+   setUDPSockOpt();
+}
+
+void CChannel::open(UDPSOCKET udpsock)
+{
+   m_iSocket = udpsock;
+   setUDPSockOpt();
+}
+
+void CChannel::setUDPSockOpt()
+{
    if ((0 != setsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (char *)&m_iRcvBufSize, sizeof(int))) ||
        (0 != setsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (char *)&m_iSndBufSize, sizeof(int))))
       throw CUDTException(1, 3, NET_ERROR);
