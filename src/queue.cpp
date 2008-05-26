@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/07/2008
+   Yunhong Gu, last updated 05/26/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -418,6 +418,7 @@ m_bClosing(false)
    #else
       m_WindowLock = CreateMutex(NULL, false, NULL);
       m_WindowCond = CreateEvent(NULL, false, false, NULL);
+      m_ExitCond = CreateEvent(NULL, false, false, NULL);
    #endif
 }
 
@@ -436,7 +437,7 @@ CSndQueue::~CSndQueue()
    #else
       SetEvent(m_WindowCond);
       if (NULL != m_WorkerThread)
-         WaitForSingleObject(m_WorkerThread, INFINITE);
+         WaitForSingleObject(m_ExitCond, INFINITE);
       CloseHandle(m_WorkerThread);
       CloseHandle(m_WindowLock);
       CloseHandle(m_WindowCond);
@@ -518,7 +519,12 @@ void CSndQueue::init(const CChannel* c, const CTimer* t)
       }
    }
 
-   return NULL;
+   #ifndef WIN32
+      return NULL;
+   #else
+      SetEvent(self->m_ExitCond);
+      return 0;
+   #endif
 }
 
 int CSndQueue::sendto(const sockaddr* addr, CPacket& packet)
@@ -814,6 +820,7 @@ m_pRendezvousQueue(NULL)
       m_PassCond = CreateEvent(NULL, false, false, NULL);
       m_LSLock = CreateMutex(NULL, false, NULL);
       m_IDLock = CreateMutex(NULL, false, NULL);
+      m_ExitCond = CreateEvent(NULL, false, false, NULL);
    #endif
 
    m_vNewEntry.clear();
@@ -833,7 +840,7 @@ CRcvQueue::~CRcvQueue()
       pthread_mutex_destroy(&m_IDLock);
    #else
       if (NULL != m_WorkerThread)
-         WaitForSingleObject(m_WorkerThread, INFINITE);
+         WaitForSingleObject(m_ExitCond, INFINITE);
       CloseHandle(m_WorkerThread);
       CloseHandle(m_PassLock);
       CloseHandle(m_PassCond);
@@ -993,7 +1000,12 @@ TIMER_CHECK:
    else
       delete (sockaddr_in6*)addr;
 
-   return NULL;
+   #ifndef WIN32
+      return NULL;
+   #else
+      SetEvent(self->m_ExitCond);
+      return 0;
+   #endif
 }
 
 int CRcvQueue::recvfrom(const int32_t& id, CPacket& packet)

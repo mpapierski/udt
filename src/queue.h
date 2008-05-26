@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2007, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/26/2007
+   Yunhong Gu, last updated 05/26/2008
 *****************************************************************************/
 
 
@@ -393,6 +393,7 @@ private:
    pthread_cond_t m_WindowCond;
 
    volatile bool m_bClosing;		// closing the worker
+   pthread_cond_t m_ExitCond;
 };
 
 class CRcvQueue
@@ -450,6 +451,7 @@ private:
    int m_iPayloadSize;                  // packet payload size
 
    volatile bool m_bClosing;            // closing the workder
+   pthread_cond_t m_ExitCond;
 
 private:
    int setListener(const CUDT* u);
