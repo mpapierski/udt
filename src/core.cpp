@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/13/2008
+   Yunhong Gu, last updated 06/02/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -509,9 +509,8 @@ void CUDT::connect(const sockaddr* serv_addr)
    if (m_bConnected)
       throw CUDTException(5, 2, 0);
 
-   // rendezvous mode check in
-   if (m_bRendezvous)
-      m_pRcvQueue->m_pRendezvousQueue->insert(m_SocketID, m_iIPversion, serv_addr, this);
+   // register this socket in the rendezvous queue
+   m_pRcvQueue->m_pRendezvousQueue->insert(m_SocketID, m_iIPversion, serv_addr, this);
 
    CPacket request;
    char* reqdata = new char [m_iPayloadSize];
@@ -687,6 +686,9 @@ void CUDT::connect(const sockaddr* serv_addr)
 
    // register this socket for receiving data packets
    m_pRcvQueue->setNewEntry(this);
+
+   // remove from rendezvous queue
+   m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
 }
 
 void CUDT::connect(const sockaddr* peer, CHandShake* hs)
@@ -824,9 +826,6 @@ void CUDT::close()
       m_pController->leave(this, m_iRTT, m_iBandwidth);
 
       m_bConnected = false;
-
-      if (m_bRendezvous)
-         m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
    }
 
    // waiting all send and recv calls to stop

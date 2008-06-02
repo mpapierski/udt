@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/26/2008
+   Yunhong Gu, last updated 06/02/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -788,13 +788,17 @@ bool CRendezvousQueue::retrieve(const sockaddr* addr, UDTSOCKET& id, const UDTSO
    CGuard vg(m_RIDVectorLock);
 
    for (vector<CRL>::iterator i = m_vRendezvousID.begin(); i != m_vRendezvousID.end(); ++ i)
-      if (CIPAddress::ipcmp(addr, i->m_pPeerAddr, i->m_iIPversion) && ((0 == i->m_iPeerID) || (peerid == i->m_iPeerID)))
+   {
+      if (CIPAddress::ipcmp(addr, i->m_pPeerAddr, i->m_iIPversion)
+          && ((0 == id) || (id == i->m_iID))
+          && ((0 == i->m_iPeerID) || (peerid == i->m_iPeerID)))
       {
          id = i->m_iID;
          i->m_iPeerID = peerid;
          u = i->m_pUDT;
          return true;
       }
+   }
 
    return false;
 }
@@ -963,7 +967,7 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
                self->m_pRcvUList->update(u);
             }
          }
-         else
+         else if (self->m_pRendezvousQueue->retrieve(addr, id, ((CHandShake*)unit->m_Packet.m_pcData)->m_iID, u))
             self->storePkt(id, unit->m_Packet.clone());
       }
 
