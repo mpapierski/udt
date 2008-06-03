@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/23/2008
+   Yunhong Gu, last updated 06/02/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -512,7 +512,7 @@ int CUDTUnited::bind(UDTSOCKET u, UDPSOCKET udpsock)
    sockaddr_in name4;
    sockaddr_in6 name6;
    sockaddr* name;
-   int namelen;
+   socklen_t namelen;
 
    if (AF_INET == s->m_iIPversion)
    {
@@ -525,7 +525,7 @@ int CUDTUnited::bind(UDTSOCKET u, UDPSOCKET udpsock)
       name = (sockaddr*)&name6;
    }
 
-   if (-1 == getsockname(udpsock, name, &namelen))
+   if (-1 == ::getsockname(udpsock, name, &namelen))
       throw CUDTException(5, 3);
 
    s->m_pUDT->open();
