@@ -510,7 +510,7 @@ void CUDT::connect(const sockaddr* serv_addr)
       throw CUDTException(5, 2, 0);
 
    // register this socket in the rendezvous queue
-   m_pRcvQueue->m_pRendezvousQueue->insert(m_SocketID, m_iIPversion, serv_addr, this);
+   m_pRcvQueue->m_pRendezvousQueue->insert(m_SocketID, m_iIPversion, serv_addr);
 
    CPacket request;
    char* reqdata = new char [m_iPayloadSize];

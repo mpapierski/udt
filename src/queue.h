@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/26/2008
+   Yunhong Gu, last updated 06/02/2008
 *****************************************************************************/
 
 
@@ -326,18 +326,16 @@ public:
    ~CRendezvousQueue();
 
 public:
-   void insert(const UDTSOCKET& id, const int& ipv, const sockaddr* addr, CUDT* u);
+   void insert(const UDTSOCKET& id, const int& ipv, const sockaddr* addr);
    void remove(const UDTSOCKET& id);
-   bool retrieve(const sockaddr* addr, UDTSOCKET& id, const UDTSOCKET& peerid, CUDT*& u);
+   bool retrieve(const sockaddr* addr, UDTSOCKET& id);
 
 private:
    struct CRL
    {
       UDTSOCKET m_iID;
-      UDTSOCKET m_iPeerID;
       int m_iIPversion;
       sockaddr* m_pPeerAddr;
-      CUDT* m_pUDT;
    };
    std::vector<CRL> m_vRendezvousID;         // The sockets currently in rendezvous mode
 
