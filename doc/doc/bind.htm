@@ -75,7 +75,11 @@ number.</p>
 <p>Use the second form of <strong>bind</strong> with caution, as it violates certain programming rules regarding code robustness. Once the UDP socket descriptor is passed to UDT, it MUST NOT be touched again. DO NOT use this unless you clearly understand how the related systems work. </p>
 <p>The <strong>bind</strong> call is necessary in all cases except for a socket to <a href="listen.htm">listen</a>. If <strong>bind</strong> is not called, UDT will automatically bind a 
 socket to a randomly available address when a connection is set up.</p>
-<p>By default, UDT will reuse existing UDP port for new UDT sockets, unless UDT_REUSEADDR is set to false. When UDT_REUSEADDR is false, UDT will create an exclusive UDP port for this UDT socket. UDT_REUSEADDR must be called before <strong>bind</strong>. To reuse an existing UDT/UDP port, the new UDT socket must explcitly <strong>bind</strong> to the port. If the port is used by a UDT socket with UDT_REUSEADDR as false, the new bind will return error. If 0 is passed as the port number, <strong>bind</strong> always creates a new port, no matter what value the UDT_REUSEADDR sets. </p>
+<p>By default, UDT allows to reuse existing UDP port for new UDT sockets, unless UDT_REUSEADDR is set to false. When UDT_REUSEADDR is false, UDT will create an 
+exclusive UDP port for this UDT socket. UDT_REUSEADDR must be called before <strong>bind</strong>. To reuse an existing UDT/UDP port, the new UDT socket must 
+explicitly <strong>bind</strong> to the port. If the port is already used by a UDT socket with UDT_REUSEADDR as false, the new bind will return error. If 0 is passed 
+as the port number, <strong>bind</strong> always creates a new port, no matter what value the UDT_REUSEADDR sets. </p> 
+
 <h5>See Also</h5>
 <p><strong><a href="listen.htm">listen</a>, <a href="connect.htm">connect</a>, <a href="opt.htm">setsockopt</a>, <a href="opt.htm">getsockopt</a></strong></p>
 <p>&nbsp;</p>
