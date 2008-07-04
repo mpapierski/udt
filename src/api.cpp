@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 07/03/2008
+   Yunhong Gu, last updated 07/04/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1080,7 +1080,11 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
       #endif
       // if it is a listener, close all un-accepted sockets in its queue and remove them later
       for (set<UDTSOCKET>::iterator q = i->second->m_pQueuedSockets->begin(); q != i->second->m_pQueuedSockets->end(); ++ q)
+      {
          m_Sockets[*q]->m_pUDT->close();
+         m_Sockets[*q]->m_TimeStamp = CTimer::getTime();
+         m_Sockets[*q]->m_Status = CUDTSocket::CLOSED;
+      }
       #ifndef WIN32
          pthread_mutex_unlock(&(i->second->m_AcceptLock));
       #else
