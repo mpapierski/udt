@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 06/02/2008
+   Yunhong Gu, last updated 07/03/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -577,8 +577,6 @@ void CRcvUList::remove(const CUDT* u)
    if (!n->m_bOnList)
       return;
 
-   n->m_bOnList = false;
-
    if (NULL == n->m_pPrev)
    {
       // n is the first node
@@ -587,22 +585,22 @@ void CRcvUList::remove(const CUDT* u)
          m_pLast = NULL;
       else
          m_pUList->m_pPrev = NULL;
-
-      n->m_pNext = n->m_pPrev = NULL;
-
-      return;
-   }
-
-   n->m_pPrev->m_pNext = n->m_pNext;
-   if (NULL == n->m_pNext)
-   {
-      // n is the last node
-      m_pLast = n->m_pPrev;
    }
    else
-      n->m_pNext->m_pPrev = n->m_pPrev;
+   {
+      n->m_pPrev->m_pNext = n->m_pNext;
+      if (NULL == n->m_pNext)
+      {
+         // n is the last node
+         m_pLast = n->m_pPrev;
+      }
+      else
+         n->m_pNext->m_pPrev = n->m_pPrev;
+   }
 
    n->m_pNext = n->m_pPrev = NULL;
+
+   n->m_bOnList = false;
 }
 
 void CRcvUList::update(const CUDT* u)
