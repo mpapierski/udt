@@ -41,7 +41,6 @@ written by
 
 #ifndef WIN32
    #include <cstring>
-   #include <cstdlib>
    #include <cerrno>
 #else
    #include <winsock2.h>

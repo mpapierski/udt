@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 07/04/2008
+   Yunhong Gu, last updated 07/25/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -45,6 +45,7 @@ written by
 #else
    #include <unistd.h>
 #endif
+#include <cstring>
 #include "api.h"
 #include "core.h"
 
@@ -264,7 +265,7 @@ UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
 
 int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHandShake* hs)
 {
-   CUDTSocket* ns;
+   CUDTSocket* ns = NULL;
    CUDTSocket* ls = locate(listen);
 
    // if this connection has already been processed
@@ -418,10 +419,8 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    if (error > 0)
    {
       ns->m_pUDT->close();
-      delete ns->m_pUDT;
-      if (error > 1)
-         m_Sockets.erase(ns->m_SocketID);
-      delete ns;
+      ns->m_Status = CUDTSocket::CLOSED;
+      ns->m_TimeStamp = CTimer::getTime();
 
       return -1;
    }
