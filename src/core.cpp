@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/08/2008
+   Yunhong Gu, last updated 09/11/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1631,6 +1631,14 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       // read ACK seq. no.
       ack = ctrlpkt.getAckSeqNo();
 
+      // check the  validation of the ack
+      if (CSeqNo::seqcmp(ack, m_iSndCurrSeqNo) > 0)
+      {
+         //this should not happen: attack or bug
+         m_bBroken = true;
+         break;
+      }
+
       // send ACK acknowledgement
       sendCtrl(6, &ack);
 
@@ -1754,11 +1762,20 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
       m_dCongestionWindow = m_pCC->m_dCWndSize;
 
+      bool secure = true;
+
       // decode loss list message and insert loss into the sender loss list
       for (int i = 0, n = (int)(ctrlpkt.getLength() / 4); i < n; ++ i)
       {
          if (0 != (losslist[i] & 0x80000000))
          {
+            if ((CSeqNo::seqcmp(losslist[i] & 0x7FFFFFFF, losslist[i + 1]) > 0) || (CSeqNo::seqcmp(losslist[i + 1], m_iSndCurrSeqNo) > 0))
+            {
+               // seq_a must not be greater than seq_b; seq_b must not be greater than the most recent sent seq
+               secure = false;
+               break;
+            }
+
             if (CSeqNo::seqcmp(losslist[i] & 0x7FFFFFFF, const_cast<int32_t&>(m_iSndLastAck)) >= 0)
                m_iTraceSndLoss += m_pSndLossList->insert(losslist[i] & 0x7FFFFFFF, losslist[i + 1]);
             else if (CSeqNo::seqcmp(losslist[i + 1], const_cast<int32_t&>(m_iSndLastAck)) >= 0)
@@ -1768,8 +1785,22 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
          }
          else if (CSeqNo::seqcmp(losslist[i], const_cast<int32_t&>(m_iSndLastAck)) >= 0)
          {
+            if (CSeqNo::seqcmp(losslist[i], m_iSndCurrSeqNo) > 0)
+            {
+               //seq_a must not be greater than the most recent sent seq
+               secure = false;
+               break;
+            }
+
             m_iTraceSndLoss += m_pSndLossList->insert(losslist[i], losslist[i]);
          }
+      }
+
+      if (!secure)
+      {
+         //this should not happen: attack or bug
+         m_bBroken = true;
+         break;
       }
 
       // Wake up the waiting sender (avoiding deadlock on an infinite sleeping)
