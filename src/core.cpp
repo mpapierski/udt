@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/11/2008
+   Yunhong Gu, last updated 09/12/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1631,19 +1631,19 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       // read ACK seq. no.
       ack = ctrlpkt.getAckSeqNo();
 
-      // check the  validation of the ack
-      if (CSeqNo::seqcmp(ack, m_iSndCurrSeqNo) > 0)
-      {
-         //this should not happen: attack or bug
-         m_bBroken = true;
-         break;
-      }
-
       // send ACK acknowledgement
       sendCtrl(6, &ack);
 
       // Got data ACK
       ack = *(int32_t *)ctrlpkt.m_pcData;
+
+      // check the  validation of the ack
+      if (CSeqNo::seqcmp(ack, CSeqNo::incseq(m_iSndCurrSeqNo)) > 0)
+      {
+         //this should not happen: attack or bug
+         m_bBroken = true;
+         break;
+      }
 
       if (CSeqNo::seqcmp(ack, const_cast<int32_t&>(m_iSndLastAck)) >= 0)
       {
