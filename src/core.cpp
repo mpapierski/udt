@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/12/2008
+   Yunhong Gu, last updated 09/18/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -206,7 +206,7 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
       if (m_bOpened)
          throw CUDTException(5, 1, 0);
 
-      if (*(int*)optval < 28)
+      if (*(int*)optval < int(28 + sizeof(CHandShake)))
          throw CUDTException(5, 3, 0);
 
       m_iMSS = *(int*)optval;
