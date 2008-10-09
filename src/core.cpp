@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/18/2008
+   Yunhong Gu, last updated 10/09/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -552,14 +552,10 @@ void CUDT::connect(const sockaddr* serv_addr)
    CUDTException e(0, 0);
 
    char* tmp = NULL;
-   int count = 10;
 
    while (!m_bClosing)
    {
-      if (count == 10)
-         m_pSndQueue->sendto(serv_addr, request);
-      else if (-- count == 0)
-         count = 10;
+      m_pSndQueue->sendto(serv_addr, request);
 
       response.setLength(m_iPayloadSize);
       if (m_pRcvQueue->recvfrom(m_SocketID, response) > 0)

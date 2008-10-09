@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/12/2008
+   Yunhong Gu, last updated 10/09/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1021,7 +1021,7 @@ int CRcvQueue::recvfrom(const int32_t& id, CPacket& packet)
          pthread_cond_timedwait(&m_PassCond, &m_PassLock, &timeout);
       #else
          ReleaseMutex(m_PassLock);
-         WaitForSingleObject(m_PassCond, 1);
+         WaitForSingleObject(m_PassCond, 1000);
          WaitForSingleObject(m_PassLock, INFINITE);
       #endif
 
