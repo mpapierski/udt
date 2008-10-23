@@ -44,7 +44,7 @@ written by
    #include <wspiapi.h>
 #endif
 
-#include <string>
+#include <cstring>
 #include "control.h"
 #include "core.h"
 

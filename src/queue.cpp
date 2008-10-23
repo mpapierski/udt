@@ -44,6 +44,7 @@ written by
    #include <wspiapi.h>
 #endif
 
+#include <cstring>
 #include "common.h"
 #include "queue.h"
 #include "core.h"
