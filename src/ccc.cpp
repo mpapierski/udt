@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2007, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 10/04/2007
+   Yunhong Gu, last updated 11/07/2008
 *****************************************************************************/
 
 
@@ -158,7 +158,7 @@ void CUDTCC::onACK(const int32_t& ack)
       {
          m_bSlowStart = false;
          if (m_iRcvRate > 0)
-            m_dPktSndPeriod = 100000.0 / m_iRcvRate;
+            m_dPktSndPeriod = 1000000.0 / m_iRcvRate;
          else
             m_dPktSndPeriod = m_dCWndSize / (m_iRTT + m_iRCInterval);
       }
@@ -205,7 +205,7 @@ void CUDTCC::onLoss(const int32_t* losslist, const int&)
    {
       m_bSlowStart = false;
       if (m_iRcvRate > 0)
-         m_dPktSndPeriod = 100000.0 / m_iRcvRate;
+         m_dPktSndPeriod = 1000000.0 / m_iRcvRate;
       else
          m_dPktSndPeriod = m_dCWndSize / (m_iRTT + m_iRCInterval);
    }
@@ -243,7 +243,7 @@ void CUDTCC::onTimeout()
    {
       m_bSlowStart = false;
       if (m_iRcvRate > 0)
-         m_dPktSndPeriod = 100000.0 / m_iRcvRate;
+         m_dPktSndPeriod = 1000000.0 / m_iRcvRate;
       else
          m_dPktSndPeriod = m_dCWndSize / (m_iRTT + m_iRCInterval);
    }

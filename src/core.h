@@ -380,7 +380,7 @@ private: // Trace
 private: // Timers
    uint64_t m_ullCPUFrequency;                  // CPU clock frequency, used for Timer
 
-   static const int m_iSYNInterval;             // Periodical Rate Control Interval, 10 microseconds
+   static const int m_iSYNInterval;             // Periodical Rate Control Interval, 10 ms
    static const int m_iSelfClockInterval;       // ACK interval for self-clocking
 
    uint64_t m_ullNextACKTime;			// Next ACK time, in CPU clock cycles
