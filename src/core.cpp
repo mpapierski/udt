@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 10/09/2008
+   Yunhong Gu, last updated 11/1/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1479,6 +1479,8 @@ void CUDT::sendCtrl(const int& pkttype, void* lparam, void* rparam, const int& s
             data[4] = m_pRcvTimeWindow->getPktRcvSpeed();
             data[5] = m_pRcvTimeWindow->getBandwidth();
             ctrlpkt.pack(2, &m_iAckSeqNo, data, 24);
+
+            CTimer::rdtsc(m_ullLastAckTime);
          }
          else
          {
@@ -1489,8 +1491,6 @@ void CUDT::sendCtrl(const int& pkttype, void* lparam, void* rparam, const int& s
          m_pSndQueue->sendto(m_pPeerAddr, ctrlpkt);
 
          m_pACKWindow->store(m_iAckSeqNo, m_iRcvLastAck);
-
-         CTimer::rdtsc(m_ullLastAckTime);
 
          ++ m_iSentACK;
       }
