@@ -1141,6 +1141,7 @@ void CUDTUnited::setError(CUDTException* e)
    #else
       delete (CUDTException*)TlsGetValue(m_TLSError);
       TlsSetValue(m_TLSError, e);
+      m_mTLSRecord[GetCurrentThreadId()] = e;
    #endif
 }
 
@@ -1156,6 +1157,29 @@ CUDTException* CUDTUnited::getError()
       return (CUDTException*)TlsGetValue(m_TLSError);
    #endif
 }
+
+#ifdef WIN32
+void CUDTUnited::checkTLSValue()
+{
+   vector<DWORD> tbr;
+   for (map<DWORD, CUDTException*>::iterator i = m_mTLSRecord.begin(); i != m_mTLSRecord.end(); ++ i)
+   {
+      HANDLE h = OpenThread(THREAD_QUERY_INFORMATION, FALSE, i->first);
+      if (NULL == h)
+      {
+         tbr.insert(tbr.end(), i->first);
+         break;
+      }
+      if (WAIT_OBJECT_0 == WaitForSingleObject(h, 0))
+      {
+         delete i->second;
+         tbr.insert(tbr.end(), i->first);
+      }
+   }
+   for (vector<DWORD>::iterator j = tbr.begin(); j != tbr.end(); ++ j)
+      m_mTLSRecord.erase(*j);
+}
+#endif
 
 void CUDTUnited::updateMux(CUDT* u, const sockaddr* addr, const UDPSOCKET* udpsock)
 {
@@ -1256,6 +1280,11 @@ void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
    while (!self->m_bClosing)
    {
       self->checkBrokenSockets();
+
+      #ifdef WIN32
+         self->checkTLSValue();
+      #endif
+
       #ifndef WIN32
          timeval now;
          timespec timeout;
