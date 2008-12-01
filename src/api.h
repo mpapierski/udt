@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/23/2008
+   Yunhong Gu, last updated 12/01/2008
 *****************************************************************************/
 
 #ifndef __UDT_API_H__
@@ -94,6 +94,24 @@ public:
    ~CUDTUnited();
 
 public:
+
+      // Functionality:
+      //    initialize the UDT library.
+      // Parameters:
+      //    None.
+      // Returned value:
+      //    0 if success, otherwise -1 is returned.
+
+   int startup();
+
+      // Functionality:
+      //    release the UDT library.
+      // Parameters:
+      //    None.
+      // Returned value:
+      //    0 if success, otherwise -1 is returned.
+
+   int cleanup();
 
       // Functionality:
       //    Create a new UDT socket.
@@ -195,7 +213,9 @@ private:
    volatile bool m_bClosing;
    pthread_mutex_t m_GCStopLock;
    pthread_cond_t m_GCStopCond;
-   pthread_cond_t m_GCExitCond;
+
+   pthread_mutex_t m_InitLock;
+   bool m_bGCStatus;
 
    pthread_t m_GCThread;
    #ifndef WIN32

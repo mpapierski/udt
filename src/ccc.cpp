@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/07/2008
+   Yunhong Gu, last updated 12/01/2008
 *****************************************************************************/
 
 
@@ -48,11 +48,18 @@ CCC::CCC():
 m_iSYNInterval(CUDT::m_iSYNInterval),
 m_dPktSndPeriod(1.0),
 m_dCWndSize(16.0),
+m_pcParam(NULL),
+m_iPSize(0),
 m_iACKPeriod(0),
 m_iACKInterval(0),
 m_bUserDefinedRTO(false),
 m_iRTO(-1)
 {
+}
+
+CCC::~CCC()
+{
+   delete [] m_pcParam;
 }
 
 void CCC::setACKTimer(const int& msINT)
@@ -119,6 +126,13 @@ void CCC::setMaxCWndSize(const int& cwnd)
 void CCC::setRTT(const int& rtt)
 {
    m_iRTT = rtt;
+}
+
+void CCC::setUserParam(const char* param, const int& size)
+{
+   delete [] m_pcParam;
+   m_pcParam = new char[size];
+   memcpy(m_pcParam, param, size);
 }
 
 //
@@ -196,6 +210,18 @@ void CUDTCC::onACK(const int32_t& ack)
    }
 
    m_dPktSndPeriod = (m_dPktSndPeriod * m_iRCInterval) / (m_dPktSndPeriod * inc + m_iRCInterval);
+
+   //set maximum transfer rate
+   if ((NULL != m_pcParam) && (m_iPSize != 8))
+   {
+      int64_t maxSR = *(int64_t*)m_pcParam;
+      if (maxSR <= 0)
+         return;
+
+      double minSP = 1000000.0 / (double(maxSR) / m_iMSS);
+      if (m_dPktSndPeriod < minSP)
+         m_dPktSndPeriod = minSP;
+   }
 }
 
 void CUDTCC::onLoss(const int32_t* losslist, const int&)

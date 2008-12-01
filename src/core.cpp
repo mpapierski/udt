@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 11/1/2008
+   Yunhong Gu, last updated 12/01/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -111,6 +111,7 @@ CUDT::CUDT()
    m_iSndTimeOut = -1;
    m_iRcvTimeOut = -1;
    m_bReuseAddr = true;
+   m_llMaxBW = -1;
 
    m_pCCFactory = new CCCFactory<CUDTCC>;
    m_pCC = NULL;
@@ -302,7 +303,6 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
    case UDT_RENDEZVOUS:
       if (m_bConnected)
          throw CUDTException(5, 1, 0);
-
       m_bRendezvous = *(bool *)optval;
       break;
 
@@ -317,8 +317,13 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
    case UDT_REUSEADDR:
       if (m_bOpened)
          throw CUDTException(5, 1, 0);
-
       m_bReuseAddr = *(bool*)optval;
+      break;
+
+   case UDT_MAXBW:
+      if (m_bConnected)
+         throw CUDTException(5, 1, 0);
+      m_llMaxBW = *(int64_t*)optval;
       break;
     
    default:
@@ -406,6 +411,10 @@ void CUDT::getOpt(UDTOpt optName, void* optval, int& optlen)
    case UDT_REUSEADDR:
       *(bool *)optval = m_bReuseAddr;
       optlen = sizeof(bool);
+      break;
+
+   case UDT_MAXBW:
+      *(int64_t*)optval = m_llMaxBW;
       break;
 
    default:
@@ -676,6 +685,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pCC->setRcvRate(m_iDeliveryRate);
    m_pCC->setRTT(m_iRTT);
    m_pCC->setBandwidth(m_iBandwidth);
+   m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
    m_pCC->init();
 
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
