@@ -51,7 +51,7 @@ written by
 #include "channel.h"
 #include "api.h"
 #include "ccc.h"
-#include "control.h"
+#include "co-op.h"
 #include "queue.h"
 
 enum UDTSockType {UDT_STREAM = 1, UDT_DGRAM};

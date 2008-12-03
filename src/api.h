@@ -47,7 +47,7 @@ written by
 #include "udt.h"
 #include "packet.h"
 #include "queue.h"
-#include "control.h"
+#include "co-op.h"
 
 
 class CUDT;
