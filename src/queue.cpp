@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 10/09/2008
+   Yunhong Gu, last updated 12/04/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -309,7 +309,7 @@ int CSndUList::pop(sockaddr*& addr, CPacket& pkt)
 
    // pack a packet from the socket
    uint64_t ts;
-   if (u->packData(pkt, ts) < 0)
+   if (u->packData(pkt, ts) <= 0)
       return -1;
 
    addr = u->m_pPeerAddr;
