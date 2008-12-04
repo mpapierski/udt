@@ -294,18 +294,31 @@ void CSndUList::update(const CUDT* u, const bool& reschedule)
    insert_(1, u);
 }
 
-CUDT* CSndUList::pop()
+int CSndUList::pop(sockaddr*& addr, CPacket& pkt)
 {
    CGuard listguard(m_ListLock);
 
    if (-1 == m_iLastEntry)
-      return NULL;
+      return -1;
 
    CUDT* u = m_pHeap[0]->m_pUDT;
-
    remove_(u);
 
-   return u;
+   if (!u->m_bConnected || u->m_bBroken)
+      return -1;
+
+   // pack a packet from the socket
+   uint64_t ts;
+   if (u->packData(pkt, ts) < 0)
+      return -1;
+
+   addr = u->m_pPeerAddr;
+
+   // insert a new entry, ts is the next processing time
+   if (ts > 0)
+      insert_(ts, u);
+
+   return 1;
 }
 
 void CSndUList::remove(const CUDT* u)
@@ -493,18 +506,12 @@ void CSndQueue::init(const CChannel* c, const CTimer* t)
             self->m_pTimer->sleepto(ts);
 
          // it is time to process it, pop it out/remove from the list
-         CUDT* u = self->m_pSndUList->pop();
-         if ((NULL == u) || !u->m_bConnected || u->m_bBroken)
+         sockaddr* addr;
+         CPacket pkt;
+         if (self->m_pSndUList->pop(addr, pkt) < 0)
             continue;
 
-         // pack a packet from the socket
-         uint64_t ts;
-         if (u->packData(pkt, ts) > 0)
-            self->m_pChannel->sendto(u->m_pPeerAddr, pkt);
-
-         // insert a new entry, ts is the next processing time
-         if (ts > 0)
-            self->m_pSndUList->insert(ts, u);
+         self->m_pChannel->sendto(addr, pkt);
       }
       else
       {

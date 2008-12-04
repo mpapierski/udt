@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/01/2008
+   Yunhong Gu, last updated 12/04/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -774,7 +774,11 @@ int CUDTUnited::close(const UDTSOCKET u)
    #else
       WaitForSingleObject(m_ControlLock, INFINITE);
    #endif
+
    s->m_Status = CUDTSocket::CLOSED;
+   m_Sockets.erase(s->m_SocketID);
+   m_ClosedSockets[s->m_SocketID] = s;
+
    #ifndef WIN32
       pthread_mutex_unlock(&m_ControlLock);
    #else
@@ -1005,59 +1009,64 @@ void CUDTUnited::checkBrokenSockets()
 {
    CGuard cg(m_ControlLock);
 
-   // set of sockets To Be Removed
+   // set of sockets To Be Closed and To Be Removed
+   set<UDTSOCKET> tbc;
    set<UDTSOCKET> tbr;
 
    for (map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.begin(); i != m_Sockets.end(); ++ i)
    {
-      if (CUDTSocket::CLOSED != i->second->m_Status)
+      // check broken connection
+      if (i->second->m_pUDT->m_bBroken)
       {
-         // check broken connection
-         if (i->second->m_pUDT->m_bBroken)
+         //close broken connections and start removal timer
+         i->second->m_Status = CUDTSocket::CLOSED;
+         i->second->m_TimeStamp = CTimer::getTime();
+         tbc.insert(i->first);
+         m_ClosedSockets[i->first] = i->second;
+
+         // remove from listener's queue
+         map<UDTSOCKET, CUDTSocket*>::iterator ls = m_Sockets.find(i->second->m_ListenSocket);
+         if (ls != m_Sockets.end())
          {
-            //close broken connections and start removal timer
-            i->second->m_Status = CUDTSocket::CLOSED;
-            i->second->m_TimeStamp = CTimer::getTime();
-
-            // remove from listener's queue
-            map<UDTSOCKET, CUDTSocket*>::iterator ls = m_Sockets.find(i->second->m_ListenSocket);
-            if (ls != m_Sockets.end())
-            {
-               #ifndef WIN32
-                  pthread_mutex_lock(&(ls->second->m_AcceptLock));
-               #else
-                  WaitForSingleObject(ls->second->m_AcceptLock, INFINITE);
-               #endif
-               ls->second->m_pQueuedSockets->erase(i->second->m_SocketID);
-               #ifndef WIN32
-                  pthread_mutex_unlock(&(ls->second->m_AcceptLock));
-               #else
-                  ReleaseMutex(ls->second->m_AcceptLock);
-               #endif
-            }
+            #ifndef WIN32
+               pthread_mutex_lock(&(ls->second->m_AcceptLock));
+            #else
+               WaitForSingleObject(ls->second->m_AcceptLock, INFINITE);
+            #endif
+            ls->second->m_pQueuedSockets->erase(i->second->m_SocketID);
+            #ifndef WIN32
+               pthread_mutex_unlock(&(ls->second->m_AcceptLock));
+            #else
+               ReleaseMutex(ls->second->m_AcceptLock);
+            #endif
          }
-      }
-      else
-      {
-         // timeout 1 second to destroy a socket AND it has been removed from RcvUList
-         if ((CTimer::getTime() - i->second->m_TimeStamp > 1000000) && ((NULL == i->second->m_pUDT->m_pRNode) || !i->second->m_pUDT->m_pRNode->m_bOnList))
-            tbr.insert(i->second->m_SocketID);
-
-         // sockets cannot be removed here because it will invalidate the map iterator
       }
    }
 
+   for (map<UDTSOCKET, CUDTSocket*>::iterator j = m_ClosedSockets.begin(); j != m_ClosedSockets.end(); ++ j)
+   {
+      // timeout 1 second to destroy a socket AND it has been removed from RcvUList
+      if ((CTimer::getTime() - j->second->m_TimeStamp > 1000000) && ((NULL == j->second->m_pUDT->m_pRNode) || !j->second->m_pUDT->m_pRNode->m_bOnList))
+         tbr.insert(j->first);
+
+      // sockets cannot be removed here because it will invalidate the map iterator
+   }
+
+   // move closed sockets to the ClosedSockets structure
+   for (set<UDTSOCKET>::iterator k = tbc.begin(); k != tbc.end(); ++ k)
+      m_Sockets.erase(*k);
+
    // remove those timeout sockets
-   for (set<UDTSOCKET>::iterator k = tbr.begin(); k != tbr.end(); ++ k)
-      removeSocket(*k);
+   for (set<UDTSOCKET>::iterator l = tbr.begin(); l != tbr.end(); ++ l)
+      removeSocket(*l);
 }
 
 void CUDTUnited::removeSocket(const UDTSOCKET u)
 {
-   map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.find(u);
+   map<UDTSOCKET, CUDTSocket*>::iterator i = m_ClosedSockets.find(u);
 
    // invalid socket ID
-   if (i == m_Sockets.end())
+   if (i == m_ClosedSockets.end())
       return;
 
    // decrease multiplexer reference count, and remove it if necessary
@@ -1100,12 +1109,16 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
          WaitForSingleObject(i->second->m_AcceptLock, INFINITE);
       #endif
       // if it is a listener, close all un-accepted sockets in its queue and remove them later
+      set<UDTSOCKET> tbc;
       for (set<UDTSOCKET>::iterator q = i->second->m_pQueuedSockets->begin(); q != i->second->m_pQueuedSockets->end(); ++ q)
       {
          m_Sockets[*q]->m_pUDT->close();
          m_Sockets[*q]->m_TimeStamp = CTimer::getTime();
          m_Sockets[*q]->m_Status = CUDTSocket::CLOSED;
+         m_ClosedSockets[*q] = m_Sockets[*q];
       }
+      for (set<UDTSOCKET>::iterator c = tbc.begin(); c != tbc.end(); ++ c)
+         m_Sockets.erase(*c);
       #ifndef WIN32
          pthread_mutex_unlock(&(i->second->m_AcceptLock));
       #else
@@ -1114,9 +1127,9 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
    }
 
    // delete this one
-   m_Sockets[u]->m_pUDT->close();
-   delete m_Sockets[u];
-   m_Sockets.erase(u);
+   i->second->m_pUDT->close();
+   delete m_ClosedSockets[u];
+   m_ClosedSockets.erase(u);
 
    if (m == m_vMultiplexer.end())
       return;
