@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/01/2008
+   Yunhong Gu, last updated 12/04/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1659,22 +1659,13 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       }
 
       // protect packet retransmission
-      #ifndef WIN32
-         pthread_mutex_lock(&m_AckLock);
-      #else
-         WaitForSingleObject(m_AckLock, INFINITE);
-      #endif
+      CGuard::enterCS(m_AckLock);
 
       int offset = CSeqNo::seqoff(m_iSndLastDataAck, ack);
       if (offset <= 0)
       {
          // discard it if it is a repeated ACK
-         #ifndef WIN32
-            pthread_mutex_unlock(&m_AckLock);
-         #else
-            ReleaseMutex(m_AckLock);
-         #endif
-
+         CGuard::leaveCS(m_AckLock);
          break;
       }
 
@@ -1685,22 +1676,20 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       m_iSndLastDataAck = ack;
       m_pSndLossList->remove(CSeqNo::decseq(m_iSndLastDataAck));
 
-      // insert this socket to snd list if it is not on the list yet
-      m_pSndQueue->m_pSndUList->update(this, false);
+      CGuard::leaveCS(m_AckLock);
 
       #ifndef WIN32
-         pthread_mutex_unlock(&m_AckLock);
-
          pthread_mutex_lock(&m_SendBlockLock);
          if (m_bSynSending)
             pthread_cond_signal(&m_SendBlockCond);
          pthread_mutex_unlock(&m_SendBlockLock);
       #else
-         ReleaseMutex(m_AckLock);
-
          if (m_bSynSending)
             SetEvent(m_SendBlockCond);
       #endif
+
+      // insert this socket to snd list if it is not on the list yet
+      m_pSndQueue->m_pSndUList->update(this, false);
 
       // Update RTT
       //m_iRTT = *((int32_t *)ctrlpkt.m_pcData + 1);

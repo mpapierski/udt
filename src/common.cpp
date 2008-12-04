@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/07/2008
+   Yunhong Gu, last updated 12/04/2008
 *****************************************************************************/
 
 
@@ -299,6 +299,25 @@ CGuard::~CGuard()
          ReleaseMutex(m_Mutex);
    #endif
 }
+
+void CGuard::enterCS(pthread_mutex_t& lock)
+{
+   #ifndef WIN32
+      pthread_mutex_lock(&lock);
+   #else
+      WaitForSingleObject(lock, INFINITE);
+   #endif
+}
+
+void CGuard::leaveCS(pthread_mutex_t& lock)
+{
+   #ifndef WIN32
+      pthread_mutex_unlock(&lock);
+   #else
+      ReleaseMutex(lock);
+   #endif
+}
+
 
 //
 CUDTException::CUDTException(int major, int minor, int err):
