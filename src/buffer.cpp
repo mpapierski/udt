@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/06/2008
+   Yunhong Gu, last updated 12/05/2008
 *****************************************************************************/
 
 #include <cstring>
@@ -151,17 +151,9 @@ void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, con
    }
    m_pLastBlock = s;
 
-   #ifndef WIN32
-      pthread_mutex_lock(&m_BufLock);
-   #else
-      WaitForSingleObject(m_BufLock, INFINITE);
-   #endif
+   CGuard::enterCS(m_BufLock);
    m_iCount += size;
-   #ifndef WIN32
-      pthread_mutex_unlock(&m_BufLock);
-   #else
-      ReleaseMutex(m_BufLock);
-   #endif
+   CGuard::leaveCS(m_BufLock);
 
    m_iNextMsgNo ++;
 }
@@ -192,17 +184,9 @@ void CSndBuffer::addBufferFromFile(ifstream& ifs, const int& len)
    }
    m_pLastBlock = s;
 
-   #ifndef WIN32
-      pthread_mutex_lock(&m_BufLock);
-   #else
-      WaitForSingleObject(m_BufLock, INFINITE);
-   #endif
+   CGuard::enterCS(m_BufLock);
    m_iCount += size;
-   #ifndef WIN32
-      pthread_mutex_unlock(&m_BufLock);
-   #else
-      ReleaseMutex(m_BufLock);
-   #endif
+   CGuard::leaveCS(m_BufLock);
 }
 
 int CSndBuffer::readData(char** data, int32_t& msgno)

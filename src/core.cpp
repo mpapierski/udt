@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/04/2008
+   Yunhong Gu, last updated 12/05/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -2048,11 +2048,6 @@ int CUDT::processData(CUnit* unit)
 
       m_iTraceRcvLoss += CSeqNo::seqlen(m_iRcvCurrSeqNo, packet.m_iSeqNo) - 2;
    }
-
-   // This is not a regular fixed size packet...
-   //an irregular sized packet usually indicates the end of a message, so send an ACK immediately
-   if (packet.getLength() != m_iPayloadSize)
-      CTimer::rdtsc(m_ullNextACKTime);
 
    // Update the current largest sequence number that has been received.
    // Or it is a retransmitted packet, remove it from receiver loss list.

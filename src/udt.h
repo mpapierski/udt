@@ -64,7 +64,7 @@ written by
    #if _MSC_VER >= 1300
       typedef unsigned __int64 uint64_t;
    #else
-      // VC 6.0 does not support unsigned __int64: may bring potential problems.
+      // VC 6.0 does not support unsigned __int64: may cause potential problems.
       typedef __int64 uint64_t;
    #endif
 
