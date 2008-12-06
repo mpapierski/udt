@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/01/2008
+   Yunhong Gu, last updated 12/05/2008
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -394,6 +394,7 @@ private: // Timers
    volatile uint64_t m_ullACKInt;		// ACK interval
    volatile uint64_t m_ullNAKInt;		// NAK interval
    volatile uint64_t m_ullEXPInt;		// EXP interval
+   volatile uint64_t m_ullMinEXPInt;		// Minimum EXP interval
 
    int m_iPktCount;				// packet counter for ACK
    int m_iLightACKCount;			// light ACK counter

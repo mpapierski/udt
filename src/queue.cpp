@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/04/2008
+   Yunhong Gu, last updated 12/05/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -189,7 +189,7 @@ int CUnitQueue::shrink()
 
 CUnit* CUnitQueue::getNextAvailUnit()
 {
-   if (double(m_iCount) / m_iSize > 0.9)
+   if (m_iCount * 10 > m_iSize * 9)
       increase();
 
    if (m_iCount >= m_iSize)
@@ -901,9 +901,9 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
 {
    CRcvQueue* self = (CRcvQueue*)param;
 
-   CUnit temp;
-   temp.m_Packet.m_pcData = new char[self->m_iPayloadSize];
    sockaddr* addr = (AF_INET == self->m_UnitQueue.m_iIPversion) ? (sockaddr*) new sockaddr_in : (sockaddr*) new sockaddr_in6;
+   CUDT* u = NULL;
+   int32_t id;
 
    while (!self->m_bClosing)
    {
@@ -925,17 +925,19 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
       // find next available slot for incoming packet
       CUnit* unit = self->m_UnitQueue.getNextAvailUnit();
       if (NULL == unit)
-         unit = &temp;
+      {
+         // no space, skip this packet
+         CUnit temp;
+         temp.m_Packet.m_pcData = new char[self->m_iPayloadSize];
+         self->m_pChannel->recvfrom(addr, temp.m_Packet);
+         delete [] temp.m_Packet.m_pcData;
+         goto TIMER_CHECK;
+      }
 
       unit->m_Packet.setLength(self->m_iPayloadSize);
 
-      CUDT* u = NULL;
-      int32_t id;
-
       // reading next incoming packet
       if (self->m_pChannel->recvfrom(addr, unit->m_Packet) <= 0)
-         goto TIMER_CHECK;
-      if (unit == &temp)
          goto TIMER_CHECK;
 
       id = unit->m_Packet.m_iID;
@@ -997,7 +999,6 @@ TIMER_CHECK:
       }
    }
 
-   delete [] temp.m_Packet.m_pcData;
    if (AF_INET == self->m_UnitQueue.m_iIPversion)
       delete (sockaddr_in*)addr;
    else

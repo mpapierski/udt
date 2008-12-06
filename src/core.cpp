@@ -1608,9 +1608,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
    m_iEXPCount = 1;
    if ((CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck) || (2 == ctrlpkt.getType()) || (3 == ctrlpkt.getType()))
    {
-      m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-      if (m_ullEXPInt < 100000 * m_ullCPUFrequency)
-         m_ullEXPInt = 100000 * m_ullCPUFrequency;
+      m_ullEXPInt = m_ullMinEXPInt;
       CTimer::rdtsc(m_ullNextEXPTime);
       m_ullNextEXPTime += m_ullEXPInt;
    }
@@ -1700,6 +1698,10 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
       m_pCC->setRTT(m_iRTT);
 
+      m_ullMinEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+      if (m_ullMinEXPInt < 100000 * m_ullCPUFrequency)
+          m_ullMinEXPInt = 100000 * m_ullCPUFrequency;
+
       if (ctrlpkt.getLength() > 16)
       {
          // Update Estimated Bandwidth and packet delivery rate
@@ -1740,6 +1742,12 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       // RTT EWMA
       m_iRTTVar = (m_iRTTVar * 3 + abs(rtt - m_iRTT)) >> 2;
       m_iRTT = (m_iRTT * 7 + rtt) >> 3;
+
+      m_pCC->setRTT(m_iRTT);
+
+      m_ullMinEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+      if (m_ullMinEXPInt < 100000 * m_ullCPUFrequency)
+          m_ullMinEXPInt = 100000 * m_ullCPUFrequency;
 
       // update last ACK that has been received by the sender
       if (CSeqNo::seqcmp(ack, m_iRcvLastAckAck) > 0)
@@ -1875,8 +1883,6 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
    int payload = 0;
    bool probe = false;
 
-   CTimer::rdtsc(ts);
-
    uint64_t entertime;
    CTimer::rdtsc(entertime);
 
@@ -1962,7 +1968,7 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
    if (probe)
    {
       // sends out probing packet pair
-      CTimer::rdtsc(ts);
+      ts = entertime;
       probe = false;
    }
    else
@@ -1997,9 +2003,7 @@ int CUDT::processData(CUnit* unit)
 
    // Just heard from the peer, reset the expiration count.
    m_iEXPCount = 1;
-   m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-   if (m_ullEXPInt < 100000 * m_ullCPUFrequency)
-      m_ullEXPInt = 100000 * m_ullCPUFrequency;
+   m_ullEXPInt = m_ullMinEXPInt;
 
    if (CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck)
    {
@@ -2012,7 +2016,7 @@ int CUDT::processData(CUnit* unit)
 
    m_pCC->onPktReceived(&packet);
 
-   m_iPktCount ++;
+   ++ m_iPktCount;
 
    // update time information
    m_pRcvTimeWindow->onPktArrival();
@@ -2122,8 +2126,9 @@ void CUDT::checkTimers()
    // update CC parameters
    m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
    m_dCongestionWindow = m_pCC->m_dCWndSize;
-   if (m_ullInterval < (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9))
-      m_ullInterval = (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9);
+   uint64_t minint = (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9);
+   if (m_ullInterval < minint)
+      m_ullInterval = minint;
 
    uint64_t currtime;
    CTimer::rdtsc(currtime);
@@ -2214,4 +2219,3 @@ void CUDT::checkTimers()
       m_dCongestionWindow = m_pCC->m_dCWndSize;
    }
 }
-
