@@ -197,6 +197,7 @@ private:
    #else
       std::map<DWORD, CUDTException*> m_mTLSRecord;
       void checkTLSValue();
+      pthread_mutex_t m_TLSLock;
    #endif
 
 private:

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/04/2008
+   Yunhong Gu, last updated 12/06/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -115,6 +115,7 @@ CUDTUnited::CUDTUnited()
       pthread_key_create(&m_TLSError, TLSDestroy);
    #else
       m_TLSError = TlsAlloc();
+      m_TLSLock = CreateMutex(NULL, false, NULL);
    #endif
 
    // Global initialization code
@@ -149,6 +150,7 @@ CUDTUnited::~CUDTUnited()
       pthread_key_delete(m_TLSError);
    #else
       TlsFree(m_TLSError);
+      CloseHandle(m_TLSLock);
    #endif
 
    m_vMultiplexer.clear();
@@ -1072,6 +1074,7 @@ void CUDTUnited::setError(CUDTException* e)
       delete (CUDTException*)pthread_getspecific(m_TLSError);
       pthread_setspecific(m_TLSError, e);
    #else
+      CGuard tg(m_TLSLock);
       delete (CUDTException*)TlsGetValue(m_TLSError);
       TlsSetValue(m_TLSError, e);
       m_mTLSRecord[GetCurrentThreadId()] = e;
@@ -1085,8 +1088,13 @@ CUDTException* CUDTUnited::getError()
          pthread_setspecific(m_TLSError, new CUDTException);
       return (CUDTException*)pthread_getspecific(m_TLSError);
    #else
+      CGuard tg(m_TLSLock);
       if(NULL == TlsGetValue(m_TLSError))
-         TlsSetValue(m_TLSError, new CUDTException);
+      {
+         CUDTException* e = new CUDTException;
+         TlsSetValue(m_TLSError, e);
+         m_mTLSRecord[GetCurrentThreadId()] = e;
+      }
       return (CUDTException*)TlsGetValue(m_TLSError);
    #endif
 }
@@ -1094,6 +1102,8 @@ CUDTException* CUDTUnited::getError()
 #ifdef WIN32
 void CUDTUnited::checkTLSValue()
 {
+   CGuard tg(m_TLSLock);
+
    vector<DWORD> tbr;
    for (map<DWORD, CUDTException*>::iterator i = m_mTLSRecord.begin(); i != m_mTLSRecord.end(); ++ i)
    {

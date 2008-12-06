@@ -545,6 +545,8 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_iSndLastAck = req->m_iISN;
    m_iSndLastDataAck = req->m_iISN;
    m_iSndCurrSeqNo = req->m_iISN - 1;
+   m_iSndLastAck2 = req->m_iISN;
+   m_ullSndLastAck2Time = CTimer::getTime();
 
    // Inform the server my configurations.
    request.pack(0, NULL, reqdata, sizeof(CHandShake));
@@ -735,6 +737,8 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_iSndLastAck = m_iISN;
    m_iSndLastDataAck = m_iISN;
    m_iSndCurrSeqNo = m_iISN - 1;
+   m_iSndLastAck2 = m_iISN;
+   m_ullSndLastAck2Time = CTimer::getTime();
 
    // this is a reponse handshake
    ci.m_iReqType = -1;
@@ -1636,7 +1640,14 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       ack = ctrlpkt.getAckSeqNo();
 
       // send ACK acknowledgement
-      sendCtrl(6, &ack);
+      // ACK2 can be much less than ACK
+      uint64_t currtime = CTimer::getTime();
+      if ((currtime - m_ullSndLastAck2Time > (uint64_t)m_iSYNInterval) || (ack == m_iSndLastAck2))
+      {
+         sendCtrl(6, &ack);
+         m_iSndLastAck2 = ack;
+         m_ullSndLastAck2Time = currtime;
+      }
 
       // Got data ACK
       ack = *(int32_t *)ctrlpkt.m_pcData;
@@ -2052,6 +2063,11 @@ int CUDT::processData(CUnit* unit)
 
       m_iTraceRcvLoss += CSeqNo::seqlen(m_iRcvCurrSeqNo, packet.m_iSeqNo) - 2;
    }
+
+   // This is not a regular fixed size packet...   
+   //an irregular sized packet usually indicates the end of a message, so send an ACK immediately   
+   if (packet.getLength() != m_iPayloadSize)   
+      CTimer::rdtsc(m_ullNextACKTime); 
 
    // Update the current largest sequence number that has been received.
    // Or it is a retransmitted packet, remove it from receiver loss list.

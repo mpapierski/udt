@@ -313,6 +313,8 @@ private: // Sending related data
    int32_t m_iSndLastDataAck;                   // The real last ACK that updates the sender buffer and loss list
    int32_t m_iSndCurrSeqNo;                     // The largest sequence number that has been sent
    int32_t m_iLastDecSeq;                       // Sequence number sent last decrease occurs
+   int32_t m_iSndLastAck2;                      // Last ACK2 sent back
+   uint64_t m_ullSndLastAck2Time;               // The time when last ACK2 was sent back
 
    int32_t m_iISN;                              // Initial Sequence Number
 

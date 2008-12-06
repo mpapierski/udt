@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/05/2008
+   Yunhong Gu, last updated 12/06/2008
 *****************************************************************************/
 
 #include <cmath>
@@ -317,8 +317,8 @@ void CPktTimeWindow::onPktArrival()
 
    // the window is logically circular
    ++ m_iPktWindowPtr;
-   if (m_iPktWindowPtr > m_iAWSize)
-      m_iPktWindowPtr -= m_iAWSize;
+   if (m_iPktWindowPtr == m_iAWSize)
+      m_iPktWindowPtr = 0;
 
    // remember last packet arrival time
    m_LastArrTime = m_CurrArrTime;
@@ -334,7 +334,9 @@ void CPktTimeWindow::probe2Arrival()
    m_CurrArrTime = CTimer::getTime();
 
    // record the probing packets interval
-   m_piProbeWindow[m_iProbeWindowPtr] = int(m_CurrArrTime - m_ProbeTime);
+   *(m_piProbeWindow + m_iProbeWindowPtr) = int(m_CurrArrTime - m_ProbeTime);
    // the window is logically circular
-   m_iProbeWindowPtr = (m_iProbeWindowPtr + 1) % m_iPWSize;
+   ++ m_iProbeWindowPtr;
+   if (m_iProbeWindowPtr == m_iPWSize)
+      m_iProbeWindowPtr = 0;
 }
