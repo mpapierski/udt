@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/05/2008
+   Yunhong Gu, last updated 12/08/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -956,7 +956,7 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
          {
             if (CIPAddress::ipcmp(addr, u->m_pPeerAddr, u->m_iIPversion))
             {
-               if (u->m_bConnected && !u->m_bBroken)
+               if (u->m_bConnected && !u->m_bBroken && !u->m_bClosing)
                {
                   if (0 == unit->m_Packet.getFlag())
                      u->processData(unit);
@@ -984,10 +984,11 @@ TIMER_CHECK:
       {
          CUDT* u = ul->m_pUDT;
 
-         u->checkTimers();
-
-         if (u->m_bConnected && !u->m_bBroken)
+         if (u->m_bConnected && !u->m_bBroken && !u->m_bClosing)
+         {
+            u->checkTimers();
             self->m_pRcvUList->update(u);
+         }
          else
          {
             // the socket must be removed from Hash table first, then RcvUList

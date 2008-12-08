@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/05/2008
+   Yunhong Gu, last updated 12/08/2008
 *****************************************************************************/
 
 #ifndef WIN32
