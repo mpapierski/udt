@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
    }
 
    UDT::perfmon(fhandle, &trace);
-   cout << "speed = " << trace.mbpsSendRate << endl;
+   cout << "speed = " << trace.mbpsSendRate << "Mbits/sec" << endl;
 
    UDT::close(fhandle);
 

@@ -265,6 +265,7 @@ void CSndBuffer::increase()
    }
    catch (...)
    {
+      delete nbuf;
       throw CUDTException(3, 2, 0);
    }
    nbuf->m_iSize = unitsize;
@@ -284,6 +285,7 @@ void CSndBuffer::increase()
    }
    catch (...)
    {
+      delete nblk;
       throw CUDTException(3, 2, 0);
    }
    Block* pb = nblk;
