@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/08/2008
+   Yunhong Gu, last updated 12/28/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1174,6 +1174,9 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
    // sending block by block
    while (tosend > 0)
    {
+      if (ifs.bad() || ifs.fail() || ifs.eof())
+         break;
+
       unitsize = int((tosend >= block) ? block : tosend);
 
       #ifndef WIN32
@@ -1191,15 +1194,13 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
       else if (!m_bConnected)
          throw CUDTException(2, 2, 0);
 
-      m_pSndBuffer->addBufferFromFile(ifs, unitsize);
+      tosend -= m_pSndBuffer->addBufferFromFile(ifs, unitsize);
 
       // insert this socket to snd list if it is not on the list yet
       m_pSndQueue->m_pSndUList->update(this, false);
-
-      tosend -= unitsize;
    }
 
-   return size;
+   return size - tosend;
 }
 
 int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size, const int& block)
@@ -1234,6 +1235,9 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
    // receiving... "recvfile" is always blocking
    while (torecv > 0)
    {
+      if (ofs.bad() || ofs.fail())
+         break;
+
       #ifndef WIN32
          pthread_mutex_lock(&m_RecvDataLock);
          while (!m_bBroken && m_bConnected && !m_bClosing && (0 == m_pRcvBuffer->getRcvDataSize()))
