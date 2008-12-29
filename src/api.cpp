@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/06/2008
+   Yunhong Gu, last updated 12/29/2008
 *****************************************************************************/
 
 #ifdef WIN32
@@ -724,9 +724,24 @@ int CUDTUnited::close(const UDTSOCKET u)
 
    // synchronize with garbage collection.
    CGuard::enterCS(m_ControlLock);
+
    s->m_Status = CUDTSocket::CLOSED;
+
    m_Sockets.erase(s->m_SocketID);
    m_ClosedSockets[s->m_SocketID] = s;
+
+   if (0 != s->m_ListenSocket)
+   {
+      // if it is an accepted socket, remove it from the listener's queue
+      map<UDTSOCKET, CUDTSocket*>::iterator ls = m_Sockets.find(s->m_ListenSocket);
+      if (ls != m_Sockets.end())
+      {
+         CGuard::enterCS(ls->second->m_AcceptLock);
+         ls->second->m_pAcceptSockets->erase(s->m_SocketID);
+         CGuard::leaveCS(ls->second->m_AcceptLock);
+      }
+   }
+
    CGuard::leaveCS(m_ControlLock);
 
    // broadcast all "accept" waiting
@@ -926,6 +941,9 @@ CUDTSocket* CUDTUnited::locate(const UDTSOCKET u, const sockaddr* peer, const UD
    for (set<UDTSOCKET>::iterator j1 = i->second->m_pQueuedSockets->begin(); j1 != i->second->m_pQueuedSockets->end(); ++ j1)
    {
       map<UDTSOCKET, CUDTSocket*>::iterator k1 = m_Sockets.find(*j1);
+      // this socket might have been closed and moved m_ClosedSockets
+      if (k1 == m_Sockets.end())
+         continue;
 
       if (CIPAddress::ipcmp(peer, k1->second->m_pPeerAddr, i->second->m_iIPversion))
       {
@@ -938,6 +956,9 @@ CUDTSocket* CUDTUnited::locate(const UDTSOCKET u, const sockaddr* peer, const UD
    for (set<UDTSOCKET>::iterator j2 = i->second->m_pAcceptSockets->begin(); j2 != i->second->m_pAcceptSockets->end(); ++ j2)
    {
       map<UDTSOCKET, CUDTSocket*>::iterator k2 = m_Sockets.find(*j2);
+      // this socket might have been closed and moved m_ClosedSockets
+      if (k2 == m_Sockets.end())
+         continue;
 
       if (CIPAddress::ipcmp(peer, k2->second->m_pPeerAddr, i->second->m_iIPversion))
       {
@@ -974,6 +995,7 @@ void CUDTUnited::checkBrokenSockets()
          {
             CGuard::enterCS(ls->second->m_AcceptLock);
             ls->second->m_pQueuedSockets->erase(i->second->m_SocketID);
+            ls->second->m_pAcceptSockets->erase(i->second->m_SocketID);
             CGuard::leaveCS(ls->second->m_AcceptLock);
          }
       }
@@ -1017,19 +1039,7 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
       if (port == m->m_iPort)
          break;
 
-   if (0 != i->second->m_ListenSocket)
-   {
-      // if it is an accepted socket, remove it from the listener's queue
-      map<UDTSOCKET, CUDTSocket*>::iterator ls = m_Sockets.find(i->second->m_ListenSocket);
-      if (ls != m_Sockets.end())
-      {
-         CGuard::enterCS(ls->second->m_AcceptLock);
-         ls->second->m_pQueuedSockets->erase(u);
-         ls->second->m_pAcceptSockets->erase(u);
-         CGuard::leaveCS(ls->second->m_AcceptLock);
-      }
-   }
-   else if (NULL != i->second->m_pQueuedSockets)
+   if (NULL != i->second->m_pQueuedSockets)
    {
       CGuard::enterCS(i->second->m_AcceptLock);
 
