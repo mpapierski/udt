@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/29/2008
+   Yunhong Gu, last updated 01/15/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -983,6 +983,10 @@ void CUDTUnited::checkBrokenSockets()
       // check broken connection
       if (i->second->m_pUDT->m_bBroken)
       {
+         // if there is still data in the receiver buffer, wait longer
+         if ((i->second->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && (i->second->m_pUDT->m_iBrokenCounter -- > 0))
+            continue;
+
          //close broken connections and start removal timer
          i->second->m_Status = CUDTSocket::CLOSED;
          i->second->m_TimeStamp = CTimer::getTime();

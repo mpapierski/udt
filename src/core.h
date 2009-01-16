@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/05/2008
+   Yunhong Gu, last updated 01/15/2009
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -291,6 +291,7 @@ private: // Status
    volatile bool m_bShutdown;                   // If the peer side has shutdown the connection
    volatile bool m_bBroken;                     // If the connection has been broken
    bool m_bOpened;                              // If the UDT entity has been opened
+   int m_iBrokenCounter;			// a counter (number of GC checks) to let the GC tag this socket as disconnected
 
    int m_iEXPCount;                             // Expiration counter
    int m_iBandwidth;                            // Estimated bandwidth

@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/28/2008
+   Yunhong Gu, last updated 01/15/2009
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1656,11 +1656,12 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       // Got data ACK
       ack = *(int32_t *)ctrlpkt.m_pcData;
 
-      // check the  validation of the ack
+      // check the validation of the ack
       if (CSeqNo::seqcmp(ack, CSeqNo::incseq(m_iSndCurrSeqNo)) > 0)
       {
          //this should not happen: attack or bug
          m_bBroken = true;
+         m_iBrokenCounter = 0;
          break;
       }
 
@@ -1818,6 +1819,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       {
          //this should not happen: attack or bug
          m_bBroken = true;
+         m_iBrokenCounter = 0;
          break;
       }
 
@@ -1866,6 +1868,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       m_bShutdown = true;
       m_bClosing = true;
       m_bBroken = true;
+      m_iBrokenCounter = 60;
 
       // Signal the sender and recver if they are waiting for data.
       releaseSynch();
@@ -2199,6 +2202,7 @@ void CUDT::checkTimers()
          //
          m_bClosing = true;
          m_bBroken = true;
+         m_iBrokenCounter = 30;
 
          // update snd U list to remove this socket
          m_pSndQueue->m_pSndUList->update(this);
