@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/15/2009
+   Yunhong Gu, last updated 01/22/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1284,6 +1284,9 @@ int CUDT::cleanup()
 
 UDTSOCKET CUDT::socket(int af, int type, int)
 {
+   if (!s_UDTUnited.m_bGCStatus)
+      s_UDTUnited.startup();
+
    try
    {
       return s_UDTUnited.newSocket(af, type);
@@ -1474,9 +1477,7 @@ int CUDT::getsockopt(UDTSOCKET u, int, UDTOpt optname, void* optval, int* optlen
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-
       udt->getOpt(optname, optval, *optlen);
-
       return 0;
    }
    catch (CUDTException e)
@@ -1496,9 +1497,7 @@ int CUDT::setsockopt(UDTSOCKET u, int, UDTOpt optname, const void* optval, int o
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-
       udt->setOpt(optname, optval, optlen);
-
       return 0;
    }
    catch (CUDTException e)
@@ -1515,16 +1514,9 @@ int CUDT::setsockopt(UDTSOCKET u, int, UDTOpt optname, const void* optval, int o
 
 int CUDT::send(UDTSOCKET u, const char* buf, int len, int)
 {
-   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
-   {
-      s_UDTUnited.setError(new CUDTException(2, 1, 0));
-      return ERROR;
-   }
-
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-
       return udt->send((char*)buf, len);
    }
    catch (CUDTException e)
@@ -1546,16 +1538,9 @@ int CUDT::send(UDTSOCKET u, const char* buf, int len, int)
 
 int CUDT::recv(UDTSOCKET u, char* buf, int len, int)
 {
-   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
-   {
-      s_UDTUnited.setError(new CUDTException(2, 1, 0));
-      return ERROR;
-   }
-
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-
       return udt->recv(buf, len);
    }
    catch (CUDTException e)
@@ -1572,16 +1557,9 @@ int CUDT::recv(UDTSOCKET u, char* buf, int len, int)
 
 int CUDT::sendmsg(UDTSOCKET u, const char* buf, int len, int ttl, bool inorder)
 {
-   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
-   {
-      s_UDTUnited.setError(new CUDTException(2, 1, 0));
-      return ERROR;
-   }
-
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-
       return udt->sendmsg((char*)buf, len, ttl, inorder);
    }
    catch (CUDTException e)
@@ -1603,16 +1581,9 @@ int CUDT::sendmsg(UDTSOCKET u, const char* buf, int len, int ttl, bool inorder)
 
 int CUDT::recvmsg(UDTSOCKET u, char* buf, int len)
 {
-   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
-   {
-      s_UDTUnited.setError(new CUDTException(2, 1, 0));
-      return ERROR;
-   }
-
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-
       return udt->recvmsg(buf, len);
    }
    catch (CUDTException e)
@@ -1629,16 +1600,9 @@ int CUDT::recvmsg(UDTSOCKET u, char* buf, int len)
 
 int64_t CUDT::sendfile(UDTSOCKET u, ifstream& ifs, const int64_t& offset, const int64_t& size, const int& block)
 {
-   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
-   {
-      s_UDTUnited.setError(new CUDTException(2, 1, 0));
-      return ERROR;
-   }
-
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-
       return udt->sendfile(ifs, offset, size, block);
    }
    catch (CUDTException e)
@@ -1660,16 +1624,9 @@ int64_t CUDT::sendfile(UDTSOCKET u, ifstream& ifs, const int64_t& offset, const 
 
 int64_t CUDT::recvfile(UDTSOCKET u, ofstream& ofs, const int64_t& offset, const int64_t& size, const int& block)
 {
-   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
-   {
-      s_UDTUnited.setError(new CUDTException(2, 1, 0));
-      return ERROR;
-   }
-
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-
       return udt->recvfile(ofs, offset, size, block);
    }
    catch (CUDTException e)
@@ -1720,18 +1677,10 @@ CUDTException& CUDT::getlasterror()
 
 int CUDT::perfmon(UDTSOCKET u, CPerfMon* perf, bool clear)
 {
-   if (CUDTSocket::BROKEN == s_UDTUnited.getStatus(u))
-   {
-      s_UDTUnited.setError(new CUDTException(2, 1, 0));
-      return ERROR;
-   }
-
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-
       udt->sample(perf, clear);
-
       return 0;
    }
    catch (CUDTException e)
