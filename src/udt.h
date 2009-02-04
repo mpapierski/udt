@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/01/2008
+   Yunhong Gu, last updated 02/02/2009
 *****************************************************************************/
 
 #ifndef __UDT_H__
@@ -131,6 +131,7 @@ struct CPerfMon
    int pktRecvACKTotal;                 // total number of received ACK packets
    int pktSentNAKTotal;                 // total number of sent NAK packets
    int pktRecvNAKTotal;                 // total number of received NAK packets
+   int64_t usSndDurationTotal;		// total time duration when UDT is sending data (idle time exclusive)
 
    // local measurements
    int64_t pktSent;                     // number of sent data packets, including retransmissions
@@ -144,6 +145,7 @@ struct CPerfMon
    int pktRecvNAK;                      // number of received NAK packets
    double mbpsSendRate;                 // sending rate in Mb/s
    double mbpsRecvRate;                 // receiving rate in Mb/s
+   int64_t usSndDuration;		// busy sending time (i.e., idle time exclusive)
 
    // instant measurements
    double usPktSndPeriod;               // packet sending period, in microseconds

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/15/2009
+   Yunhong Gu, last updated 02/03/2009
 *****************************************************************************/
 
 #ifndef WIN32
@@ -916,6 +916,10 @@ int CUDT::send(const char* data, const int& len)
    if (size > len)
       size = len;
 
+   // record total time used for sending
+   if (0 == m_pSndBuffer->getCurrBufSize())
+      m_llSndDurationCounter = CTimer::getTime();
+
    // insert the user buffer into the sening list
    m_pSndBuffer->addBuffer(data, size);
 
@@ -1050,6 +1054,10 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
 
    if ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len)
       return 0;
+
+   // record total time used for sending
+   if (0 == m_pSndBuffer->getCurrBufSize())
+      m_llSndDurationCounter = CTimer::getTime();
 
    // insert the user buffer into the sening list
    m_pSndBuffer->addBuffer(data, len, msttl, inorder);
@@ -1194,6 +1202,10 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
       else if (!m_bConnected)
          throw CUDTException(2, 2, 0);
 
+      // record total time used for sending
+      if (0 == m_pSndBuffer->getCurrBufSize())
+         m_llSndDurationCounter = CTimer::getTime();
+
       tosend -= m_pSndBuffer->addBufferFromFile(ifs, unitsize);
 
       // insert this socket to snd list if it is not on the list yet
@@ -1270,7 +1282,6 @@ void CUDT::sample(CPerfMon* perf, bool clear)
       throw CUDTException(2, 1, 0);
 
    uint64_t currtime = CTimer::getTime();
-
    perf->msTimeStamp = (currtime - m_StartTime) / 1000;
 
    m_llSentTotal += m_llTraceSent;
@@ -1282,6 +1293,7 @@ void CUDT::sample(CPerfMon* perf, bool clear)
    m_iRecvACKTotal += m_iRecvACK;
    m_iSentNAKTotal += m_iSentNAK;
    m_iRecvNAKTotal += m_iRecvNAK;
+   m_llSndDurationTotal += m_llSndDuration;
 
    perf->pktSentTotal = m_llSentTotal;
    perf->pktRecvTotal = m_llRecvTotal;
@@ -1292,6 +1304,7 @@ void CUDT::sample(CPerfMon* perf, bool clear)
    perf->pktRecvACKTotal = m_iRecvACKTotal;
    perf->pktSentNAKTotal = m_iSentNAKTotal;
    perf->pktRecvNAKTotal = m_iRecvNAKTotal;
+   perf->usSndDurationTotal = m_llSndDurationTotal;
 
    perf->pktSent = m_llTraceSent;
    perf->pktRecv = m_llTraceRecv;
@@ -1302,6 +1315,7 @@ void CUDT::sample(CPerfMon* perf, bool clear)
    perf->pktRecvACK = m_iRecvACK;
    perf->pktSentNAK = m_iSentNAK;
    perf->pktRecvNAK = m_iRecvNAK;
+   perf->usSndDuration = m_llSndDuration;
 
    double interval = double(currtime - m_LastSampleTime);
 
@@ -1685,6 +1699,10 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
       // acknowledge the sending buffer
       m_pSndBuffer->ackData(offset);
+
+      // record total time used for sending
+      m_llSndDuration += currtime - m_llSndDurationCounter;
+      m_llSndDurationCounter = currtime;
 
       // update sending variables
       m_iSndLastDataAck = ack;

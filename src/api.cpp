@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/22/2009
+   Yunhong Gu, last updated 02/03/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1054,6 +1054,7 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
          m_Sockets[*q]->m_pUDT->close();
          m_Sockets[*q]->m_TimeStamp = CTimer::getTime();
          m_Sockets[*q]->m_Status = CUDTSocket::CLOSED;
+         tbc.insert(*q);
          m_ClosedSockets[*q] = m_Sockets[*q];
       }
       for (set<UDTSOCKET>::iterator c = tbc.begin(); c != tbc.end(); ++ c)
@@ -1258,9 +1259,12 @@ void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
    // remove all active sockets
    for (map<UDTSOCKET, CUDTSocket*>::iterator i = self->m_Sockets.begin(); i != self->m_Sockets.end(); ++ i)
    {
+      i->second->m_pUDT->close();
       i->second->m_Status = CUDTSocket::CLOSED;
       i->second->m_TimeStamp = 0;
    }
+   self->m_ClosedSockets = self->m_Sockets;
+   self->m_Sockets.clear();
    self->checkBrokenSockets();
 
    #ifndef WIN32

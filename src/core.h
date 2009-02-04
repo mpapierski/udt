@@ -371,6 +371,7 @@ private: // Trace
    int m_iRecvACKTotal;                         // total number of received ACK packets
    int m_iSentNAKTotal;                         // total number of sent NAK packets
    int m_iRecvNAKTotal;                         // total number of received NAK packets
+   int64_t m_llSndDurationTotal;		// total real time for sending
 
    uint64_t m_LastSampleTime;                   // last performance sample time
    int64_t m_llTraceSent;                       // number of pakctes sent in the last trace interval
@@ -382,6 +383,8 @@ private: // Trace
    int m_iRecvACK;                              // number of ACKs received in the last trace interval
    int m_iSentNAK;                              // number of NAKs sent in the last trace interval
    int m_iRecvNAK;                              // number of NAKs received in the last trace interval
+   int64_t m_llSndDuration;			// real time for sending
+   int64_t m_llSndDurationCounter;		// timers to record the sending duration
 
 private: // Timers
    uint64_t m_ullCPUFrequency;                  // CPU clock frequency, used for Timer
