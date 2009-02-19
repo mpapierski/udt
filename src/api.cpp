@@ -99,7 +99,7 @@ CUDTSocket::~CUDTSocket()
 CUDTUnited::CUDTUnited()
 {
    srand((unsigned int)CTimer::getTime());
-   m_SocketID = 1 + (int)((1 << 30) * (rand()/(RAND_MAX + 1.0)));
+   m_SocketID = 1 + (int)((1 << 30) * (double(rand()) / RAND_MAX));
 
    #ifndef WIN32
       pthread_mutex_init(&m_ControlLock, NULL);
@@ -1133,6 +1133,7 @@ void CUDTUnited::checkTLSValue()
          delete i->second;
          tbr.insert(tbr.end(), i->first);
       }
+      CloseHandle(h);
    }
    for (vector<DWORD>::iterator j = tbr.begin(); j != tbr.end(); ++ j)
       m_mTLSRecord.erase(*j);
