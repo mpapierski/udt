@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,13 +35,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/01/2008
+   Yunhong Gu, last updated 03/05/2009
 *****************************************************************************/
 
 
 #include "core.h"
 #include "ccc.h"
 #include <cmath>
+#include <string.h>
 
 
 CCC::CCC():
@@ -212,7 +213,7 @@ void CUDTCC::onACK(const int32_t& ack)
    m_dPktSndPeriod = (m_dPktSndPeriod * m_iRCInterval) / (m_dPktSndPeriod * inc + m_iRCInterval);
 
    //set maximum transfer rate
-   if ((NULL != m_pcParam) && (m_iPSize != 8))
+   if ((NULL != m_pcParam) && (m_iPSize == 8))
    {
       int64_t maxSR = *(int64_t*)m_pcParam;
       if (maxSR <= 0)

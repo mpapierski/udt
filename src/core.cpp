@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/18/2009
+   Yunhong Gu, last updated 03/05/2009
 *****************************************************************************/
 
 #ifndef WIN32
@@ -160,7 +160,8 @@ CUDT::CUDT(const CUDT& ancestor)
    m_bRendezvous = ancestor.m_bRendezvous;
    m_iSndTimeOut = ancestor.m_iSndTimeOut;
    m_iRcvTimeOut = ancestor.m_iRcvTimeOut;
-   m_bReuseAddr = true;
+   m_bReuseAddr = true;	// this must be true, because all accepted sockets shared the same port with the listener
+   m_llMaxBW = ancestor.m_llMaxBW;
 
    m_pCCFactory = ancestor.m_pCCFactory->clone();
    m_pCC = NULL;
@@ -687,7 +688,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pCC->setRcvRate(m_iDeliveryRate);
    m_pCC->setRTT(m_iRTT);
    m_pCC->setBandwidth(m_iBandwidth);
-   m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
+   if (m_llMaxBW > 0) m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
    m_pCC->init();
 
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
@@ -777,6 +778,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pCC->setRcvRate(m_iDeliveryRate);
    m_pCC->setRTT(m_iRTT);
    m_pCC->setBandwidth(m_iBandwidth);
+   if (m_llMaxBW > 0) m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
    m_pCC->init();
 
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/02/2009
+   Yunhong Gu, last updated 03/05/2009
 *****************************************************************************/
 
 #ifndef __UDT_H__
@@ -113,7 +113,7 @@ enum UDTOpt
    UDT_SNDTIMEO,        // send() timeout
    UDT_RCVTIMEO,        // recv() timeout
    UDT_REUSEADDR,	// reuse an existing port or create a new one
-   UDT_MAXBW		// maximum bandwidth (bps) that the connection can use
+   UDT_MAXBW		// maximum bandwidth (bytes per second) that the connection can use
 };
 
 ////////////////////////////////////////////////////////////////////////////////
