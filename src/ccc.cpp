@@ -134,6 +134,7 @@ void CCC::setUserParam(const char* param, const int& size)
    delete [] m_pcParam;
    m_pcParam = new char[size];
    memcpy(m_pcParam, param, size);
+   m_iPSize = size;
 }
 
 //
