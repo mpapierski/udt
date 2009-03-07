@@ -134,9 +134,19 @@ void CChannel::open(UDPSOCKET udpsock)
 
 void CChannel::setUDPSockOpt()
 {
-   if ((0 != setsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (char *)&m_iRcvBufSize, sizeof(int))) ||
-       (0 != setsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (char *)&m_iSndBufSize, sizeof(int))))
-      throw CUDTException(1, 3, NET_ERROR);
+   #if defined(BSD) || defined(OSX)
+      // BSD system will fail setsockopt if the requested buffer size exceeds system maximum value
+      int maxsize = 262144;
+      if (0 != setsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&m_iRcvBufSize, sizeof(int)))
+         setsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&maxsize, sizeof(int));
+      if (0 != setsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (char*)&m_iSndBufSize, sizeof(int)))
+         setsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (char*)&maxsize, sizeof(int));
+   #else
+      // for other systems, if requested is greated than maximum, the maximum value will be automactally used
+      if ((0 != setsockopt(m_iSocket, SOL_SOCKET, SO_RCVBUF, (char*)&m_iRcvBufSize, sizeof(int))) ||
+          (0 != setsockopt(m_iSocket, SOL_SOCKET, SO_SNDBUF, (char*)&m_iSndBufSize, sizeof(int))))
+         throw CUDTException(1, 3, NET_ERROR);
+   #endif
 
    timeval tv;
    tv.tv_sec = 0;
