@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /****************************************************************************
 written by
-   Yunhong Gu, last updated 12/08/2008
+   Yunhong Gu, last updated 03/07/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -88,7 +88,11 @@ void CChannel::open(const sockaddr* addr)
    // construct an socket
    m_iSocket = socket(m_iIPversion, SOCK_DGRAM, 0);
 
-   if (m_iSocket < 0)
+   #ifdef WIN32
+      if (INVALID_SOCKET == m_iSocket)
+   #else
+      if (m_iSocket < 0)
+   #endif
       throw CUDTException(1, 0, NET_ERROR);
 
    if (NULL != addr)
