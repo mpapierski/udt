@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 03/05/2009
+   Yunhong Gu, last updated 03/15/2009
 *****************************************************************************/
 
 #ifndef WIN32
@@ -857,8 +857,6 @@ int CUDT::send(const char* data, const int& len)
    if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
 
-   CGuard sendguard(m_SendLock);
-
    // throw an exception if not connected
    if (m_bBroken || m_bClosing)
       throw CUDTException(2, 1, 0);
@@ -867,6 +865,8 @@ int CUDT::send(const char* data, const int& len)
 
    if (len <= 0)
       return 0;
+
+   CGuard sendguard(m_SendLock);
 
    if (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())
    {
@@ -936,8 +936,6 @@ int CUDT::recv(char* data, const int& len)
    if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
 
-   CGuard recvguard(m_RecvLock);
-
    // throw an exception if not connected
    if (!m_bConnected)
       throw CUDTException(2, 2, 0);
@@ -946,6 +944,8 @@ int CUDT::recv(char* data, const int& len)
 
    if (len <= 0)
       return 0;
+
+   CGuard recvguard(m_RecvLock);
 
    if (0 == m_pRcvBuffer->getRcvDataSize())
    {
@@ -997,8 +997,6 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
    if (UDT_STREAM == m_iSockType)
       throw CUDTException(5, 9, 0);
 
-   CGuard sendguard(m_SendLock);
-
    // throw an exception if not connected
    if (m_bBroken || m_bClosing)
       throw CUDTException(2, 1, 0);
@@ -1010,6 +1008,8 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
 
    if (len > m_iSndBufSize * m_iPayloadSize)
       throw CUDTException(5, 12, 0);
+
+   CGuard sendguard(m_SendLock);
 
    if ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len)
    {
@@ -1075,14 +1075,14 @@ int CUDT::recvmsg(char* data, const int& len)
    if (UDT_STREAM == m_iSockType)
       throw CUDTException(5, 9, 0);
 
-   CGuard recvguard(m_RecvLock);
-
    // throw an exception if not connected
    if (!m_bConnected)
       throw CUDTException(2, 2, 0);
 
    if (len <= 0)
       return 0;
+
+   CGuard recvguard(m_RecvLock);
 
    if (m_bBroken || m_bClosing)
    {
@@ -1158,8 +1158,6 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
    if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
 
-   CGuard sendguard(m_SendLock);
-
    if (m_bBroken || m_bClosing)
       throw CUDTException(2, 1, 0);
    else if (!m_bConnected)
@@ -1167,6 +1165,8 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
 
    if (size <= 0)
       return 0;
+
+   CGuard sendguard(m_SendLock);
 
    int64_t tosend = size;
    int unitsize;
@@ -1222,8 +1222,6 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
    if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
 
-   CGuard recvguard(m_RecvLock);
-
    if (!m_bConnected)
       throw CUDTException(2, 2, 0);
    else if ((m_bBroken || m_bClosing) && (0 == m_pRcvBuffer->getRcvDataSize()))
@@ -1231,6 +1229,8 @@ int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size
 
    if (size <= 0)
       return 0;
+
+   CGuard recvguard(m_RecvLock);
 
    int64_t torecv = size;
    int unitsize = block;

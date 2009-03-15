@@ -893,7 +893,7 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
          }
       }
 
-      // query expections on sockets
+      // query exceptions on sockets
       for (vector<CUDTSocket*>::iterator j3 = eu.begin(); j3 != eu.end(); ++ j3)
       {
          // check connection request status, not supported now
