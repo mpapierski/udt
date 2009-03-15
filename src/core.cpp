@@ -967,8 +967,9 @@ int CUDT::recv(char* data, const int& len)
     
                locktime.tv_sec = exptime / 1000000;
                locktime.tv_nsec = (exptime % 1000000) * 1000;
-    
-               pthread_cond_timedwait(&m_RecvDataCond, &m_RecvDataLock, &locktime); 
+
+               while (!m_bBroken && m_bConnected && !m_bClosing && (0 == m_pRcvBuffer->getRcvDataSize()))
+                  pthread_cond_timedwait(&m_RecvDataCond, &m_RecvDataLock, &locktime); 
             }
             pthread_mutex_unlock(&m_RecvDataLock);
          #else
@@ -978,7 +979,15 @@ int CUDT::recv(char* data, const int& len)
                   WaitForSingleObject(m_RecvDataCond, INFINITE);
             }
             else
-               WaitForSingleObject(m_RecvDataCond, DWORD(m_iRcvTimeOut));
+            {
+               uint64_t enter_time = CTimer::getTime();
+
+               while (!m_bBroken && m_bConnected && !m_bClosing && (0 == m_pRcvBuffer->getRcvDataSize()))
+               {
+                  int diff = int(CTimer::getTime() - enter_time) / 1000;
+                  WaitForSingleObject(m_RecvDataCond, DWORD(m_iRcvTimeOut - diff ));
+               }
+            }
          #endif
       }
    }
