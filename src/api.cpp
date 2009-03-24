@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/20/2009
+   Yunhong Gu, last updated 03/24/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1716,7 +1716,14 @@ int CUDT::perfmon(UDTSOCKET u, CPerfMon* perf, bool clear)
 
 CUDT* CUDT::getUDTHandle(UDTSOCKET u)
 {
-   return s_UDTUnited.lookup(u);
+   try
+   {
+      return s_UDTUnited.lookup(u);
+   }
+   catch (...)
+   {
+      return NULL;
+   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

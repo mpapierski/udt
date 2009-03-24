@@ -411,7 +411,7 @@ private: // Timers
 
 private: // for UDP multiplexer
    CSndQueue* m_pSndQueue;			// packet sending queue
-   CRcvQueue* m_pRcvQueue;			// packet receivinf queue
+   CRcvQueue* m_pRcvQueue;			// packet receiving queue
    sockaddr* m_pPeerAddr;			// peer address
    CSNode* m_pSNode;				// node information for UDT list used in snd queue
    CRNode* m_pRNode;                            // node information for UDT list used in rcv queue
