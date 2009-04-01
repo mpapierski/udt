@@ -927,10 +927,11 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
       if (NULL == unit)
       {
          // no space, skip this packet
-         CUnit temp;
-         temp.m_Packet.m_pcData = new char[self->m_iPayloadSize];
-         self->m_pChannel->recvfrom(addr, temp.m_Packet);
-         delete [] temp.m_Packet.m_pcData;
+         CPacket temp;
+         temp.m_pcData = new char[self->m_iPayloadSize];
+         temp.setLength(self->m_iPayloadSize);
+         self->m_pChannel->recvfrom(addr, temp);
+         delete [] temp.m_pcData;
          goto TIMER_CHECK;
       }
 

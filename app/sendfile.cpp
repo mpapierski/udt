@@ -25,6 +25,8 @@ int main(int argc, char* argv[])
 
    UDTSOCKET serv = UDT::socket(AF_INET, SOCK_STREAM, 0);
 
+   // Windows UDP issue
+   // For better performance, modify HKLM\System\CurrentControlSet\Services\Afd\Parameters\FastSendDatagramThreshold
 #ifdef WIN32
    int mss = 1052;
    UDT::setsockopt(serv, 0, UDT_MSS, &mss, sizeof(int));
