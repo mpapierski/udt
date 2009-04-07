@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 03/15/2009
+   Yunhong Gu, last updated 04/06/2009
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1853,9 +1853,6 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
          break;
       }
 
-      // Wake up the waiting sender (avoiding deadlock on an infinite sleeping)
-      m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), const_cast<int32_t&>(m_iSndLastAck));
-	  
       // the lost packet (retransmission) should be sent out immediately
       m_pSndQueue->m_pSndUList->update(this);
 
