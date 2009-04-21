@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 03/31/2009
+   Yunhong Gu, last updated 04/21/2009
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -92,8 +92,8 @@ public: //API
    static int recv(UDTSOCKET u, char* buf, int len, int flags);
    static int sendmsg(UDTSOCKET u, const char* buf, int len, int ttl = -1, bool inorder = false);
    static int recvmsg(UDTSOCKET u, char* buf, int len);
-   static int64_t sendfile(UDTSOCKET u, std::ifstream& ifs, const int64_t& offset, const int64_t& size, const int& block = 364000);
-   static int64_t recvfile(UDTSOCKET u, std::ofstream& ofs, const int64_t& offset, const int64_t& size, const int& block = 7280000);
+   static int64_t sendfile(UDTSOCKET u, std::fstream& ifs, const int64_t& offset, const int64_t& size, const int& block = 364000);
+   static int64_t recvfile(UDTSOCKET u, std::fstream& ofs, const int64_t& offset, const int64_t& size, const int& block = 7280000);
    static int select(int nfds, ud_set* readfds, ud_set* writefds, ud_set* exceptfds, const timeval* timeout);
    static CUDTException& getlasterror();
    static int perfmon(UDTSOCKET u, CPerfMon* perf, bool clear = true);
@@ -199,7 +199,7 @@ private:
       // Returned value:
       //    Actual size of data sent.
 
-   int64_t sendfile(std::ifstream& ifs, const int64_t& offset, const int64_t& size, const int& block = 366000);
+   int64_t sendfile(std::fstream& ifs, const int64_t& offset, const int64_t& size, const int& block = 366000);
 
       // Functionality:
       //    Request UDT to receive data into a file described as "fd", starting from "offset", with expected size of "size".
@@ -211,7 +211,7 @@ private:
       // Returned value:
       //    Actual size of data received.
 
-   int64_t recvfile(std::ofstream& ofs, const int64_t& offset, const int64_t& size, const int& block = 7320000);
+   int64_t recvfile(std::fstream& ofs, const int64_t& offset, const int64_t& size, const int& block = 7320000);
 
       // Functionality:
       //    Configure UDT options.

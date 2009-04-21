@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/06/2009
+   Yunhong Gu, last updated 04/21/2009
 *****************************************************************************/
 
 #ifndef WIN32
@@ -1162,7 +1162,7 @@ int CUDT::recvmsg(char* data, const int& len)
    return res;
 }
 
-int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size, const int& block)
+int64_t CUDT::sendfile(fstream& ifs, const int64_t& offset, const int64_t& size, const int& block)
 {
    if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);
@@ -1226,7 +1226,7 @@ int64_t CUDT::sendfile(ifstream& ifs, const int64_t& offset, const int64_t& size
    return size - tosend;
 }
 
-int64_t CUDT::recvfile(ofstream& ofs, const int64_t& offset, const int64_t& size, const int& block)
+int64_t CUDT::recvfile(fstream& ofs, const int64_t& offset, const int64_t& size, const int& block)
 {
    if (UDT_DGRAM == m_iSockType)
       throw CUDTException(5, 10, 0);

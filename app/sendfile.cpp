@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
    file[len] = '\0';
 
    // open the file
-   ifstream ifs(file, ios::in | ios::binary);
+   fstream ifs(file, ios::in | ios::binary);
 
    ifs.seekg(0, ios::end);
    int64_t size = ifs.tellg();

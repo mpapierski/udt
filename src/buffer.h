@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/28/2008
+   Yunhong Gu, last updated 04/21/2009
 *****************************************************************************/
 
 #ifndef __UDT_BUFFER_H__
@@ -73,7 +73,7 @@ public:
       // Returned value:
       //    actual size of data added from the file.
 
-   int addBufferFromFile(std::ifstream& ifs, const int& len);
+   int addBufferFromFile(std::fstream& ifs, const int& len);
 
       // Functionality:
       //    Find data position to pack a DATA packet from the furthest reading point.
@@ -190,7 +190,7 @@ public:
       // Returned value:
       //    size of data read.
 
-   int readBufferToFile(std::ofstream& file, const int& len);
+   int readBufferToFile(std::fstream& ofs, const int& len);
 
       // Functionality:
       //    Update the ACK point of the buffer.

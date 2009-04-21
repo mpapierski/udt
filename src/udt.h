@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 03/05/2009
+   Yunhong Gu, last updated 04/21/2009
 *****************************************************************************/
 
 #ifndef __UDT_H__
@@ -276,8 +276,8 @@ UDT_API int send(UDTSOCKET u, const char* buf, int len, int flags);
 UDT_API int recv(UDTSOCKET u, char* buf, int len, int flags);
 UDT_API int sendmsg(UDTSOCKET u, const char* buf, int len, int ttl = -1, bool inorder = false);
 UDT_API int recvmsg(UDTSOCKET u, char* buf, int len);
-UDT_API int64_t sendfile(UDTSOCKET u, std::ifstream& ifs, int64_t offset, int64_t size, int block = 364000);
-UDT_API int64_t recvfile(UDTSOCKET u, std::ofstream& ofs, int64_t offset, int64_t size, int block = 7280000);
+UDT_API int64_t sendfile(UDTSOCKET u, std::fstream& ifs, int64_t offset, int64_t size, int block = 364000);
+UDT_API int64_t recvfile(UDTSOCKET u, std::fstream& ofs, int64_t offset, int64_t size, int block = 7280000);
 UDT_API int select(int nfds, UDSET* readfds, UDSET* writefds, UDSET* exceptfds, const struct timeval* timeout);
 UDT_API ERRORINFO& getlasterror();
 UDT_API int perfmon(UDTSOCKET u, TRACEINFO* perf, bool clear = true);
