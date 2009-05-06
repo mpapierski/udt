@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/21/2009
+   Yunhong Gu, last updated 05/05/2009
 *****************************************************************************/
 
 #ifndef __UDT_BUFFER_H__
@@ -151,6 +151,10 @@ private:
    int m_iMSS;                          // maximum seqment/packet size
 
    int m_iCount;			// number of used blocks
+
+private:
+   CSndBuffer(const CSndBuffer&);
+   CSndBuffer& operator=(const CSndBuffer&);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -261,6 +265,10 @@ private:
    int m_iMaxPos;			// the furthest data position
 
    int m_iNotch;			// the starting read point of the first unit
+
+private:
+   CRcvBuffer(const CRcvBuffer&);
+   CRcvBuffer& operator=(const CRcvBuffer&);
 };
 
 

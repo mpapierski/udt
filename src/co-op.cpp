@@ -35,13 +35,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/28/2009
+   Yunhong Gu, last updated 05/05/2009
 *****************************************************************************/
 
 #ifdef WIN32
    #include <winsock2.h>
    #include <ws2tcpip.h>
-   #include <wspiapi.h>
+   #ifdef LEGACY_WIN32
+      #include <wspiapi.h>
+   #endif
 #endif
 
 #include <cstring>
@@ -73,7 +75,10 @@ bool CTSComp::operator()(const CHistoryBlock* hb1, const CHistoryBlock* hb2) con
 }
 
 CHistory::CHistory():
-m_uiSize(1024)
+m_uiSize(1024),
+m_sIPIndex(),
+m_sTSIndex(),
+m_Lock()
 {
    #ifndef WIN32
       pthread_mutex_init(&m_Lock, NULL);
@@ -83,7 +88,10 @@ m_uiSize(1024)
 }
 
 CHistory::CHistory(const unsigned int& size):
-m_uiSize(size)
+m_uiSize(size),
+m_sIPIndex(),
+m_sTSIndex(),
+m_Lock()
 {
    #ifndef WIN32
       pthread_mutex_init(&m_Lock, NULL);
@@ -204,7 +212,11 @@ bool CUDTComp::operator()(const CUDT* u1, const CUDT* u2) const
    return (u1->m_SocketID > u2->m_SocketID);
 }
 
-CControl::CControl()
+CControl::CControl():
+m_pHistoryRecord(NULL),
+m_mControlBlock(),
+m_mUDTIndex(),
+m_Lock()
 {
    #ifndef WIN32
       pthread_mutex_init(&m_Lock, NULL);

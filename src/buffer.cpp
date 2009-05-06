@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/21/2009
+   Yunhong Gu, last updated 05/05/2009
 *****************************************************************************/
 
 #include <cstring>
@@ -45,10 +45,12 @@ written by
 using namespace std;
 
 CSndBuffer::CSndBuffer(const int& size, const int& mss):
+m_BufLock(),
 m_pBlock(NULL),
 m_pFirstBlock(NULL),
 m_pCurrBlock(NULL),
 m_pLastBlock(NULL),
+m_pBuffer(NULL),
 m_iNextMsgNo(0),
 m_iSize(size),
 m_iMSS(mss),

@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 03/05/2009
+   Yunhong Gu, last updated 05/05/2009
 *****************************************************************************/
 
 
@@ -49,12 +49,20 @@ CCC::CCC():
 m_iSYNInterval(CUDT::m_iSYNInterval),
 m_dPktSndPeriod(1.0),
 m_dCWndSize(16.0),
+m_iBandwidth(),
+m_dMaxCWndSize(),
+m_iMSS(),
+m_iSndCurrSeqNo(),
+m_iRcvRate(),
+m_iRTT(),
 m_pcParam(NULL),
 m_iPSize(0),
+m_UDT(),
 m_iACKPeriod(0),
 m_iACKInterval(0),
 m_bUserDefinedRTO(false),
-m_iRTO(-1)
+m_iRTO(-1),
+m_PerfInfo()
 {
 }
 
@@ -138,6 +146,21 @@ void CCC::setUserParam(const char* param, const int& size)
 }
 
 //
+CUDTCC::CUDTCC():
+m_iRCInterval(),
+m_LastRCTime(),
+m_bSlowStart(),
+m_iLastAck(),
+m_bLoss(),
+m_iLastDecSeq(),
+m_dLastDecPeriod(),
+m_iNAKCount(),
+m_iDecRandom(),
+m_iAvgNAKNum(),
+m_iDecCount()
+{
+}
+
 void CUDTCC::init()
 {
    m_iRCInterval = m_iSYNInterval;

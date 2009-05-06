@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/21/2009
+   Yunhong Gu, last updated 05/05/2009
 *****************************************************************************/
 
 #ifndef __UDT_H__
@@ -56,12 +56,19 @@ written by
 
 ////////////////////////////////////////////////////////////////////////////////
 
+//if compiling on VC6.0 or pre-WindowsXP systems
+//use -DLEGACY_WIN32
+
+//if compiling on MinGW
+//use -D_WIN32_WINNT=0x0501
+
+
 #ifdef WIN32
    // Explicitly define 32-bit and 64-bit numbers
    typedef __int32 int32_t;
    typedef __int64 int64_t;
    typedef unsigned __int32 uint32_t;
-   #if _MSC_VER >= 1300
+   #ifndef LEGACY_WIN32
       typedef unsigned __int64 uint64_t;
    #else
       // VC 6.0 does not support unsigned __int64: may cause potential problems.

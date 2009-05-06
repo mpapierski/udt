@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /****************************************************************************
 written by
-   Yunhong Gu, last updated 03/07/2008
+   Yunhong Gu, last updated 05/05/2008
 *****************************************************************************/
 
 #ifndef WIN32
@@ -49,7 +49,9 @@ written by
 #else
    #include <winsock2.h>
    #include <ws2tcpip.h>
-   #include <wspiapi.h>
+   #ifdef LEGACY_WIN32
+      #include <wspiapi.h>
+   #endif
 #endif
 #include "channel.h"
 #include "packet.h"
@@ -67,6 +69,7 @@ written by
 
 CChannel::CChannel():
 m_iIPversion(AF_INET),
+m_iSocket(),
 m_iSndBufSize(65536),
 m_iRcvBufSize(65536)
 {
@@ -74,6 +77,7 @@ m_iRcvBufSize(65536)
 
 CChannel::CChannel(const int& version):
 m_iIPversion(version),
+m_iSocket(),
 m_iSndBufSize(65536),
 m_iRcvBufSize(65536)
 {

@@ -58,7 +58,7 @@ enum UDTSockType {UDT_STREAM = 1, UDT_DGRAM};
 
 class CUDT
 {
-friend struct CUDTSocket;
+friend class CUDTSocket;
 friend class CUDTUnited;
 friend class CCC;
 friend struct CUDTComp;

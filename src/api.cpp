@@ -35,13 +35,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/21/2009
+   Yunhong Gu, last updated 05/05/2009
 *****************************************************************************/
 
 #ifdef WIN32
    #include <winsock2.h>
    #include <ws2tcpip.h>
-   #include <wspiapi.h>
+   #ifdef LEGACY_WIN32
+      #include <wspiapi.h>
+   #endif
 #else
    #include <unistd.h>
 #endif
@@ -52,11 +54,21 @@ written by
 using namespace std;
 
 CUDTSocket::CUDTSocket():
+m_Status(INIT),
+m_TimeStamp(0),
+m_iIPversion(0),
 m_pSelfAddr(NULL),
 m_pPeerAddr(NULL),
+m_SocketID(0),
+m_ListenSocket(0),
+m_PeerID(0),
+m_iISN(0),
 m_pUDT(NULL),
 m_pQueuedSockets(NULL),
-m_pAcceptSockets(NULL)
+m_pAcceptSockets(NULL),
+m_AcceptCond(),
+m_AcceptLock(),
+m_uiBackLog(0)
 {
    #ifndef WIN32
       pthread_mutex_init(&m_AcceptLock, NULL);
@@ -96,7 +108,22 @@ CUDTSocket::~CUDTSocket()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-CUDTUnited::CUDTUnited()
+CUDTUnited::CUDTUnited():
+m_Sockets(),
+m_ControlLock(),
+m_IDLock(),
+m_SocketID(0),
+m_TLSError(),
+m_vMultiplexer(),
+m_MultiplexerLock(),
+m_pController(NULL),
+m_bClosing(false),
+m_GCStopLock(),
+m_GCStopCond(),
+m_InitLock(),
+m_bGCStatus(false),
+m_GCThread(),
+m_ClosedSockets()
 {
    srand((unsigned int)CTimer::getTime());
    m_SocketID = 1 + (int)((1 << 30) * (double(rand()) / RAND_MAX));
@@ -128,10 +155,7 @@ CUDTUnited::CUDTUnited()
          throw CUDTException(1, 0,  WSAGetLastError());
    #endif
 
-   m_vMultiplexer.clear();
    m_pController = new CControl;
-
-   m_bGCStatus = false;
 }
 
 CUDTUnited::~CUDTUnited()
@@ -153,7 +177,6 @@ CUDTUnited::~CUDTUnited()
       CloseHandle(m_TLSLock);
    #endif
 
-   m_vMultiplexer.clear();
    delete m_pController;
 
    // Global destruction code
@@ -275,6 +298,9 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
 {
    CUDTSocket* ns = NULL;
    CUDTSocket* ls = locate(listen);
+
+   if (NULL == ls)
+      return -1;
 
    // if this connection has already been processed
    if (NULL != (ns = locate(listen, peer, hs->m_iID, hs->m_iISN)))
