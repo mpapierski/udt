@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/21/2009
+   Yunhong Gu, last updated 06/10/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -945,6 +945,82 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
    return count;
 }
 
+int CUDTUnited::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vector<UDTSOCKET>* writefds, int64_t msTimeOut)
+{
+   uint64_t entertime = CTimer::getTime();
+
+   uint64_t to;
+   if (msTimeOut >= 0)
+      to = msTimeOut;
+   else
+      to = 0xFFFFFFFFFFFFFFFFULL;
+
+   // initialize results
+   int count = 0;
+
+   // retrieve related UDT sockets
+   CUDTSocket* s;
+   vector<CUDTSocket*> fds_u;
+
+   for (vector<UDTSOCKET>::const_iterator i = fds.begin(); i != fds.end(); ++ i)
+   {
+      if (CUDTSocket::BROKEN == getStatus(*i))
+      {
+         if (NULL != readfds)
+         {
+            readfds->push_back(*i);
+            ++ count;
+         }
+         if (NULL != writefds)
+         {
+            writefds->push_back(*i);
+            ++ count;
+         }
+      }
+      else if (NULL == (s = locate(*i)))
+         throw CUDTException(5, 4, 0);
+      else
+         fds_u.push_back(s);
+   }
+
+   do
+   {
+      for (vector<CUDTSocket*>::iterator j = fds_u.begin(); j != fds_u.end(); ++ j)
+      {
+         s = *j;
+
+         if (NULL != readfds)
+         {
+            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && ((s->m_pUDT->m_iSockType == UDT_STREAM) || (s->m_pUDT->m_pRcvBuffer->getRcvMsgNum() > 0)))
+               || (!s->m_pUDT->m_bListening && (s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected))
+               || (s->m_pUDT->m_bListening && (s->m_pQueuedSockets->size() > 0))
+               || (s->m_Status == CUDTSocket::CLOSED))
+            {
+               readfds->push_back(s->m_SocketID);
+               ++ count;
+            }
+         }
+
+         if (NULL != writefds)
+         {
+            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pSndBuffer->getCurrBufSize() < s->m_pUDT->m_iSndBufSize))
+               || s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected || (s->m_Status == CUDTSocket::CLOSED))
+            {
+               writefds->push_back(s->m_SocketID);
+               ++ count;
+            }
+         }
+      }
+
+      if (count > 0)
+         break;
+
+      CTimer::waitForEvent();
+   } while (to > CTimer::getTime() - entertime);
+
+   return count;
+}
+
 CUDTSocket* CUDTUnited::locate(const UDTSOCKET u)
 {
    CGuard cg(m_ControlLock);
@@ -1701,6 +1777,35 @@ int CUDT::select(int, ud_set* readfds, ud_set* writefds, ud_set* exceptfds, cons
    try
    {
       return s_UDTUnited.select(readfds, writefds, exceptfds, timeout);
+   }
+   catch (CUDTException e)
+   {
+      s_UDTUnited.setError(new CUDTException(e));
+      return ERROR;
+   }
+   catch (bad_alloc&)
+   {
+      s_UDTUnited.setError(new CUDTException(3, 2, 0));
+      return ERROR;
+   }
+   catch (...)
+   {
+      s_UDTUnited.setError(new CUDTException(-1, 0, 0));
+      return ERROR;
+   }
+}
+
+int CUDT::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vector<UDTSOCKET>* writefds, int64_t msTimeOut)
+{
+   if ((NULL == readfds) && (NULL == writefds))
+   {
+      s_UDTUnited.setError(new CUDTException(5, 3, 0));
+      return ERROR;
+   }
+
+   try
+   {
+      return s_UDTUnited.selectEx(fds, readfds, writefds, msTimeOut);
    }
    catch (CUDTException e)
    {
