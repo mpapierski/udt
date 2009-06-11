@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/21/2009
+   Yunhong Gu, last updated 06/09/2009
 *****************************************************************************/
 
 #ifndef WIN32
@@ -580,7 +580,6 @@ void CUDT::connect(const sockaddr* serv_addr)
             // a data packet or a keep-alive packet comes, which means the peer side is already connected
             // in this situation, a previously recorded response (tmp) will be used
             memcpy(resdata, tmp, sizeof(CHandShake));
-            delete [] tmp;
             memcpy(m_piSelfIP, res->m_piPeerIP, 16);
             break;
          }
@@ -630,6 +629,7 @@ void CUDT::connect(const sockaddr* serv_addr)
       }
    }
 
+   delete [] tmp;
    delete [] reqdata;
 
    if (e.getErrorCode() == 0)
