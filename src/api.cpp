@@ -945,7 +945,7 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
    return count;
 }
 
-int CUDTUnited::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vector<UDTSOCKET>* writefds, int64_t msTimeOut)
+int CUDTUnited::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vector<UDTSOCKET>* writefds, vector<UDTSOCKET>* exceptfds, int64_t msTimeOut)
 {
    uint64_t entertime = CTimer::getTime();
 
@@ -966,14 +966,9 @@ int CUDTUnited::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfd
    {
       if (CUDTSocket::BROKEN == getStatus(*i))
       {
-         if (NULL != readfds)
+         if (NULL != exceptfds)
          {
-            readfds->push_back(*i);
-            ++ count;
-         }
-         if (NULL != writefds)
-         {
-            writefds->push_back(*i);
+            exceptfds->push_back(*i);
             ++ count;
          }
       }
@@ -989,12 +984,20 @@ int CUDTUnited::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfd
       {
          s = *j;
 
+         if (s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected || (s->m_Status == CUDTSocket::CLOSED))
+         {
+            if (NULL != exceptfds)
+            {
+               exceptfds->push_back(s->m_SocketID);
+               ++ count;
+            }
+            continue;
+         }
+
          if (NULL != readfds)
          {
             if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && ((s->m_pUDT->m_iSockType == UDT_STREAM) || (s->m_pUDT->m_pRcvBuffer->getRcvMsgNum() > 0)))
-               || (!s->m_pUDT->m_bListening && (s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected))
-               || (s->m_pUDT->m_bListening && (s->m_pQueuedSockets->size() > 0))
-               || (s->m_Status == CUDTSocket::CLOSED))
+               || (s->m_pUDT->m_bListening && (s->m_pQueuedSockets->size() > 0)))
             {
                readfds->push_back(s->m_SocketID);
                ++ count;
@@ -1003,8 +1006,7 @@ int CUDTUnited::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfd
 
          if (NULL != writefds)
          {
-            if ((s->m_pUDT->m_bConnected && (s->m_pUDT->m_pSndBuffer->getCurrBufSize() < s->m_pUDT->m_iSndBufSize))
-               || s->m_pUDT->m_bBroken || !s->m_pUDT->m_bConnected || (s->m_Status == CUDTSocket::CLOSED))
+            if (s->m_pUDT->m_bConnected && (s->m_pUDT->m_pSndBuffer->getCurrBufSize() < s->m_pUDT->m_iSndBufSize))
             {
                writefds->push_back(s->m_SocketID);
                ++ count;
@@ -1795,7 +1797,7 @@ int CUDT::select(int, ud_set* readfds, ud_set* writefds, ud_set* exceptfds, cons
    }
 }
 
-int CUDT::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vector<UDTSOCKET>* writefds, int64_t msTimeOut)
+int CUDT::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vector<UDTSOCKET>* writefds, vector<UDTSOCKET>* exceptfds, int64_t msTimeOut)
 {
    if ((NULL == readfds) && (NULL == writefds))
    {
@@ -1805,7 +1807,7 @@ int CUDT::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vec
 
    try
    {
-      return s_UDTUnited.selectEx(fds, readfds, writefds, msTimeOut);
+      return s_UDTUnited.selectEx(fds, readfds, writefds, exceptfds, msTimeOut);
    }
    catch (CUDTException e)
    {
