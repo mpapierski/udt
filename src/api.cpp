@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 06/10/2009
+   Yunhong Gu, last updated 06/25/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -430,7 +430,9 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
 
    // wake up a waiting accept() call
    #ifndef WIN32
+      pthread_mutex_lock(&(ls->m_AcceptLock));
       pthread_cond_signal(&(ls->m_AcceptCond));
+      pthread_mutex_unlock(&(ls->m_AcceptLock));
    #else
       SetEvent(ls->m_AcceptCond);
    #endif
@@ -957,6 +959,12 @@ int CUDTUnited::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfd
 
    // initialize results
    int count = 0;
+   if (NULL != readfds)
+      readfds->clear();
+   if (NULL != writefds)
+      writefds->clear();
+   if (NULL != exceptfds)
+      exceptfds->clear();
 
    // retrieve related UDT sockets
    CUDTSocket* s;
@@ -1966,6 +1974,11 @@ int64_t recvfile(UDTSOCKET u, fstream& ofs, int64_t offset, int64_t size, int bl
 int select(int nfds, UDSET* readfds, UDSET* writefds, UDSET* exceptfds, const struct timeval* timeout)
 {
    return CUDT::select(nfds, readfds, writefds, exceptfds, timeout);
+}
+
+int selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vector<UDTSOCKET>* writefds, vector<UDTSOCKET>* exceptfds, int64_t msTimeOut)
+{
+   return CUDT::selectEx(fds, readfds, writefds, exceptfds, msTimeOut);
 }
 
 ERRORINFO& getlasterror()
