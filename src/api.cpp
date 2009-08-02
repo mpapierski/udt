@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 07/10/2009
+   Yunhong Gu, last updated 08/01/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1362,6 +1362,13 @@ void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
       self->m_ClosedSockets[i->first] = i->second;
    }
    self->m_Sockets.clear();
+
+   #ifndef WIN32
+      sleep(2);
+   #else
+      Sleep(2000);
+   #endif
+
    self->checkBrokenSockets();
 
    for (vector<CMultiplexer>::iterator m = self->m_vMultiplexer.begin(); m != self->m_vMultiplexer.end(); ++ m)

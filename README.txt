@@ -1,8 +1,8 @@
-Copyright (c) 2001 - 2008, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
 All Rights Reserved.
 
 UDP-based Data Transfer (UDT) Library - version 4
-Author: Yunhong Gu
+Author: Yunhong Gu [gu@lac.uic.edu]
 
 UDT version 4 is free software under BSD License. See ./LICENSE.txt.
 
@@ -37,6 +37,5 @@ Read index.htm in ./doc. The documentation is in HTML format and requires your
 browser to support JavaScript.
 
 
-Questions? please post to the udt-help forum or the udt-general mailing list:
-http://sourceforge.net/forum/forum.php?forum_id=393037
-http://sourceforge.net/mailarchive/forum.php?forum_id=44580
+Questions? please post to the UDT project forum:
+https://sourceforge.net/forum/?group_id=115059
