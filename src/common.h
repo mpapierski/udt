@@ -215,7 +215,7 @@ public:
          return seq2 - seq1;
 
       if (seq1 < seq2)
-         return seq2 - seq1 - m_iMaxSeqNo + 1;
+         return seq2 - seq1 - m_iMaxSeqNo - 1;
 
       return seq2 - seq1 + m_iMaxSeqNo + 1;
    }
@@ -267,7 +267,7 @@ public:
          return msgno2 - msgno1;
 
       if (msgno1 < msgno2)
-         return msgno2 - msgno1 - m_iMaxMsgNo + 1;
+         return msgno2 - msgno1 - m_iMaxMsgNo - 1;
 
       return msgno2 - msgno1 + m_iMaxMsgNo + 1;
    }
