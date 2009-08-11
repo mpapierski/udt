@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 08/01/2009
+   Yunhong Gu, last updated 08/10/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1358,32 +1358,21 @@ void CUDTUnited::updateMux(CUDT* u, const CUDTSocket* ls)
    {
       i->second->m_pUDT->close();
       i->second->m_Status = CUDTSocket::CLOSED;
-      i->second->m_TimeStamp = 0;
+      i->second->m_TimeStamp = CTimer::getTime();
       self->m_ClosedSockets[i->first] = i->second;
    }
    self->m_Sockets.clear();
 
-   #ifndef WIN32
-      sleep(2);
-   #else
-      Sleep(2000);
-   #endif
-
-   self->checkBrokenSockets();
-
-   for (vector<CMultiplexer>::iterator m = self->m_vMultiplexer.begin(); m != self->m_vMultiplexer.end(); ++ m)
+   while (!self->m_ClosedSockets.empty())
    {
-      m->m_pChannel->close();
-      delete m->m_pSndQueue;
-      delete m->m_pRcvQueue;
-      delete m->m_pTimer;
-      delete m->m_pChannel;
-   }
-   self->m_vMultiplexer.clear();
+      #ifndef WIN32
+         usleep(1000);
+      #else
+         Sleep(1);
+      #endif
 
-   for (map<UDTSOCKET, CUDTSocket*>::iterator c = self->m_ClosedSockets.begin(); c != self->m_ClosedSockets.end(); ++ c)
-      delete c->second;
-   self->m_ClosedSockets.clear();
+      self->checkBrokenSockets();
+   }
 
    #ifndef WIN32
       return NULL;
