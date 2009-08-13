@@ -1837,7 +1837,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       {
       int32_t* losslist = (int32_t *)(ctrlpkt.m_pcData);
 
-      m_pCC->onLoss(losslist, ctrlpkt.getLength());
+      m_pCC->onLoss(losslist, ctrlpkt.getLength() / 4);
       // update CC parameters
       m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
       m_dCongestionWindow = m_pCC->m_dCWndSize;

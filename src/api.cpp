@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 08/10/2009
+   Yunhong Gu, last updated 08/12/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -189,6 +189,8 @@ int CUDTUnited::startup()
 {
    CGuard gcinit(m_InitLock);
 
+   //init CTimer::EventLock
+
    if (m_bGCStatus)
       return true;
 
@@ -212,6 +214,8 @@ int CUDTUnited::startup()
 int CUDTUnited::cleanup()
 {
    CGuard gcinit(m_InitLock);
+
+   //destroy CTimer::EventLock
 
    if (!m_bGCStatus)
       return 0;
