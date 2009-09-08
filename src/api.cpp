@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 08/20/2009
+   Yunhong Gu, last updated 09/09/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -743,9 +743,8 @@ int CUDTUnited::close(const UDTSOCKET u)
 {
    CUDTSocket* s = locate(u);
 
-   // silently drop a request to close an invalid ID, rather than return error   
    if (NULL == s)
-      return 0;
+      throw CUDTException(5, 4, 0);
 
    s->m_pUDT->close();
 
