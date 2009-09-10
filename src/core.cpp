@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 08/01/2009
+   Yunhong Gu, last updated 09/09/2009
 *****************************************************************************/
 
 #ifndef WIN32
@@ -2291,6 +2291,11 @@ void CUDT::checkTimers()
          int num = m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), csn);
          m_iTraceSndLoss += num;
          m_iSndLossTotal += num;
+
+         m_pCC->onTimeout();
+         // update CC parameters
+         m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+         m_dCongestionWindow = m_pCC->m_dCWndSize;
       }
       else
          sendCtrl(1);
@@ -2307,10 +2312,5 @@ void CUDT::checkTimers()
          m_ullEXPInt = m_iEXPCount * 100000 * m_ullCPUFrequency;
       CTimer::rdtsc(m_ullNextEXPTime);
       m_ullNextEXPTime += m_ullEXPInt;
-
-      m_pCC->onTimeout();
-      // update CC parameters
-      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-      m_dCongestionWindow = m_pCC->m_dCWndSize;
    }
 }
