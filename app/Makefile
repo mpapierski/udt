@@ -28,8 +28,6 @@ ifeq ($(os), UNIX)
    LDFLAGS += -lsocket
 endif
 
-OBJS = appserver.o appclient.o sendfile.o recvfile.o
-
 DIR = $(shell pwd)
 
 all: appserver appclient sendfile recvfile
