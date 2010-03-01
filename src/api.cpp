@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/01/2010
+   Yunhong Gu, last updated 03/01/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -145,16 +145,6 @@ m_ClosedSockets()
       m_TLSLock = CreateMutex(NULL, false, NULL);
    #endif
 
-   // Global initialization code
-   #ifdef WIN32
-      WORD wVersionRequested;
-      WSADATA wsaData;
-      wVersionRequested = MAKEWORD(2, 2);
-
-      if (0 != WSAStartup(wVersionRequested, &wsaData))
-         throw CUDTException(1, 0,  WSAGetLastError());
-   #endif
-
    m_pCache = new CCache;
 }
 
@@ -178,16 +168,21 @@ CUDTUnited::~CUDTUnited()
    #endif
 
    delete m_pCache;
-
-   // Global destruction code
-   #ifdef WIN32
-      WSACleanup();
-   #endif
 }
 
 int CUDTUnited::startup()
 {
    CGuard gcinit(m_InitLock);
+
+   // Global initialization code
+   #ifdef WIN32
+      WORD wVersionRequested;
+      WSADATA wsaData;
+      wVersionRequested = MAKEWORD(2, 2);
+
+      if (0 != WSAStartup(wVersionRequested, &wsaData))
+         throw CUDTException(1, 0,  WSAGetLastError());
+   #endif
 
    //init CTimer::EventLock
 
@@ -235,6 +230,11 @@ int CUDTUnited::cleanup()
    #endif
 
    m_bGCStatus = false;
+
+   // Global destruction code
+   #ifdef WIN32
+      WSACleanup();
+   #endif
 
    return 0;
 }
