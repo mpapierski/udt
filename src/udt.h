@@ -228,6 +228,9 @@ private:
    int m_iErrno;		// errno returned by the system if there is any
    std::string m_strMsg;	// text error message
 
+   std::string m_strAPI;	// the name of UDT function that returns the error
+   std::string m_strDebug;	// debug information, set to the original place that causes the error
+
 public: // Error Code
    static const int SUCCESS;
    static const int ECONNSETUP;

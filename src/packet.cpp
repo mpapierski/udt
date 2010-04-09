@@ -97,12 +97,13 @@ written by
 //              Control Info: The sequence number to which (but not include) all the previous packets have beed received
 //              Optional:     RTT
 //                            RTT Variance
+//                            available receiver buffer size (in bytes)
 //                            advertised flow window size (number of packets)
 //                            estimated bandwidth (number of packets per second)
 //      3: Negative Acknowledgement (NAK)
 //              Add. Info:    Undefined
 //              Control Info: Loss list (see loss list coding below)
-//      4: Congestion Warning
+//      4: Congestion/Delay Warning
 //              Add. Info:    Undefined
 //              Control Info: None
 //      5: Shutdown
