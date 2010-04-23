@@ -2155,7 +2155,9 @@ int CUDT::processData(CUnit* unit)
       // Generate loss report immediately.
       sendCtrl(3, NULL, lossdata, (CSeqNo::incseq(m_iRcvCurrSeqNo) == CSeqNo::decseq(packet.m_iSeqNo)) ? 1 : 2);
 
-      m_iTraceRcvLoss += CSeqNo::seqlen(m_iRcvCurrSeqNo, packet.m_iSeqNo) - 2;
+      int loss = CSeqNo::seqlen(m_iRcvCurrSeqNo, packet.m_iSeqNo) - 2;
+      m_iTraceRcvLoss += loss;
+      m_iRcvLossTotal += loss;
    }
 
    // This is not a regular fixed size packet...   
