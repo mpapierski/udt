@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/07/2010
+   Yunhong Gu, last updated 05/10/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1081,7 +1081,7 @@ void CUDTUnited::checkBrokenSockets()
    for (map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.begin(); i != m_Sockets.end(); ++ i)
    {
       // check broken connection
-      if (i->second->m_pUDT->m_bBroken)
+      if ((i->second->m_pUDT->m_bBroken) && (!i->second->m_pUDT->m_bInQueue))
       {
          // if there is still data in the receiver buffer, wait longer
          if ((i->second->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && (i->second->m_pUDT->m_iBrokenCounter -- > 0))

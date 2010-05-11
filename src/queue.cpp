@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/05/2009
+   Yunhong Gu, last updated 05/11/2009
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1017,6 +1017,7 @@ TIMER_CHECK:
             // the socket must be removed from Hash table first, then RcvUList
             self->m_pHash->remove(u->m_SocketID);
             self->m_pRcvUList->remove(u);
+            u->m_bInQueue = false;
          }
 
          ul = self->m_pRcvUList->m_pUList;

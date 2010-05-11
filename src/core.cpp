@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/25/2010
+   Yunhong Gu, last updated 05/11/2010
 *****************************************************************************/
 
 #ifndef WIN32
@@ -126,6 +126,7 @@ CUDT::CUDT()
    m_bClosing = false;
    m_bShutdown = false;
    m_bBroken = false;
+   m_bInQueue = false;
 }
 
 CUDT::CUDT(const CUDT& ancestor)
@@ -176,6 +177,7 @@ CUDT::CUDT(const CUDT& ancestor)
    m_bClosing = false;
    m_bShutdown = false;
    m_bBroken = false;
+   m_bInQueue = false;
 }
 
 CUDT::~CUDT()
@@ -725,6 +727,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_bConnected = true;
 
    // register this socket for receiving data packets
+   m_bInQueue = true;
    m_pRcvQueue->setNewEntry(this);
 
    // remove from rendezvous queue
@@ -816,6 +819,7 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_bConnected = true;
 
    // register this socket for receiving data packets
+   m_bInQueue = true;
    m_pRcvQueue->setNewEntry(this);
 }
 
