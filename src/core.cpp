@@ -479,15 +479,15 @@ void CUDT::open()
    
    m_ullACKInt = m_ullSYNInt;
    m_ullNAKInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency;
-   m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
    m_ullMinEXPInt = 100000 * m_ullCPUFrequency;
+   m_llLastRspTime = CTimer::getTime();
 
    CTimer::rdtsc(m_ullNextACKTime);
    m_ullNextACKTime += m_ullSYNInt;
    CTimer::rdtsc(m_ullNextNAKTime);
    m_ullNextNAKTime += m_ullNAKInt;
    CTimer::rdtsc(m_ullNextEXPTime);
-   m_ullNextEXPTime += m_ullEXPInt;
+   m_ullNextEXPTime += m_ullMinEXPInt;
 
    m_iPktCount = 0;
    m_iLightACKCount = 1;
@@ -1674,11 +1674,11 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 {
    // Just heard from the peer, reset the expiration count.
    m_iEXPCount = 1;
+   m_llLastRspTime = CTimer::getTime();
    if ((CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck) || (2 == ctrlpkt.getType()) || (3 == ctrlpkt.getType()))
    {
-      m_ullEXPInt = m_ullMinEXPInt;
       CTimer::rdtsc(m_ullNextEXPTime);
-      m_ullNextEXPTime += m_ullEXPInt;
+      m_ullNextEXPTime += m_ullMinEXPInt;
    }
 
    switch (ctrlpkt.getType())
@@ -2105,13 +2105,13 @@ int CUDT::processData(CUnit* unit)
 
    // Just heard from the peer, reset the expiration count.
    m_iEXPCount = 1;
-   m_ullEXPInt = m_ullMinEXPInt;
+   m_llLastRspTime = CTimer::getTime();
 
    if (CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck)
    {
       CTimer::rdtsc(m_ullNextEXPTime);
       if (!m_pCC->m_bUserDefinedRTO)
-         m_ullNextEXPTime += m_ullEXPInt;
+         m_ullNextEXPTime += m_ullMinEXPInt;
       else
          m_ullNextEXPTime += m_pCC->m_iRTO * m_ullCPUFrequency;
    }
@@ -2282,8 +2282,8 @@ void CUDT::checkTimers()
    if (currtime > m_ullNextEXPTime)
    {
       // Haven't receive any information from the peer, is it dead?!
-      // timeout: at least 16 expirations and must be greater than 3 seconds
-      if ((m_iEXPCount > 16) && (m_iEXPCount * ((m_iEXPCount - 1) * (m_iRTT + 4 * m_iRTTVar) / 2 + m_iSYNInterval) > 3000000))
+      // timeout: at least 16 expirations and must be greater than 10 seconds
+      if ((m_iEXPCount > 16) && (CTimer::getTime() - m_llLastRspTime > 10000000))
       {
          //
          // Connection is broken. 
@@ -2328,10 +2328,10 @@ void CUDT::checkTimers()
       }
 
       ++ m_iEXPCount;
-      m_ullEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;
-      if (m_ullEXPInt < m_iEXPCount * 100000 * m_ullCPUFrequency)
-         m_ullEXPInt = m_iEXPCount * 100000 * m_ullCPUFrequency;
+      m_ullMinEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;
+      if (m_ullMinEXPInt < m_iEXPCount * 100000 * m_ullCPUFrequency)
+         m_ullMinEXPInt = m_iEXPCount * 100000 * m_ullCPUFrequency;
       CTimer::rdtsc(m_ullNextEXPTime);
-      m_ullNextEXPTime += m_ullEXPInt;
+      m_ullNextEXPTime += m_ullMinEXPInt;
    }
 }
