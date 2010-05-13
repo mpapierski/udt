@@ -574,8 +574,6 @@ void CRcvUList::insert(const CUDT* u)
    CRNode* n = u->m_pRNode;
    CTimer::rdtsc(n->m_llTimeStamp);
 
-   n->m_bOnList = true;
-
    if (NULL == m_pUList)
    {
       // empty list, insert as the single node
@@ -621,8 +619,6 @@ void CRcvUList::remove(const CUDT* u)
    }
 
    n->m_pNext = n->m_pPrev = NULL;
-
-   n->m_bOnList = false;
 }
 
 void CRcvUList::update(const CUDT* u)
@@ -1017,7 +1013,7 @@ TIMER_CHECK:
             // the socket must be removed from Hash table first, then RcvUList
             self->m_pHash->remove(u->m_SocketID);
             self->m_pRcvUList->remove(u);
-            u->m_bInQueue = false;
+            u->m_pRNode->m_bOnList = false;
          }
 
          ul = self->m_pRcvUList->m_pUList;

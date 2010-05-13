@@ -1081,7 +1081,7 @@ void CUDTUnited::checkBrokenSockets()
    for (map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.begin(); i != m_Sockets.end(); ++ i)
    {
       // check broken connection
-      if ((i->second->m_pUDT->m_bBroken) && (!i->second->m_pUDT->m_bInQueue))
+      if (i->second->m_pUDT->m_bBroken)
       {
          // if there is still data in the receiver buffer, wait longer
          if ((i->second->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && (i->second->m_pUDT->m_iBrokenCounter -- > 0))
@@ -1360,6 +1360,7 @@ void CUDTUnited::updateMux(CUDTSocket* s, const CUDTSocket* ls)
    }
 
    // remove all sockets and multiplexers
+   CGuard::enterCS(self->m_ControlLock);
    for (map<UDTSOCKET, CUDTSocket*>::iterator i = self->m_Sockets.begin(); i != self->m_Sockets.end(); ++ i)
    {
       i->second->m_pUDT->close();
@@ -1373,10 +1374,18 @@ void CUDTUnited::updateMux(CUDTSocket* s, const CUDTSocket* ls)
    {
       j->second->m_TimeStamp = 0;
    }
+   CGuard::leaveCS(self->m_ControlLock);
 
-   while (!self->m_ClosedSockets.empty())
+   while (true)
    {
       self->checkBrokenSockets();
+
+      CGuard::enterCS(self->m_ControlLock);
+      bool empty = self->m_ClosedSockets.empty();
+      CGuard::leaveCS(self->m_ControlLock);
+
+      if (empty)
+         break;
 
       #ifndef WIN32
          usleep(10);
