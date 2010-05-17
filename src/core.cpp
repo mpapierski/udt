@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/11/2010
+   Yunhong Gu, last updated 05/17/2010
 *****************************************************************************/
 
 #ifndef WIN32
@@ -2056,7 +2056,7 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
    }
 
    packet.m_iTimeStamp = int(CTimer::getTime() - m_StartTime);
-   m_pSndTimeWindow->onPktSent(packet.m_iTimeStamp);
+   //m_pSndTimeWindow->onPktSent(packet.m_iTimeStamp);
 
    packet.m_iID = m_PeerID;
 
@@ -2239,9 +2239,9 @@ void CUDT::checkTimers()
    // update CC parameters
    m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
    m_dCongestionWindow = m_pCC->m_dCWndSize;
-   uint64_t minint = (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9);
-   if (m_ullInterval < minint)
-      m_ullInterval = minint;
+   //uint64_t minint = (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9);
+   //if (m_ullInterval < minint)
+   //   m_ullInterval = minint;
 
    uint64_t currtime;
    CTimer::rdtsc(currtime);
