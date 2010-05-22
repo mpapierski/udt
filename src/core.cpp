@@ -2304,26 +2304,26 @@ void CUDT::checkTimers()
 
       // sender: Insert all the packets sent after last received acknowledgement into the sender loss list.
       // recver: Send out a keep-alive packet
-      if (CSeqNo::incseq(m_iSndCurrSeqNo) != m_iSndLastAck)
+      if (m_pSndBuffer->getCurrBufSize() > 0)
       {
-         int32_t csn = m_iSndCurrSeqNo;
-         int num = m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), csn);
-         m_iTraceSndLoss += num;
-         m_iSndLossTotal += num;
+         if (CSeqNo::incseq(m_iSndCurrSeqNo) != m_iSndLastAck)
+         {
+            int32_t csn = m_iSndCurrSeqNo;
+            int num = m_pSndLossList->insert(const_cast<int32_t&>(m_iSndLastAck), csn);
+            m_iTraceSndLoss += num;
+            m_iSndLossTotal += num;
+         }
 
          m_pCC->onTimeout();
          // update CC parameters
          m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
          m_dCongestionWindow = m_pCC->m_dCWndSize;
-      }
-      else
-         sendCtrl(1);
 
-      if (m_pSndBuffer->getCurrBufSize() > 0)
-      {
          // immediately restart transmission
          m_pSndQueue->m_pSndUList->update(this);
       }
+      else
+         sendCtrl(1);
 
       ++ m_iEXPCount;
       m_ullMinEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;

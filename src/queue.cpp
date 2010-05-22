@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2010, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/11/2009
+   Yunhong Gu, last updated 05/21/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -930,7 +930,7 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
       #endif
 
       // check waiting list, if new socket, insert it to the list
-      if (self->ifNewEntry())
+      while (self->ifNewEntry())
       {
          CUDT* ne = self->getNewEntry();
          if (NULL != ne)
