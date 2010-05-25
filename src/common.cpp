@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/25/2010
+   Yunhong Gu, last updated 05/25/2010
 *****************************************************************************/
 
 
@@ -224,6 +224,11 @@ void CTimer::tick()
 
 uint64_t CTimer::getTime()
 {
+   //For Cygwin and other systems without microsecond level resolution, uncomment the following three lines
+   //uint64_t x;
+   //rdtsc(x);
+   //return x / s_ullCPUFrequency;
+
    #ifndef WIN32
       timeval t;
       gettimeofday(&t, 0);
