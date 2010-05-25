@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/10/2010
+   Yunhong Gu, last updated 05/24/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1095,13 +1095,17 @@ void CUDTUnited::checkBrokenSockets()
 
          // remove from listener's queue
          map<UDTSOCKET, CUDTSocket*>::iterator ls = m_Sockets.find(i->second->m_ListenSocket);
-         if (ls != m_Sockets.end())
+         if (ls == m_Sockets.end())
          {
-            CGuard::enterCS(ls->second->m_AcceptLock);
-            ls->second->m_pQueuedSockets->erase(i->second->m_SocketID);
-            ls->second->m_pAcceptSockets->erase(i->second->m_SocketID);
-            CGuard::leaveCS(ls->second->m_AcceptLock);
+            ls = m_ClosedSockets.find(i->second->m_ListenSocket);
+            if (ls == m_ClosedSockets.end())
+               continue;
          }
+
+         CGuard::enterCS(ls->second->m_AcceptLock);
+         ls->second->m_pQueuedSockets->erase(i->second->m_SocketID);
+         ls->second->m_pAcceptSockets->erase(i->second->m_SocketID);
+         CGuard::leaveCS(ls->second->m_AcceptLock);
       }
    }
 
