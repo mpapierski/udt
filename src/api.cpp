@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/24/2010
+   Yunhong Gu, last updated 05/25/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -765,18 +765,6 @@ int CUDTUnited::close(const UDTSOCKET u)
 
    m_Sockets.erase(s->m_SocketID);
    m_ClosedSockets[s->m_SocketID] = s;
-
-   if (0 != s->m_ListenSocket)
-   {
-      // if it is an accepted socket, remove it from the listener's queue
-      map<UDTSOCKET, CUDTSocket*>::iterator ls = m_Sockets.find(s->m_ListenSocket);
-      if (ls != m_Sockets.end())
-      {
-         CGuard::enterCS(ls->second->m_AcceptLock);
-         ls->second->m_pAcceptSockets->erase(s->m_SocketID);
-         CGuard::leaveCS(ls->second->m_AcceptLock);
-      }
-   }
 
    CGuard::leaveCS(m_ControlLock);
 
