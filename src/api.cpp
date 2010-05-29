@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/25/2010
+   Yunhong Gu, last updated 05/28/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1126,7 +1126,6 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
    // decrease multiplexer reference count, and remove it if necessary
    const int mid = i->second->m_iMuxID;
 
-   int qn = 0;
    if (NULL != i->second->m_pQueuedSockets)
    {
       CGuard::enterCS(i->second->m_AcceptLock);
@@ -1139,7 +1138,6 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
          m_Sockets[*q]->m_Status = CUDTSocket::CLOSED;
          m_ClosedSockets[*q] = m_Sockets[*q];
          m_Sockets.erase(*q);
-         ++ qn;
       }
 
       CGuard::leaveCS(i->second->m_AcceptLock);
@@ -1159,7 +1157,6 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
    }
 
    m->second.m_iRefCount --;
-   m->second.m_iRefCount -= qn;
    if (0 == m->second.m_iRefCount)
    {
       m->second.m_pChannel->close();
