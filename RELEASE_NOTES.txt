@@ -1,0 +1,3 @@
+version 4.7
+
+Fix several related bugs that can cause hang/memory leak/segmentation fault during cleanup()
