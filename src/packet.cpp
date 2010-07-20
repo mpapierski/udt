@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 04/25/2010
+   Yunhong Gu, last updated 07/20/2010
 *****************************************************************************/
 
 
@@ -334,6 +334,19 @@ CPacket* CPacket::clone() const
    pkt->m_PacketVector[1].iov_len = m_PacketVector[1].iov_len;
 
    return pkt;
+}
+
+CHandShake::CHandShake():
+m_iVersion(0),
+m_iType(0),
+m_iISN(0),
+m_iMSS(0),
+m_iFlightFlagSize(0),
+m_iReqType(0),
+m_iID(0),
+m_iCookie(0),
+m_piPeerIP()
+{
 }
 
 int CHandShake::serialize(char* buf, const int& size)
