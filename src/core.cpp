@@ -2234,7 +2234,6 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
 
       hs.serialize(packet.m_pcData, CHandShake::m_iContentSize);
       packet.m_iID = id;
-
       m_pSndQueue->sendto(addr, packet);
    }
 

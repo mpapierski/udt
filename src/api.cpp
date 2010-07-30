@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/28/2010
+   Yunhong Gu, last updated 07/22/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -673,13 +673,16 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
       throw CUDTException(5, 6, 0);
    }
 
-   if (AF_INET == locate(u)->m_iIPversion)
-      *addrlen = sizeof(sockaddr_in);
-   else
-      *addrlen = sizeof(sockaddr_in6);
+   if ((addr != NULL) && (addrlen != NULL))
+   {
+      if (AF_INET == locate(u)->m_iIPversion)
+         *addrlen = sizeof(sockaddr_in);
+      else
+         *addrlen = sizeof(sockaddr_in6);
 
-   // copy address information of peer node
-   memcpy(addr, locate(u)->m_pPeerAddr, *addrlen);
+      // copy address information of peer node
+      memcpy(addr, locate(u)->m_pPeerAddr, *addrlen);
+   }
 
    return u;
 }
@@ -749,7 +752,13 @@ int CUDTUnited::close(const UDTSOCKET u)
    if (NULL == s)
       throw CUDTException(5, 4, 0);
 
-   s->m_pUDT->close();
+   // for a listening socket, it should wait an extra 3 seconds in case a client is connecting
+   if (s->m_Status == CUDTSocket::LISTENING)
+   {
+      s->m_TimeStamp = CTimer::getTime() - 3000000;
+      s->m_pUDT->m_bBroken = true;
+      return 0;
+   }
 
    // a socket will not be immediated removed when it is closed
    // in order to prevent other methods from accessing invalid address
@@ -757,6 +766,8 @@ int CUDTUnited::close(const UDTSOCKET u)
    s->m_TimeStamp = CTimer::getTime();
 
    CUDTSocket::UDTSTATUS os = s->m_Status;
+
+   s->m_pUDT->close();
 
    // synchronize with garbage collection.
    CGuard::enterCS(m_ControlLock);
@@ -1071,6 +1082,9 @@ void CUDTUnited::checkBrokenSockets()
       // check broken connection
       if (i->second->m_pUDT->m_bBroken)
       {
+         if ((i->second->m_Status == CUDTSocket::LISTENING) && (CTimer::getTime() - i->second->m_TimeStamp > 3000000))
+            continue;
+
          // if there is still data in the receiver buffer, wait longer
          if ((i->second->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && (i->second->m_pUDT->m_iBrokenCounter -- > 0))
             continue;
@@ -1390,11 +1404,7 @@ void CUDTUnited::updateMux(CUDTSocket* s, const CUDTSocket* ls)
       if (empty)
          break;
 
-      #ifndef WIN32
-         usleep(10);
-      #else
-         Sleep(1);
-      #endif
+      CTimer::sleep();
    }
 
    #ifndef WIN32
