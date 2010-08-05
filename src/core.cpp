@@ -574,15 +574,22 @@ void CUDT::connect(const sockaddr* serv_addr)
    if (m_bRendezvous)
       timeo *= 10;
    uint64_t entertime = CTimer::getTime();
-   CUDTException e(0, 0);
+   uint64_t last_req_time = -1;
 
+   CUDTException e(0, 0);
    char* tmp = NULL;
 
    while (!m_bClosing)
    {
-      req.serialize(reqdata, m_iPayloadSize);
-      request.setLength(CHandShake::m_iContentSize);
-      m_pSndQueue->sendto(serv_addr, request);
+      // avoid sending too many requests, at most 1 request per 500ms
+      if (CTimer::getTime() - last_req_time > 10000000)
+      {
+         req.serialize(reqdata, m_iPayloadSize);
+         request.setLength(CHandShake::m_iContentSize);
+         m_pSndQueue->sendto(serv_addr, request);
+
+         last_req_time = CTimer::getTime();
+      }
 
       response.setLength(m_iPayloadSize);
       if (m_pRcvQueue->recvfrom(m_SocketID, response) > 0)
@@ -627,6 +634,8 @@ void CUDT::connect(const sockaddr* serv_addr)
                   req.m_iReqType = -1;
                   req.m_iCookie = res.m_iCookie;
                   response.setLength(-1);
+                  // new response should be sent out immediately
+                  last_req_time = -1;
                }
             }
          }
@@ -819,6 +828,19 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    // register this socket for receiving data packets
    m_pRNode->m_bOnList = true;
    m_pRcvQueue->setNewEntry(this);
+
+   //send the response to the peer, see listen() for more discussions about this
+   CPacket response;
+   char* buffer = new char[CHandShake::m_iContentSize];
+   hs->serialize(buffer, CHandShake::m_iContentSize);
+   response.pack(0, NULL, buffer, CHandShake::m_iContentSize);
+
+   response.m_iTimeStamp = m_SocketID;
+
+
+   delete [] buffer;
+   response.m_iID = m_PeerID;
+   m_pSndQueue->sendto(peer, response);
 }
 
 void CUDT::close()
@@ -865,6 +887,8 @@ void CUDT::close()
    }
    if (m_bConnected)
    {
+//////////////////////////
+
       if (!m_bShutdown)
          sendCtrl(5);
 
@@ -2226,15 +2250,29 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
    // When a peer side connects in...
    if ((1 == packet.getFlag()) && (0 == packet.getType()))
    {
-      if ((hs.m_iVersion != m_iVersion) || (hs.m_iType != m_iSockType) || (-1 == s_UDTUnited.newConnection(m_SocketID, addr, &hs)))
+      if ((hs.m_iVersion != m_iVersion) || (hs.m_iType != m_iSockType))
       {
-         // couldn't create a new connection, reject the request
+         // mismatch, reject the request
          hs.m_iReqType = 1002;
+         hs.serialize(packet.m_pcData, CHandShake::m_iContentSize);
+         packet.m_iID = id;
+         m_pSndQueue->sendto(addr, packet);
       }
+      else
+      {
+         int result = s_UDTUnited.newConnection(m_SocketID, addr, &hs);
+         if (result == -1)
+            hs.m_iReqType = 1002;
 
-      hs.serialize(packet.m_pcData, CHandShake::m_iContentSize);
-      packet.m_iID = id;
-      m_pSndQueue->sendto(addr, packet);
+         // send back a response if connection failed or connection already existed
+         // new connection response should be sent in connect()
+         if (result != 1)
+         {
+            hs.serialize(packet.m_pcData, CHandShake::m_iContentSize);
+            packet.m_iID = id;
+            m_pSndQueue->sendto(addr, packet);
+         }
+      }
    }
 
    return hs.m_iReqType;

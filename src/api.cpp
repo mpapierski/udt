@@ -621,7 +621,6 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
             u = *(ls->m_pQueuedSockets->begin());
             ls->m_pAcceptSockets->insert(ls->m_pAcceptSockets->end(), u);
             ls->m_pQueuedSockets->erase(ls->m_pQueuedSockets->begin());
-
             accepted = true;
          }
          else if (!ls->m_pUDT->m_bSynRecving)
