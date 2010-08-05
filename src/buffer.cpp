@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 07/22/2010
+   Yunhong Gu, last updated 08/06/2010
 *****************************************************************************/
 
 #include <cstring>
@@ -429,7 +429,6 @@ int CRcvBuffer::readBufferToFile(fstream& ofs, const int& len)
    int p = m_iStartPos;
    int lastack = m_iLastAckPos;
    int rs = len;
-   int original_notch = m_iNotch;
 
    while ((p != lastack) && (rs > 0))
    {
@@ -459,13 +458,11 @@ int CRcvBuffer::readBufferToFile(fstream& ofs, const int& len)
       rs -= unitsize;
    }
 
-   if (ofs.fail())
-   {
-      m_iNotch = original_notch;
-      throw CUDTException(4, 4);
-   }
-
    m_iStartPos = p;
+
+   if (ofs.fail())
+      throw CUDTException(4, 4);
+
    return len - rs;
 }
 
