@@ -890,8 +890,6 @@ void CUDT::close()
    }
    if (m_bConnected)
    {
-//////////////////////////
-
       if (!m_bShutdown)
          sendCtrl(5);
 
