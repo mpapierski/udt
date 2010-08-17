@@ -837,13 +837,9 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    char* buffer = new char[CHandShake::m_iContentSize];
    hs->serialize(buffer, CHandShake::m_iContentSize);
    response.pack(0, NULL, buffer, CHandShake::m_iContentSize);
-
-   response.m_iTimeStamp = m_SocketID;
-
-
-   delete [] buffer;
    response.m_iID = m_PeerID;
    m_pSndQueue->sendto(peer, response);
+   delete [] buffer;
 }
 
 void CUDT::close()
