@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/17/2010
+   Yunhong Gu, last updated 08/16/2010
 *****************************************************************************/
 
 #ifndef WIN32
@@ -474,10 +474,12 @@ void CUDT::open()
 
    // set up the timers
    m_ullSYNInt = m_iSYNInterval * m_ullCPUFrequency;
-   
+  
+   m_ullMinExpInt = 100000 * m_ullCPUFrequency;
+
    m_ullACKInt = m_ullSYNInt;
    m_ullNAKInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency;
-   m_ullMinEXPInt = 100000 * m_ullCPUFrequency;
+   m_ullEXPInt = m_ullMinExpInt;
    m_llLastRspTime = CTimer::getTime();
 
    CTimer::rdtsc(m_ullNextACKTime);
@@ -485,7 +487,7 @@ void CUDT::open()
    CTimer::rdtsc(m_ullNextNAKTime);
    m_ullNextNAKTime += m_ullNAKInt;
    CTimer::rdtsc(m_ullNextEXPTime);
-   m_ullNextEXPTime += m_ullMinEXPInt;
+   m_ullNextEXPTime += m_ullEXPInt;
 
    m_iPktCount = 0;
    m_iLightACKCount = 1;
@@ -581,8 +583,8 @@ void CUDT::connect(const sockaddr* serv_addr)
 
    while (!m_bClosing)
    {
-      // avoid sending too many requests, at most 1 request per 500ms
-      if (CTimer::getTime() - last_req_time > 10000000)
+      // avoid sending too many requests, at most 1 request per 250ms
+      if (CTimer::getTime() - last_req_time > 250000)
       {
          req.serialize(reqdata, m_iPayloadSize);
          request.setLength(CHandShake::m_iContentSize);
@@ -634,11 +636,12 @@ void CUDT::connect(const sockaddr* serv_addr)
                   req.m_iReqType = -1;
                   req.m_iCookie = res.m_iCookie;
                   response.setLength(-1);
-                  // new response should be sent out immediately
-                  last_req_time = -1;
                }
             }
          }
+
+         // new request/response should be sent out immediately on receving a response
+         last_req_time = -1;
       }
 
       if (response.getLength() > 0)
@@ -1697,14 +1700,14 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
    // Just heard from the peer, reset the expiration count.
    m_iEXPCount = 1;
    m_llLastRspTime = CTimer::getTime();
-   m_ullMinEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-   if (m_ullMinEXPInt < 100000 * m_ullCPUFrequency)
-       m_ullMinEXPInt = 100000 * m_ullCPUFrequency;
+   m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+   if (m_ullEXPInt < m_ullMinExpInt)
+       m_ullEXPInt = m_ullMinExpInt;
 
    if ((CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck) || (2 == ctrlpkt.getType()) || (3 == ctrlpkt.getType()))
    {
       CTimer::rdtsc(m_ullNextEXPTime);
-      m_ullNextEXPTime += m_ullMinEXPInt;
+      m_ullNextEXPTime += m_ullEXPInt;
    }
 
    switch (ctrlpkt.getType())
@@ -1805,9 +1808,9 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
       m_pCC->setRTT(m_iRTT);
 
-      m_ullMinEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-      if (m_ullMinEXPInt < 100000 * m_ullCPUFrequency)
-          m_ullMinEXPInt = 100000 * m_ullCPUFrequency;
+      m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+      if (m_ullEXPInt < m_ullMinExpInt)
+          m_ullEXPInt = m_ullMinExpInt;
 
       if (ctrlpkt.getLength() > 16)
       {
@@ -1853,9 +1856,9 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
       m_pCC->setRTT(m_iRTT);
 
-      m_ullMinEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-      if (m_ullMinEXPInt < 100000 * m_ullCPUFrequency)
-          m_ullMinEXPInt = 100000 * m_ullCPUFrequency;
+      m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+      if (m_ullEXPInt < m_ullMinExpInt)
+          m_ullEXPInt = m_ullMinExpInt;
 
       // update last ACK that has been received by the sender
       if (CSeqNo::seqcmp(ack, m_iRcvLastAckAck) > 0)
@@ -2132,15 +2135,15 @@ int CUDT::processData(CUnit* unit)
    // Just heard from the peer, reset the expiration count.
    m_iEXPCount = 1;
    m_llLastRspTime = CTimer::getTime();
-   m_ullMinEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
-   if (m_ullMinEXPInt < 100000 * m_ullCPUFrequency)
-       m_ullMinEXPInt = 100000 * m_ullCPUFrequency;
+   m_ullEXPInt = (m_iRTT + 4 * m_iRTTVar) * m_ullCPUFrequency + m_ullSYNInt;
+   if (m_ullEXPInt < m_ullMinExpInt)
+       m_ullEXPInt = m_ullMinExpInt;
 
    if (CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck)
    {
       CTimer::rdtsc(m_ullNextEXPTime);
       if (!m_pCC->m_bUserDefinedRTO)
-         m_ullNextEXPTime += m_ullMinEXPInt;
+         m_ullNextEXPTime += m_ullEXPInt;
       else
          m_ullNextEXPTime += m_pCC->m_iRTO * m_ullCPUFrequency;
    }
@@ -2367,13 +2370,15 @@ void CUDT::checkTimers()
          m_pSndQueue->m_pSndUList->update(this);
       }
       else
+      {
          sendCtrl(1);
+      }
 
       ++ m_iEXPCount;
-      m_ullMinEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;
-      if (m_ullMinEXPInt < m_iEXPCount * 100000 * m_ullCPUFrequency)
-         m_ullMinEXPInt = m_iEXPCount * 100000 * m_ullCPUFrequency;
+      m_ullEXPInt = (m_iEXPCount * (m_iRTT + 4 * m_iRTTVar) + m_iSYNInterval) * m_ullCPUFrequency;
+      if (m_ullEXPInt < m_iEXPCount * m_ullMinExpInt)
+         m_ullEXPInt = m_iEXPCount * m_ullMinExpInt;
       CTimer::rdtsc(m_ullNextEXPTime);
-      m_ullNextEXPTime += m_ullMinEXPInt;
+      m_ullNextEXPTime += m_ullEXPInt;
    }
 }

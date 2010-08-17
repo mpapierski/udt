@@ -126,6 +126,7 @@ m_bGCStatus(false),
 m_GCThread(),
 m_ClosedSockets()
 {
+   // Socket ID MUST start from a random value
    srand((unsigned int)CTimer::getTime());
    m_SocketID = 1 + (int)((1 << 30) * (double(rand()) / RAND_MAX));
 
@@ -403,6 +404,7 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    try
    {
       m_Sockets[ns->m_SocketID] = ns;
+      m_PeerRec[(ns->m_PeerID << 30) + ns->m_iISN].insert(ns->m_SocketID);
    }
    catch (...)
    {
@@ -1031,38 +1033,19 @@ CUDTSocket* CUDTUnited::locate(const UDTSOCKET u, const sockaddr* peer, const UD
 {
    CGuard cg(m_ControlLock);
 
-   map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.find(u);
+   map<int64_t, set<UDTSOCKET> >::iterator i = m_PeerRec.find((id << 30) + isn);
+   if (i == m_PeerRec.end())
+      return NULL;
 
-   CGuard ag(i->second->m_AcceptLock);
-
-   // look up the "peer" address in queued sockets set
-   for (set<UDTSOCKET>::iterator j1 = i->second->m_pQueuedSockets->begin(); j1 != i->second->m_pQueuedSockets->end(); ++ j1)
+   for (set<UDTSOCKET>::iterator j = i->second.begin(); j != i->second.end(); ++ j)
    {
-      map<UDTSOCKET, CUDTSocket*>::iterator k1 = m_Sockets.find(*j1);
+      map<UDTSOCKET, CUDTSocket*>::iterator k = m_Sockets.find(*j);
       // this socket might have been closed and moved m_ClosedSockets
-      if (k1 == m_Sockets.end())
+      if (k == m_Sockets.end())
          continue;
 
-      if (CIPAddress::ipcmp(peer, k1->second->m_pPeerAddr, i->second->m_iIPversion))
-      {
-         if ((id == k1->second->m_PeerID) && (isn == k1->second->m_iISN))
-            return k1->second;
-      }
-   }
-
-   // look up the "peer" address in accept sockets set
-   for (set<UDTSOCKET>::iterator j2 = i->second->m_pAcceptSockets->begin(); j2 != i->second->m_pAcceptSockets->end(); ++ j2)
-   {
-      map<UDTSOCKET, CUDTSocket*>::iterator k2 = m_Sockets.find(*j2);
-      // this socket might have been closed and moved m_ClosedSockets
-      if (k2 == m_Sockets.end())
-         continue;
-
-      if (CIPAddress::ipcmp(peer, k2->second->m_pPeerAddr, i->second->m_iIPversion))
-      {
-         if ((id == k2->second->m_PeerID) && (isn == k2->second->m_iISN))
-            return k2->second;
-      }
+      if (CIPAddress::ipcmp(peer, k->second->m_pPeerAddr, k->second->m_iIPversion))
+         return k->second;
    }
 
    return NULL;
@@ -1156,10 +1139,19 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
       CGuard::leaveCS(i->second->m_AcceptLock);
    }
 
+   // remove from peer rec
+   map<int64_t, set<UDTSOCKET> >::iterator j = m_PeerRec.find((i->second->m_PeerID << 30) + i->second->m_iISN);
+   if (j != m_PeerRec.end())
+   {
+      j->second.erase(u);
+      if (j->second.empty())
+         m_PeerRec.erase(j);
+   }
+
    // delete this one
    i->second->m_pUDT->close();
-   delete m_ClosedSockets[u];
-   m_ClosedSockets.erase(u);
+   delete i->second;
+   m_ClosedSockets.erase(i);
 
    map<int, CMultiplexer>::iterator m;
    m = m_mMultiplexer.find(mid);
