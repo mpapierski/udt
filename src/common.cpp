@@ -555,6 +555,10 @@ const char* CUDTException::getErrorMessage()
            m_strMsg += ": Message is too large to send (it must be less than the UDT send buffer size)";
            break;
 
+        case 13:
+           m_strMsg += ": Invalid epoll ID";
+           break;
+
         default:
            break;
         }
@@ -650,6 +654,7 @@ const int CUDTException::ESTREAMILL = 5009;
 const int CUDTException::EDGRAMILL = 5010;
 const int CUDTException::EDUPLISTEN = 5011;
 const int CUDTException::ELARGEMSG = 5012;
+const int CUDTException::EINVPOLLID = 5013;
 const int CUDTException::EASYNCFAIL = 6000;
 const int CUDTException::EASYNCSND = 6001;
 const int CUDTException::EASYNCRCV = 6002;

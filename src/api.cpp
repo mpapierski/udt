@@ -1017,6 +1017,59 @@ int CUDTUnited::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfd
    return count;
 }
 
+int CUDTUnited::epoll_create()
+{
+   return m_EPoll.create();
+}
+
+int CUDTUnited::epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+{
+   if (NULL != socks)
+   {
+      for (set<UDTSOCKET>::const_iterator i = socks->begin(); i != socks->end(); ++ i)
+      {
+         CUDTSocket* s = locate(*i);
+         if (NULL != s)
+            s->m_pUDT->addEPoll(eid);
+      }
+   }
+   else if (NULL == locals)
+   {
+      throw CUDTException(5, 3);
+   }
+
+   return m_EPoll.add(eid, socks, locals);
+}
+
+int CUDTUnited::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+{
+   if (NULL != socks)
+   {
+      for (set<int>::const_iterator i = socks->begin(); i != socks->end(); ++ i)
+      {
+         CUDTSocket* s = locate(*i);
+         if (NULL != s)
+            s->m_pUDT->removeEPoll(eid);
+      }
+   }
+   else if (NULL == locals)
+   {
+      throw CUDTException(5, 3);
+   }
+
+   return m_EPoll.remove(eid, socks, locals);
+}
+
+int CUDTUnited::epoll_wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<int>* lrfds, set<int>* lwfds)
+{
+   return m_EPoll.wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
+}
+
+int CUDTUnited::epoll_release(const int eid)
+{
+   return m_EPoll.release(eid);
+}
+
 CUDTSocket* CUDTUnited::locate(const UDTSOCKET u)
 {
    CGuard cg(m_ControlLock);
@@ -1834,6 +1887,96 @@ int CUDT::selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vec
    }
 }
 
+int CUDT::epoll_create()
+{
+   try
+   {
+      return s_UDTUnited.epoll_create();
+   }
+   catch (CUDTException e)
+   {
+      s_UDTUnited.setError(new CUDTException(e));
+      return ERROR;
+   }
+   catch (...)
+   {
+      s_UDTUnited.setError(new CUDTException(-1, 0, 0));
+      return ERROR;
+   }
+}
+
+int CUDT::epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+{
+   try
+   {
+      return s_UDTUnited.epoll_add(eid, socks, locals);
+   }
+   catch (CUDTException e)
+   {
+      s_UDTUnited.setError(new CUDTException(e));
+      return ERROR;
+   }
+   catch (...)
+   {
+      s_UDTUnited.setError(new CUDTException(-1, 0, 0));
+      return ERROR;
+   }
+}
+
+int CUDT::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+{
+   try
+   {
+      return s_UDTUnited.epoll_remove(eid, socks, locals);
+   }
+   catch (CUDTException e)
+   {
+      s_UDTUnited.setError(new CUDTException(e));
+      return ERROR;
+   }
+   catch (...)
+   {
+      s_UDTUnited.setError(new CUDTException(-1, 0, 0));
+      return ERROR;
+   }
+}
+
+int CUDT::epoll_wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<int>* lrfds, set<int>* lwfds)
+{
+   try
+   {
+      return s_UDTUnited.epoll_wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
+   }
+   catch (CUDTException e)
+   {
+      s_UDTUnited.setError(new CUDTException(e));
+      return ERROR;
+   }
+   catch (...)
+   {
+      s_UDTUnited.setError(new CUDTException(-1, 0, 0));
+      return ERROR;
+   }
+}
+
+int CUDT::epoll_release(const int eid)
+{
+   try
+   {
+      return s_UDTUnited.epoll_release(eid);
+   }
+   catch (CUDTException e)
+   {
+      s_UDTUnited.setError(new CUDTException(e));
+      return ERROR;
+   }
+   catch (...)
+   {
+      s_UDTUnited.setError(new CUDTException(-1, 0, 0));
+      return ERROR;
+   }
+}
+
 CUDTException& CUDT::getlasterror()
 {
    return *s_UDTUnited.getError();
@@ -1979,6 +2122,31 @@ int select(int nfds, UDSET* readfds, UDSET* writefds, UDSET* exceptfds, const st
 int selectEx(const vector<UDTSOCKET>& fds, vector<UDTSOCKET>* readfds, vector<UDTSOCKET>* writefds, vector<UDTSOCKET>* exceptfds, int64_t msTimeOut)
 {
    return CUDT::selectEx(fds, readfds, writefds, exceptfds, msTimeOut);
+}
+
+int epoll_create()
+{
+   return CUDT::epoll_create();
+}
+
+int epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+{
+   return CUDT::epoll_add(eid, socks, locals);
+}
+
+int epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+{
+   return CUDT::epoll_remove(eid, socks, locals);
+}
+
+int epoll_wait(const int eid, set<int>* readfds, set<int>* writefds, int64_t msTimeOut, set<int>* lrfds, set<int>* lwfds)
+{
+   return CUDT::epoll_wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
+}
+
+int epoll_release(const int eid)
+{
+   return CUDT::epoll_release(eid);
 }
 
 ERRORINFO& getlasterror()
