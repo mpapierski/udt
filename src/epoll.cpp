@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 08/20/2010
+   Yunhong Gu, last updated 08/31/2010
 *****************************************************************************/
 
 #include "udt.h"
@@ -104,7 +104,7 @@ int CEPoll::add(const int eid, const set<UDTSOCKET>* socks, const set<int>* loca
       for (set<int>::const_iterator i = locals->begin(); i != locals->end(); ++ i)
       {
          epoll_event ev;
-         ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
+         ev.events = EPOLLIN | EPOLLOUT | EPOLLERR;
          ev.data.fd = *i;
          if (epoll_ctl(p->second.m_iLocalID, EPOLL_CTL_ADD, *i, &ev) >= 0)
             p->second.m_sLocals.insert(*i);
@@ -140,7 +140,7 @@ int CEPoll::remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* l
       for (set<int>::const_iterator i = locals->begin(); i != locals->end(); ++ i)
       {
          epoll_event ev;
-         ev.events = EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP;
+         ev.events = EPOLLIN | EPOLLOUT | EPOLLERR;
          ev.data.fd = *i;
          if (epoll_ctl(p->second.m_iLocalID, EPOLL_CTL_DEL, *i, &ev) >= 0)
             p->second.m_sLocals.erase(*i);
@@ -192,7 +192,7 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
             lwfds->clear();
 
          #ifdef LINUX
-         const int max_events = 1024;
+         const int max_events = p->second.m_sLocals.size();
          epoll_event ev[max_events];
          int nfds = epoll_wait(p->second.m_iLocalID, ev, max_events, 0);
          for (int i = 0; i < nfds; ++ i)
