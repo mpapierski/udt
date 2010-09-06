@@ -18,10 +18,16 @@
 <p>The <b>epoll</b> method can be used to effectively poll the IO events for a large number of sockets. It includes the following APIs.</p>
 
 <div class="code">
+#ifndef WIN32<br />
+   &nbsp;&nbsp;&nbsp;typedef int SYSSOCKET;<br />
+#else<br />
+   &nbsp;&nbsp;&nbsp;typedef SOCKET SYSSOCKET;<br />
+#endif<br />
+
   int epoll_create();<br />
-    int epoll_add(const int <span class="style1">eid</span>, const std::set&lt;UDTSOCKET&gt;* <span class="style1">socks</span>, const std::set&lt;int&gt;* <span class="style1">locals</span> = NULL);<br />
-    int epoll_remove(const int <span class="style1">eid</span>, const std::set&lt;int&gt;* socks, const std::set&lt;int&gt;* <span class="style1">locals</span> = NULL);<br />
-    int epoll_wait(const int <span class="style1">eid</span>, std::set&lt;int&gt;* <span class="style1">readfds</span>, std::set&lt;int&gt;* <span class="style1">writefds</span>, int64_t msTimeOut, std::set&lt;int&gt;* <span class="style1">lrfds</span> = NULL, std::set&lt;int&gt;* <span class="style1">wrfds</span> = NULL);<br />
+    int epoll_add(const int <span class="style1">eid</span>, const std::set&lt;UDTSOCKET&gt;* <span class="style1">socks</span>, const std::set&lt;SYSSOCKET&gt;* <span class="style1">locals</span> = NULL);<br />
+    int epoll_remove(const int <span class="style1">eid</span>, const std::set&lt;UDTSOCKET&gt;* socks, const std::set&lt;SYSSOCKET&gt;* <span class="style1">locals</span> = NULL);<br />
+    int epoll_wait(const int <span class="style1">eid</span>, std::set&lt;UDTSOCKET&gt;* <span class="style1">readfds</span>, std::set&lt;UDTSOCKET&gt;* <span class="style1">writefds</span>, int64_t msTimeOut, std::set&lt;SYSSOCKET&gt;* <span class="style1">lrfds</span> = NULL, std::set&lt;SYSSOCKET&gt;* <span class="style1">wrfds</span> = NULL);<br />
     int epoll_release(const int <span class="style1">eid</span>);</div>
 
 <h5>Parameters</h5>

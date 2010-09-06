@@ -112,6 +112,12 @@ typedef std::set<UDTSOCKET> ud_set;
 #define UD_SET(u, uset) ((uset)->insert(u))
 #define UD_ZERO(uset) ((uset)->clear())
 
+#ifndef WIN32
+   typedef int SYSSOCKET;
+#else
+   typedef SOCKET SYSSOCKET;
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 
 enum UDTOpt
@@ -304,9 +310,9 @@ UDT_API int64_t recvfile(UDTSOCKET u, std::fstream& ofs, int64_t offset, int64_t
 UDT_API int select(int nfds, UDSET* readfds, UDSET* writefds, UDSET* exceptfds, const struct timeval* timeout);
 UDT_API int selectEx(const std::vector<UDTSOCKET>& fds, std::vector<UDTSOCKET>* readfds, std::vector<UDTSOCKET>* writefds, std::vector<UDTSOCKET>* exceptfds, int64_t msTimeOut);
 UDT_API int epoll_create();
-UDT_API int epoll_add(const int eid, const std::set<UDTSOCKET>* socks, const std::set<int>* locals = NULL);
-UDT_API int epoll_remove(const int eid, const std::set<int>* socks, const std::set<int>* locals = NULL);
-UDT_API int epoll_wait(const int eid, std::set<int>* readfds, std::set<int>* writefds, int64_t msTimeOut, std::set<int>* lrfds = NULL, std::set<int>* wrfds = NULL);
+UDT_API int epoll_add(const int eid, const std::set<UDTSOCKET>* socks, const std::set<SYSSOCKET>* locals = NULL);
+UDT_API int epoll_remove(const int eid, const std::set<UDTSOCKET>* socks, const std::set<SYSSOCKET>* locals = NULL);
+UDT_API int epoll_wait(const int eid, std::set<UDTSOCKET>* readfds, std::set<UDTSOCKET>* writefds, int64_t msTimeOut, std::set<SYSSOCKET>* lrfds = NULL, std::set<SYSSOCKET>* wrfds = NULL);
 UDT_API int epoll_release(const int eid);
 UDT_API ERRORINFO& getlasterror();
 UDT_API int perfmon(UDTSOCKET u, TRACEINFO* perf, bool clear = true);

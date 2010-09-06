@@ -70,6 +70,10 @@ int CEPoll::create()
    localid = epoll_create(1024);
    if (localid < 0)
       throw CUDTException(-1, 0, errno);
+   #else
+   // on BSD, use kqueue
+   // on Solaris, use /dev/poll
+   // on Windows, select
    #endif
 
    if (++ m_iIDSeed >= 0x7FFFFFFF)
@@ -83,7 +87,7 @@ int CEPoll::create()
    return desc.m_iID;
 }
 
-int CEPoll::add(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+int CEPoll::add(const int eid, const set<UDTSOCKET>* socks, const set<SYSSOCKET>* locals)
 {
    CGuard pg(m_EPollLock);
 
@@ -101,7 +105,7 @@ int CEPoll::add(const int eid, const set<UDTSOCKET>* socks, const set<int>* loca
    if (NULL != locals)
    {
       #ifdef LINUX
-      for (set<int>::const_iterator i = locals->begin(); i != locals->end(); ++ i)
+      for (set<SYSSOCKET>::const_iterator i = locals->begin(); i != locals->end(); ++ i)
       {
          epoll_event ev;
          ev.events = EPOLLIN | EPOLLOUT | EPOLLERR;
@@ -110,16 +114,15 @@ int CEPoll::add(const int eid, const set<UDTSOCKET>* socks, const set<int>* loca
             p->second.m_sLocals.insert(*i);
       }
       #else
-      set<int> res;
-      set_union(p->second.m_sLocals.begin(), p->second.m_sLocals.end(), locals->begin(), locals->end(), inserter(res, res.begin()));
-      p->second.m_sLocals = res;
+      for (set<SYSSOCKET>::const_iterator i = locals->begin(); i != locals->end(); ++ i)
+         p->second.m_sLocals.insert(*i);
       #endif
    }
 
    return 0;
 }
 
-int CEPoll::remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+int CEPoll::remove(const int eid, const set<UDTSOCKET>* socks, const set<SYSSOCKET>* locals)
 {
    CGuard pg(m_EPollLock);
 
@@ -137,7 +140,7 @@ int CEPoll::remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* l
    if (NULL != locals)
    {
       #ifdef LINUX
-      for (set<int>::const_iterator i = locals->begin(); i != locals->end(); ++ i)
+      for (set<SYSSOCKET>::const_iterator i = locals->begin(); i != locals->end(); ++ i)
       {
          epoll_event ev;
          ev.events = EPOLLIN | EPOLLOUT | EPOLLERR;
@@ -146,16 +149,15 @@ int CEPoll::remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* l
             p->second.m_sLocals.erase(*i);
       }
       #else
-      set<int> res;
-      set_union(p->second.m_sLocals.begin(), p->second.m_sLocals.end(), locals->begin(), locals->end(), inserter(res, res.begin()));
-      p->second.m_sLocals = res;
+      for (set<SYSSOCKET>::const_iterator i = locals->begin(); i != locals->end(); ++ i)
+         p->second.m_sLocals.erase(*i);
       #endif
    }
 
    return 0;
 }
 
-int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<int>* lrfds, set<int>* lwfds)
+int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<SYSSOCKET>* lrfds, set<SYSSOCKET>* lwfds)
 {
    int total = 0;
 
@@ -209,6 +211,52 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
             }
          }
          #else
+         //currently "select" is used for all non-Linux platforms.
+         //faster approaches can be applied for specific systems in the future.
+
+         //"select" has a limitation on the number of sockets
+
+         FD_SET readfds;
+         FD_SET writefds;
+         FD_ZERO(&readfds);
+         FD_ZERO(&writefds);
+
+         for (set<SYSSOCKET>::const_iterator i = p->second.m_sLocals.begin(); i != p->second.m_sLocals.end(); ++ i)
+         {
+            if (lrfds)
+               FD_SET(*i, &readfds);
+            if (lwfds)
+               FD_SET(*i, &writefds);
+         }
+
+         timeval tv;
+         tv.tv_sec = 0;
+         tv.tv_usec = 0;
+         int r = select(0, &readfds, &writefds, NULL, &tv);
+
+         if (r > 0)
+         {
+            for (set<SYSSOCKET>::const_iterator i = p->second.m_sLocals.begin(); i != p->second.m_sLocals.end(); ++ i)
+            {
+               if (lrfds)
+               {
+                  if (FD_ISSET(*i, &readfds))
+                  {
+                     lrfds->insert(*i);
+                     ++ total;
+                  }
+               }
+
+               if (lwfds)
+               {
+                  if (FD_ISSET(*i, &writefds))
+                  {
+                     lwfds->insert(*i);
+                     ++ total;
+                  }
+               }
+            }
+         }
 
          #endif
       }

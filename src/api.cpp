@@ -1022,7 +1022,7 @@ int CUDTUnited::epoll_create()
    return m_EPoll.create();
 }
 
-int CUDTUnited::epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+int CUDTUnited::epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<SYSSOCKET>* locals)
 {
    if (NULL != socks)
    {
@@ -1041,7 +1041,7 @@ int CUDTUnited::epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<
    return m_EPoll.add(eid, socks, locals);
 }
 
-int CUDTUnited::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+int CUDTUnited::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<SYSSOCKET>* locals)
 {
    if (NULL != socks)
    {
@@ -1060,7 +1060,7 @@ int CUDTUnited::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const s
    return m_EPoll.remove(eid, socks, locals);
 }
 
-int CUDTUnited::epoll_wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<int>* lrfds, set<int>* lwfds)
+int CUDTUnited::epoll_wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<int>* lrfds, set<SYSSOCKET>* lwfds)
 {
    return m_EPoll.wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
 }
@@ -1905,7 +1905,7 @@ int CUDT::epoll_create()
    }
 }
 
-int CUDT::epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+int CUDT::epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<SYSSOCKET>* locals)
 {
    try
    {
@@ -1923,7 +1923,7 @@ int CUDT::epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<int>* 
    }
 }
 
-int CUDT::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+int CUDT::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<SYSSOCKET>* locals)
 {
    try
    {
@@ -1941,7 +1941,7 @@ int CUDT::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<int
    }
 }
 
-int CUDT::epoll_wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<int>* lrfds, set<int>* lwfds)
+int CUDT::epoll_wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<SYSSOCKET>* lrfds, set<SYSSOCKET>* lwfds)
 {
    try
    {
@@ -2129,17 +2129,17 @@ int epoll_create()
    return CUDT::epoll_create();
 }
 
-int epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+int epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<SYSSOCKET>* locals)
 {
    return CUDT::epoll_add(eid, socks, locals);
 }
 
-int epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<int>* locals)
+int epoll_remove(const int eid, const set<UDTSOCKET>* socks, const set<SYSSOCKET>* locals)
 {
    return CUDT::epoll_remove(eid, socks, locals);
 }
 
-int epoll_wait(const int eid, set<int>* readfds, set<int>* writefds, int64_t msTimeOut, set<int>* lrfds, set<int>* lwfds)
+int epoll_wait(const int eid, set<int>* readfds, set<int>* writefds, int64_t msTimeOut, set<SYSSOCKET>* lrfds, set<SYSSOCKET>* lwfds)
 {
    return CUDT::epoll_wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
 }
