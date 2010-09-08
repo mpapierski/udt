@@ -1060,7 +1060,7 @@ int CUDTUnited::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const s
    return m_EPoll.remove(eid, socks, locals);
 }
 
-int CUDTUnited::epoll_wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<int>* lrfds, set<SYSSOCKET>* lwfds)
+int CUDTUnited::epoll_wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<SYSSOCKET>* lrfds, set<SYSSOCKET>* lwfds)
 {
    return m_EPoll.wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
 }

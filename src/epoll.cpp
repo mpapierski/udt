@@ -43,6 +43,7 @@ written by
 #include "epoll.h"
 #include <errno.h>
 #include <algorithm>
+#include <iterator>
 #ifdef LINUX
    #include <sys/epoll.h>
 #endif
