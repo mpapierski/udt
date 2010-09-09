@@ -42,6 +42,7 @@ written by
 #ifndef WIN32
    #include <cstring>
    #include <cerrno>
+   #include <unistd.h>
 #else
    #include <winsock2.h>
    #include <ws2tcpip.h>
@@ -49,6 +50,7 @@ written by
       #include <wspiapi.h>
    #endif
 #endif
+#
 #include <cmath>
 #include "md5.h"
 #include "common.h"

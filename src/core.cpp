@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 08/30/2010
+   Yunhong Gu, last updated 09/08/2010
 *****************************************************************************/
 
 #ifndef WIN32
@@ -576,7 +576,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    if (m_bRendezvous)
       timeo *= 10;
    uint64_t entertime = CTimer::getTime();
-   uint64_t last_req_time = -1;
+   uint64_t last_req_time = 0;
 
    CUDTException e(0, 0);
    char* tmp = NULL;
@@ -641,7 +641,7 @@ void CUDT::connect(const sockaddr* serv_addr)
          }
 
          // new request/response should be sent out immediately on receving a response
-         last_req_time = -1;
+         last_req_time = 0;
       }
 
       if (response.getLength() > 0)

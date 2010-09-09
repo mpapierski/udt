@@ -46,6 +46,7 @@ written by
 #include <iterator>
 #ifdef LINUX
    #include <sys/epoll.h>
+   #include <unistd.h>
 #endif
 
 using namespace std;
@@ -217,8 +218,8 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
 
          //"select" has a limitation on the number of sockets
 
-         FD_SET readfds;
-         FD_SET writefds;
+         fd_set readfds;
+         fd_set writefds;
          FD_ZERO(&readfds);
          FD_ZERO(&writefds);
 
