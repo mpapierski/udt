@@ -1069,7 +1069,7 @@ int CUDT::recv(char* data, const int& len)
    else if ((m_bBroken || m_bClosing) && (0 == m_pRcvBuffer->getRcvDataSize()))
       throw CUDTException(2, 1, 0);
 
-   m_pRcvBuffer->readBuffer(data, len);
+   int res = m_pRcvBuffer->readBuffer(data, len);
 
    if (m_pRcvBuffer->getRcvDataSize() <= 0)
    {
@@ -1077,7 +1077,7 @@ int CUDT::recv(char* data, const int& len)
       s_UDTUnited.m_EPoll.disable_read(m_SocketID, m_sPollID);
    }
 
-   return len;
+   return res;
 }
 
 int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool& inorder)
