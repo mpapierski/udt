@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/08/2010
+   Yunhong Gu, last updated 09/13/2010
 *****************************************************************************/
 
 #ifndef WIN32
@@ -948,8 +948,9 @@ int CUDT::send(const char* data, const int& len)
     
                locktime.tv_sec = exptime / 1000000;
                locktime.tv_nsec = (exptime % 1000000) * 1000;
-    
-               pthread_cond_timedwait(&m_SendBlockCond, &m_SendBlockLock, &locktime);
+
+               while (!m_bBroken && m_bConnected && !m_bClosing && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()) && (CTimer::getTime() < exptime))
+                  pthread_cond_timedwait(&m_SendBlockCond, &m_SendBlockLock, &locktime);
             }
             pthread_mutex_unlock(&m_SendBlockLock);
          #else
@@ -959,7 +960,12 @@ int CUDT::send(const char* data, const int& len)
                   WaitForSingleObject(m_SendBlockCond, INFINITE);
             }
             else 
-               WaitForSingleObject(m_SendBlockCond, DWORD(m_iSndTimeOut)); 
+            {
+               uint64_t exptime = CTimer::getTime() + m_iSndTimeOut * 1000ULL;
+
+               while (!m_bBroken && m_bConnected && !m_bClosing && (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize()) && (CTimer::getTime() < exptime))
+                  WaitForSingleObject(m_SendBlockCond, DWORD((exptime - CTimer::getTime()) / 1000)); 
+            }
          #endif
 
          // check the connection status
@@ -1121,7 +1127,8 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
                locktime.tv_sec = exptime / 1000000;
                locktime.tv_nsec = (exptime % 1000000) * 1000;
 
-               pthread_cond_timedwait(&m_SendBlockCond, &m_SendBlockLock, &locktime);
+               while (!m_bBroken && m_bConnected && !m_bClosing && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len) && (CTimer::getTime() < exptime))
+                  pthread_cond_timedwait(&m_SendBlockCond, &m_SendBlockLock, &locktime);
             }
             pthread_mutex_unlock(&m_SendBlockLock);
          #else
@@ -1131,7 +1138,12 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
                   WaitForSingleObject(m_SendBlockCond, INFINITE);
             }
             else
-               WaitForSingleObject(m_SendBlockCond, DWORD(m_iSndTimeOut));
+            {
+               uint64_t exptime = CTimer::getTime() + m_iSndTimeOut * 1000ULL;
+
+               while (!m_bBroken && m_bConnected && !m_bClosing && ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len) && (CTimer::getTime() < exptime))
+                  WaitForSingleObject(m_SendBlockCond, DWORD((exptime - CTimer::getTime()) / 1000));
+            }
          #endif
 
          // check the connection status
