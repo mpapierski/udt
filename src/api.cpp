@@ -753,7 +753,6 @@ int CUDTUnited::close(const UDTSOCKET u)
    if (NULL == s)
       throw CUDTException(5, 4, 0);
 
-   // for a listening socket, it should wait an extra 3 seconds in case a client is connecting
    if (s->m_Status == CUDTSocket::LISTENING)
    {
       s->m_TimeStamp = CTimer::getTime();
@@ -1117,12 +1116,17 @@ void CUDTUnited::checkBrokenSockets()
       // check broken connection
       if (i->second->m_pUDT->m_bBroken)
       {
-         if ((i->second->m_Status == CUDTSocket::LISTENING) && (CTimer::getTime() - i->second->m_TimeStamp < 3000000))
+         if (i->second->m_Status == CUDTSocket::LISTENING)
+         {
+            // for a listening socket, it should wait an extra 3 seconds in case a client is connecting
+            if (CTimer::getTime() - i->second->m_TimeStamp < 3000000)
+               continue;
+         }
+         else if ((i->second->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && (i->second->m_pUDT->m_iBrokenCounter -- > 0))
+         {
+            // if there is still data in the receiver buffer, wait longer
             continue;
-
-         // if there is still data in the receiver buffer, wait longer
-         if ((i->second->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && (i->second->m_pUDT->m_iBrokenCounter -- > 0))
-            continue;
+         }
 
          //close broken connections and start removal timer
          i->second->m_Status = CUDTSocket::CLOSED;
