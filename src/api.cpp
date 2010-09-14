@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 07/22/2010
+   Yunhong Gu, last updated 09/13/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -756,7 +756,7 @@ int CUDTUnited::close(const UDTSOCKET u)
    // for a listening socket, it should wait an extra 3 seconds in case a client is connecting
    if (s->m_Status == CUDTSocket::LISTENING)
    {
-      s->m_TimeStamp = CTimer::getTime() - 3000000;
+      s->m_TimeStamp = CTimer::getTime();
       s->m_pUDT->m_bBroken = true;
       return 0;
    }
@@ -1117,7 +1117,7 @@ void CUDTUnited::checkBrokenSockets()
       // check broken connection
       if (i->second->m_pUDT->m_bBroken)
       {
-         if ((i->second->m_Status == CUDTSocket::LISTENING) && (CTimer::getTime() - i->second->m_TimeStamp > 3000000))
+         if ((i->second->m_Status == CUDTSocket::LISTENING) && (CTimer::getTime() - i->second->m_TimeStamp < 3000000))
             continue;
 
          // if there is still data in the receiver buffer, wait longer
