@@ -187,7 +187,7 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
          total += p->second.m_sUDTWrites.size();
       }
 
-      if (!lrfds || !lwfds)
+      if (lrfds || lwfds)
       {
          if (lrfds)
             lrfds->clear();
