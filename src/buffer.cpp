@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/23/2010
+   Yunhong Gu, last updated 10/02/2010
 *****************************************************************************/
 
 #include <cstring>
@@ -159,6 +159,8 @@ void CSndBuffer::addBuffer(const char* data, const int& len, const int& ttl, con
    CGuard::leaveCS(m_BufLock);
 
    m_iNextMsgNo ++;
+   if (m_iNextMsgNo == CMsgNo::m_iMaxMsgNo)
+      m_iNextMsgNo = 1;
 }
 
 int CSndBuffer::addBufferFromFile(fstream& ifs, const int& len)
@@ -545,7 +547,7 @@ int CRcvBuffer::getRcvMsgNum()
 bool CRcvBuffer::scanMsg(int& p, int& q, bool& passack)
 {
    // empty buffer
-   if ((m_iStartPos == m_iLastAckPos) && (0 == m_iMaxPos))
+   if ((m_iStartPos == m_iLastAckPos) && (m_iMaxPos <= 0))
       return false;
 
    //skip all bad msgs at the beginning

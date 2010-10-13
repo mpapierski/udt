@@ -637,7 +637,7 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
          else if (CUDTSocket::LISTENING == ls->m_Status)
             pthread_cond_wait(&(ls->m_AcceptCond), &(ls->m_AcceptLock));
 
-         if (CUDTSocket::LISTENING != ls->m_Status)
+         if ((CUDTSocket::LISTENING != ls->m_Status) || ls->m_pUDT->m_bBroken)
             accepted = true;
 
          pthread_mutex_unlock(&(ls->m_AcceptLock));
@@ -663,7 +663,7 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
          if  (!accepted & (CUDTSocket::LISTENING == ls->m_Status))
             WaitForSingleObject(ls->m_AcceptCond, INFINITE);
 
-         if (CUDTSocket::LISTENING != ls->m_Status)
+         if ((CUDTSocket::LISTENING != ls->m_Status) || ls->m_pUDT->m_bBroken)
          {
             SetEvent(ls->m_AcceptCond);
             accepted = true;
@@ -764,6 +764,16 @@ int CUDTUnited::close(const UDTSOCKET u)
    {
       s->m_TimeStamp = CTimer::getTime();
       s->m_pUDT->m_bBroken = true;
+
+      // broadcast all "accept" waiting
+      #ifndef WIN32
+         pthread_mutex_lock(&(s->m_AcceptLock));
+         pthread_mutex_unlock(&(s->m_AcceptLock));
+         pthread_cond_broadcast(&(s->m_AcceptCond));
+      #else
+         SetEvent(s->m_AcceptCond);
+      #endif
+
       return 0;
    }
 
@@ -771,8 +781,6 @@ int CUDTUnited::close(const UDTSOCKET u)
    // in order to prevent other methods from accessing invalid address
    // a timer is started and the socket will be removed after approximately 1 second
    s->m_TimeStamp = CTimer::getTime();
-
-   CUDTSocket::UDTSTATUS os = s->m_Status;
 
    s->m_pUDT->close();
 
@@ -785,18 +793,6 @@ int CUDTUnited::close(const UDTSOCKET u)
    m_ClosedSockets[s->m_SocketID] = s;
 
    CGuard::leaveCS(m_ControlLock);
-
-   // broadcast all "accept" waiting
-   if (CUDTSocket::LISTENING == os)
-   {
-      #ifndef WIN32
-         pthread_mutex_lock(&(s->m_AcceptLock));
-         pthread_mutex_unlock(&(s->m_AcceptLock));
-         pthread_cond_broadcast(&(s->m_AcceptCond));
-      #else
-         SetEvent(s->m_AcceptCond);
-      #endif
-   }
 
    CTimer::triggerEvent();
 
