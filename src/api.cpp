@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 09/28/2010
+   Yunhong Gu, last updated 10/12/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -640,6 +640,9 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
          if ((CUDTSocket::LISTENING != ls->m_Status) || ls->m_pUDT->m_bBroken)
             accepted = true;
 
+         if (ls->m_pQueuedSockets->empty())
+            m_EPoll.disable_read(listen, ls->m_pUDT->m_sPollID);
+
          pthread_mutex_unlock(&(ls->m_AcceptLock));
       }
    #else
@@ -668,6 +671,9 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
             SetEvent(ls->m_AcceptCond);
             accepted = true;
          }
+
+         if (ls->m_pQueuedSockets->empty())
+            m_EPoll.disable_read(listen, ls->m_pUDT->m_sPollID);
       }
    #endif
 
