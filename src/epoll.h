@@ -61,6 +61,8 @@ struct CEPollDesc
 
 class CEPoll
 {
+friend class CUDTUnited;
+
 public:
    CEPoll();
    ~CEPoll();

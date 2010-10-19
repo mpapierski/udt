@@ -1038,7 +1038,11 @@ int CUDTUnited::epoll_add(const int eid, const set<UDTSOCKET>* socks, const set<
       {
          CUDTSocket* s = locate(*i);
          if (NULL != s)
+         {
+            CGuard::enterCS(m_EPoll.m_EPollLock);
             s->m_pUDT->addEPoll(eid);
+            CGuard::leaveCS(m_EPoll.m_EPollLock);
+         }
       }
    }
    else if (NULL == locals)
@@ -1057,7 +1061,11 @@ int CUDTUnited::epoll_remove(const int eid, const set<UDTSOCKET>* socks, const s
       {
          CUDTSocket* s = locate(*i);
          if (NULL != s)
+         {
+            CGuard::enterCS(m_EPoll.m_EPollLock);
             s->m_pUDT->removeEPoll(eid);
+            CGuard::leaveCS(m_EPoll.m_EPollLock);
+         }
       }
    }
    else if (NULL == locals)

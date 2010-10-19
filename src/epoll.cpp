@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 08/31/2010
+   Yunhong Gu, last updated 10/12/2010
 *****************************************************************************/
 
 #include "udt.h"
@@ -268,10 +268,10 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
       if (total > 0)
          return total;
 
-      CTimer::waitForEvent();
-
       if ((msTimeOut >= 0) && (int64_t(CTimer::getTime() - entertime) >= msTimeOut * 1000LL))
          break;
+
+      CTimer::waitForEvent();
    }
 
    return 0;
