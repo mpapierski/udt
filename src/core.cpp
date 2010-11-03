@@ -1194,7 +1194,12 @@ int CUDT::recvmsg(char* data, const int& len)
    {
       int res = m_pRcvBuffer->readMsg(data, len);
       if (0 == res)
+      {
+         // read is not available
+         s_UDTUnited.m_EPoll.disable_read(m_SocketID, m_sPollID);
+
          throw CUDTException(2, 1, 0);
+      }
       else
          return res;
    }
@@ -1603,7 +1608,7 @@ void CUDT::sendCtrl(const int& pkttype, void* lparam, void* rparam, const int& s
                SetEvent(m_RecvDataCond);
          #endif
 
-         // acknowledde any waiting epolls to read
+         // acknowledge any waiting epolls to read
          s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
       }
       else if (ack == m_iRcvLastAck)
@@ -2450,10 +2455,25 @@ void CUDT::checkTimers()
 
 void CUDT::addEPoll(const int eid)
 {
+   CGuard::enterCS(s_UDTUnited.m_EPoll.m_EPollLock);
    m_sPollID.insert(eid);
+   CGuard::leaveCS(s_UDTUnited.m_EPoll.m_EPollLock);
+
+   if (!m_bConnected || m_bBroken || m_bClosing)
+      return;
+
+   if ((UDT_STREAM == m_iSockType) && (m_pRcvBuffer->getRcvDataSize() > 0))
+      s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
+   else if ((UDT_DGRAM == m_iSockType) && (m_pRcvBuffer->getRcvMsgNum() > 0))
+      s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
+
+   if (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())
+      s_UDTUnited.m_EPoll.enable_write(m_SocketID, m_sPollID);
 }
 
 void CUDT::removeEPoll(const int eid)
 {
+   CGuard::enterCS(s_UDTUnited.m_EPoll.m_EPollLock);
    m_sPollID.erase(eid);
+   CGuard::leaveCS(s_UDTUnited.m_EPoll.m_EPollLock);
 }
