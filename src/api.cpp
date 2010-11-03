@@ -2187,7 +2187,7 @@ int epoll_add_usock(const int eid, const UDTSOCKET u, const int* events)
 
 int epoll_add_ssock(const int eid, const SYSSOCKET s, const int* events)
 {
-   return CUDT::epoll_add_usock(eid, s, events);
+   return CUDT::epoll_add_ssock(eid, s, events);
 }
 
 int epoll_remove_usock(const int eid, const UDTSOCKET u, const int* events)
