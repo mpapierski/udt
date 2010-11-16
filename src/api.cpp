@@ -768,6 +768,9 @@ int CUDTUnited::close(const UDTSOCKET u)
 
    if (s->m_Status == CUDTSocket::LISTENING)
    {
+      if (s->m_pUDT->m_bBroken)
+         return 0;
+
       s->m_TimeStamp = CTimer::getTime();
       s->m_pUDT->m_bBroken = true;
 
@@ -834,6 +837,9 @@ int CUDTUnited::getsockname(const UDTSOCKET u, sockaddr* name, int* namelen)
    CUDTSocket* s = locate(u);
 
    if (NULL == s)
+      throw CUDTException(5, 4, 0);
+
+   if (s->m_pUDT->m_bBroken)
       throw CUDTException(5, 4, 0);
 
    if (CUDTSocket::INIT == s->m_Status)
