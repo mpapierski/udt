@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/14/2010
+   Yunhong Gu, last updated 12/21/2010
 *****************************************************************************/
 
 #ifndef WIN32
@@ -108,6 +108,7 @@ CUDT::CUDT()
    m_Linger.l_linger = 180;
    m_iUDPSndBufSize = 65536;
    m_iUDPRcvBufSize = m_iRcvBufSize * m_iMSS;
+   m_iSockType = UDT_STREAM;
    m_iIPversion = AF_INET;
    m_bRendezvous = false;
    m_iSndTimeOut = -1;
@@ -177,6 +178,7 @@ CUDT::CUDT(const CUDT& ancestor)
    m_bClosing = false;
    m_bShutdown = false;
    m_bBroken = false;
+   m_bPeerHealth = true;
 }
 
 CUDT::~CUDT()
@@ -201,6 +203,9 @@ CUDT::~CUDT()
 
 void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
 {
+   if (m_bBroken || m_bClosing)
+      throw CUDTException(2, 1, 0);
+
    CGuard cg(m_ConnectionLock);
    CGuard sendguard(m_SendLock);
    CGuard recvguard(m_RecvLock);
@@ -751,6 +756,8 @@ void CUDT::connect(const sockaddr* serv_addr)
 
 void CUDT::connect(const sockaddr* peer, CHandShake* hs)
 {
+   CGuard cg(m_ConnectionLock);
+
    // Uses the smaller MSS between the peers        
    if (hs->m_iMSS > m_iMSS)
       hs->m_iMSS = m_iMSS;
@@ -2315,7 +2322,6 @@ int CUDT::processData(CUnit* unit)
 
 int CUDT::listen(sockaddr* addr, CPacket& packet)
 {
-   CGuard cg(m_ConnectionLock);
    if (m_bClosing)
       return 1002;
 

@@ -1125,8 +1125,8 @@ void CUDTUnited::checkBrokenSockets()
    CGuard cg(m_ControlLock);
 
    // set of sockets To Be Closed and To Be Removed
-   set<UDTSOCKET> tbc;
-   set<UDTSOCKET> tbr;
+   vector<UDTSOCKET> tbc;
+   vector<UDTSOCKET> tbr;
 
    for (map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.begin(); i != m_Sockets.end(); ++ i)
    {
@@ -1148,7 +1148,7 @@ void CUDTUnited::checkBrokenSockets()
          //close broken connections and start removal timer
          i->second->m_Status = CUDTSocket::CLOSED;
          i->second->m_TimeStamp = CTimer::getTime();
-         tbc.insert(i->first);
+         tbc.push_back(i->first);
          m_ClosedSockets[i->first] = i->second;
 
          // remove from listener's queue
@@ -1171,17 +1171,17 @@ void CUDTUnited::checkBrokenSockets()
    {
       // timeout 1 second to destroy a socket AND it has been removed from RcvUList
       if ((CTimer::getTime() - j->second->m_TimeStamp > 1000000) && ((NULL == j->second->m_pUDT->m_pRNode) || !j->second->m_pUDT->m_pRNode->m_bOnList))
-         tbr.insert(j->first);
+         tbr.push_back(j->first);
 
       // sockets cannot be removed here because it will invalidate the map iterator
    }
 
    // move closed sockets to the ClosedSockets structure
-   for (set<UDTSOCKET>::iterator k = tbc.begin(); k != tbc.end(); ++ k)
+   for (vector<UDTSOCKET>::iterator k = tbc.begin(); k != tbc.end(); ++ k)
       m_Sockets.erase(*k);
 
    // remove those timeout sockets
-   for (set<UDTSOCKET>::iterator l = tbr.begin(); l != tbr.end(); ++ l)
+   for (vector<UDTSOCKET>::iterator l = tbr.begin(); l != tbr.end(); ++ l)
       removeSocket(*l);
 }
 
@@ -1203,6 +1203,7 @@ void CUDTUnited::removeSocket(const UDTSOCKET u)
       // if it is a listener, close all un-accepted sockets in its queue and remove them later
       for (set<UDTSOCKET>::iterator q = i->second->m_pQueuedSockets->begin(); q != i->second->m_pQueuedSockets->end(); ++ q)
       {
+         m_Sockets[*q]->m_pUDT->m_bBroken = true;
          m_Sockets[*q]->m_pUDT->close();
          m_Sockets[*q]->m_TimeStamp = CTimer::getTime();
          m_Sockets[*q]->m_Status = CUDTSocket::CLOSED;
