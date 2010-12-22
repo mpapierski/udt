@@ -1172,8 +1172,6 @@ void CUDTUnited::checkBrokenSockets()
       // timeout 1 second to destroy a socket AND it has been removed from RcvUList
       if ((CTimer::getTime() - j->second->m_TimeStamp > 1000000) && ((NULL == j->second->m_pUDT->m_pRNode) || !j->second->m_pUDT->m_pRNode->m_bOnList))
          tbr.push_back(j->first);
-
-      // sockets cannot be removed here because it will invalidate the map iterator
    }
 
    // move closed sockets to the ClosedSockets structure
@@ -1432,6 +1430,7 @@ void CUDTUnited::updateMux(CUDTSocket* s, const CUDTSocket* ls)
    CGuard::enterCS(self->m_ControlLock);
    for (map<UDTSOCKET, CUDTSocket*>::iterator i = self->m_Sockets.begin(); i != self->m_Sockets.end(); ++ i)
    {
+      i->second->m_pUDT->m_bBroken = true;
       i->second->m_pUDT->close();
       i->second->m_Status = CUDTSocket::CLOSED;
       i->second->m_TimeStamp = CTimer::getTime();
