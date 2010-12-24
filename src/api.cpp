@@ -777,8 +777,8 @@ int CUDTUnited::close(const UDTSOCKET u)
       // broadcast all "accept" waiting
       #ifndef WIN32
          pthread_mutex_lock(&(s->m_AcceptLock));
-         pthread_mutex_unlock(&(s->m_AcceptLock));
          pthread_cond_broadcast(&(s->m_AcceptCond));
+         pthread_mutex_unlock(&(s->m_AcceptLock));
       #else
          SetEvent(s->m_AcceptCond);
       #endif
@@ -786,17 +786,17 @@ int CUDTUnited::close(const UDTSOCKET u)
       return 0;
    }
 
-   // a socket will not be immediated removed when it is closed
-   // in order to prevent other methods from accessing invalid address
-   // a timer is started and the socket will be removed after approximately 1 second
-   s->m_TimeStamp = CTimer::getTime();
-
    s->m_pUDT->close();
 
    // synchronize with garbage collection.
    CGuard::enterCS(m_ControlLock);
 
    s->m_Status = CUDTSocket::CLOSED;
+
+   // a socket will not be immediated removed when it is closed
+   // in order to prevent other methods from accessing invalid address
+   // a timer is started and the socket will be removed after approximately 1 second
+   s->m_TimeStamp = CTimer::getTime();
 
    m_Sockets.erase(s->m_SocketID);
    m_ClosedSockets[s->m_SocketID] = s;
