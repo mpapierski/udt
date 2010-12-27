@@ -885,6 +885,9 @@ void CUDT::close()
 
    CGuard cg(m_ConnectionLock);
 
+   if (!m_bOpened)
+      return;
+
    // Inform the threads handler to stop.
    m_bClosing = true;
 

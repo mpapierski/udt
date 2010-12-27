@@ -376,11 +376,117 @@ void* Test_3_Cli(void* param)
    return NULL;
 }
 
+void* Test_4_Srv(void* param)
+{
+   UDTSOCKET serv;
+   if (createUDTSocket(serv, AF_INET, SOCK_STREAM, 9000) < 0)
+      return NULL;
+
+   UDT::listen(serv, 10);
+
+   const int total = 1000;
+
+   vector<UDTSOCKET> new_socks;
+   new_socks.resize(total);
+
+   for (int i = 0; i < total; ++ i)
+   {
+      sockaddr_storage clientaddr;
+      int addrlen = sizeof(clientaddr);
+      new_socks[i] = UDT::accept(serv, (sockaddr*)&clientaddr, &addrlen);
+
+      if (new_socks[i] == UDT::INVALID_SOCK)
+      {
+         cout << "accept: " << UDT::getlasterror().getErrorMessage() << endl;
+         return NULL;
+      }
+   }
+
+   for (vector<UDTSOCKET>::iterator i = new_socks.begin(); i != new_socks.end(); ++ i)
+   {
+      UDT::close(*i);
+   }
+
+   UDT::close(serv);
+
+   return NULL;
+
+}
+
+
+void* start_and_destroy_clients(void* param)
+{
+   const int total = 25;
+
+   vector<UDTSOCKET> cli_socks;
+   cli_socks.resize(total);
+
+   if (createUDTSocket(cli_socks[0], AF_INET, SOCK_STREAM, 0) < 0)
+   {
+      cout << "socket: " << UDT::getlasterror().getErrorMessage() << endl;
+      return NULL;
+   }
+
+   sockaddr* addr = NULL;
+   int size = 0;
+
+   addr = (sockaddr*)new sockaddr_in;
+   size = sizeof(sockaddr_in);
+
+   UDT::getsockname(cli_socks[0], addr, &size);
+   char sharedport[NI_MAXSERV];
+   getnameinfo(addr, size, NULL, 0, sharedport, sizeof(sharedport), NI_NUMERICSERV);
+
+   for (int i = 1; i < total; ++ i)
+   {
+      if (createUDTSocket(cli_socks[i], AF_INET, SOCK_STREAM, atoi(sharedport)) < 0)
+      {
+         cout << "socket: " << UDT::getlasterror().getErrorMessage() << endl;
+         return NULL;
+      }
+   }
+
+   for (vector<UDTSOCKET>::iterator i = cli_socks.begin(); i != cli_socks.end(); ++ i)
+   {
+      if (connect(*i, 9000, AF_INET, SOCK_STREAM) < 0)
+      {
+         cout << "connect: " << UDT::getlasterror().getErrorMessage() << endl;
+         return NULL;
+      }
+   }
+
+   for (vector<UDTSOCKET>::iterator i = cli_socks.begin(); i != cli_socks.end(); ++ i)
+   {
+      UDT::close(*i);
+   }   
+
+   return NULL;
+}
+
+void* Test_4_Cli(void*)
+{
+   const int total_threads = 40;  // 40 * 25 = 1000
+   vector<pthread_t> cli_threads;
+   cli_threads.resize(total_threads);
+
+   for (vector<pthread_t>::iterator i = cli_threads.begin(); i != cli_threads.end(); ++ i)
+   {
+      pthread_create(&(*i), NULL, start_and_destroy_clients, NULL);
+   }
+
+   for (vector<pthread_t>::iterator i = cli_threads.begin(); i != cli_threads.end(); ++ i)
+   {
+      pthread_join(*i, NULL);
+   }
+
+   return NULL;
+}
+
 
 int main()
 {
 
-   const int test_case = 3;
+   const int test_case = 4;
 
    void* (*Test_Srv[test_case])(void*);
    void* (*Test_Cli[test_case])(void*);
@@ -391,6 +497,8 @@ int main()
    Test_Cli[1] = Test_2_Cli;
    Test_Srv[2] = Test_3_Srv;
    Test_Cli[2] = Test_3_Cli;
+   Test_Srv[3] = Test_4_Srv;
+   Test_Cli[3] = Test_4_Cli;
 
 
    for (int i = 0; i < test_case; ++ i)

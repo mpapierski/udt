@@ -799,7 +799,7 @@ int CUDTUnited::close(const UDTSOCKET u)
    s->m_TimeStamp = CTimer::getTime();
 
    m_Sockets.erase(s->m_SocketID);
-   m_ClosedSockets[s->m_SocketID] = s;
+   m_ClosedSockets.insert(pair<UDTSOCKET, CUDTSocket*>(s->m_SocketID, s));
 
    CGuard::leaveCS(m_ControlLock);
 
@@ -1098,7 +1098,7 @@ CUDTSocket* CUDTUnited::locate(const UDTSOCKET u)
    return i->second;
 }
 
-CUDTSocket* CUDTUnited::locate(const UDTSOCKET u, const sockaddr* peer, const UDTSOCKET& id, const int32_t& isn)
+CUDTSocket* CUDTUnited::locate(const UDTSOCKET /*u*/, const sockaddr* peer, const UDTSOCKET& id, const int32_t& isn)
 {
    CGuard cg(m_ControlLock);
 
