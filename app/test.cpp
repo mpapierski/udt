@@ -1,14 +1,3 @@
-/*
-#1. test single client/server connection
-#2. test 1000 connections (1 server, 1000 clients)
-#3. test 1000 rendezvous connections (1000 pairs)
-#4. test epoll with 1000 UDT connection + 1000 TCP connection
-
-#: REPEAT WITH IPv4 and IPv6
-#: REPEAT WITH STREAM and DGRAM
-*/
-
-
 #ifndef WIN32
    #include <unistd.h>
    #include <cstdlib>
@@ -100,7 +89,11 @@ int connect(UDTSOCKET& usock, int port, int version, int type)
    return 0;
 }
 
+#ifndef WIN32
 void* Test_1_Srv(void* param)
+#else
+DWORD WINAPI Test_1_Srv(LPVOID param)
+#endif
 {
    UDTSOCKET serv;
    if (createUDTSocket(serv, AF_INET, SOCK_STREAM, 9000) < 0)
@@ -151,7 +144,11 @@ void* Test_1_Srv(void* param)
    return NULL;
 }
 
+#ifndef WIN32
 void* Test_1_Cli(void* param)
+#else
+DWORD WINAPI Test_1_Cli(LPVOID param)
+#endif
 {
    UDTSOCKET client;
    if (createUDTSocket(client, AF_INET, SOCK_STREAM, 0) < 0)
@@ -181,7 +178,11 @@ void* Test_1_Cli(void* param)
    return NULL;
 }
 
+#ifndef WIN32
 void* Test_2_Srv(void* param)
+#else
+DWORD WINAPI Test_2_Srv(LPVOID param)
+#endif
 {
    UDTSOCKET serv;
    if (createUDTSocket(serv, AF_INET, SOCK_STREAM, 9000) < 0)
@@ -235,7 +236,11 @@ void* Test_2_Srv(void* param)
    return NULL;
 }
 
+#ifndef WIN32
 void* Test_2_Cli(void* param)
+#else
+DWORD WINAPI Test_2_Cli(LPVOID param)
+#endif
 {
    vector<UDTSOCKET> cli_socks;
    cli_socks.resize(1000);
@@ -302,7 +307,11 @@ void* Test_2_Cli(void* param)
    return NULL;
 }
 
+#ifndef WIN32
 void* Test_3_Srv(void* param)
+#else
+DWORD WINAPI Test_3_Srv(LPVOID param)
+#endif
 {
    vector<UDTSOCKET> srv_socks;
    srv_socks.resize(50);
@@ -338,8 +347,11 @@ void* Test_3_Srv(void* param)
    return NULL;
 }
 
-
+#ifndef WIN32
 void* Test_3_Cli(void* param)
+#else
+DWORD WINAPI Test_3_Cli(LPVOID param)
+#endif
 {
    vector<UDTSOCKET> cli_socks;
    cli_socks.resize(50);
@@ -376,7 +388,11 @@ void* Test_3_Cli(void* param)
    return NULL;
 }
 
+#ifndef WIN32
 void* Test_4_Srv(void* param)
+#else
+DWORD WINAPI Test_4_Srv(LPVOID param)
+#endif
 {
    UDTSOCKET serv;
    if (createUDTSocket(serv, AF_INET, SOCK_STREAM, 9000) < 0)
@@ -413,8 +429,11 @@ void* Test_4_Srv(void* param)
 
 }
 
-
+#ifndef WIN32
 void* start_and_destroy_clients(void* param)
+#else
+DWORD WINAPI start_and_destroy_clients(LPVOID param)
+#endif
 {
    const int total = 25;
 
@@ -463,9 +482,15 @@ void* start_and_destroy_clients(void* param)
    return NULL;
 }
 
+#ifndef WIN32
 void* Test_4_Cli(void*)
+#else
+DWORD WINAPI Test_4_Cli(LPVOID)
+#endif
 {
    const int total_threads = 40;  // 40 * 25 = 1000
+
+#ifndef WIN32
    vector<pthread_t> cli_threads;
    cli_threads.resize(total_threads);
 
@@ -478,6 +503,20 @@ void* Test_4_Cli(void*)
    {
       pthread_join(*i, NULL);
    }
+#else
+   vector<HANDLE> cli_threads;
+   cli_threads.resize(total_threads);
+
+   for (vector<HANDLE>::iterator i = cli_threads.begin(); i != cli_threads.end(); ++ i)
+   {
+      *i = CreateThread(NULL, 0, NULL, start_and_destroy_clients, 0, NULL);
+   }
+
+   for (vector<HANDLE>::iterator i = cli_threads.begin(); i != cli_threads.end(); ++ i)
+   {
+      WaitForSingleObject(*i, INFINITE);
+   }
+#endif
 
    return NULL;
 }
@@ -485,11 +524,15 @@ void* Test_4_Cli(void*)
 
 int main()
 {
-
    const int test_case = 4;
 
+#ifndef WIN32
    void* (*Test_Srv[test_case])(void*);
    void* (*Test_Cli[test_case])(void*);
+#else
+   DWORD (WINAPI *Test_Srv[test_case])(LPVOID);
+   DWORD (WINAPI *Test_Cli[test_case])(LPVOID);
+#endif
 
    Test_Srv[0] = Test_1_Srv;
    Test_Cli[0] = Test_1_Cli;
@@ -500,25 +543,32 @@ int main()
    Test_Srv[3] = Test_4_Srv;
    Test_Cli[3] = Test_4_Cli;
 
-
    for (int i = 0; i < test_case; ++ i)
    {
       cout << "Start Test # " << i + 1 << endl;
 
       UDT::startup();
 
+#ifndef WIN32
       pthread_t srv, cli;
       pthread_create(&srv, NULL, Test_Srv[i], NULL);
       pthread_create(&cli, NULL, Test_Cli[i], NULL);
 
       pthread_join(srv, NULL);
       pthread_join(cli, NULL);
+#else
+      HANDLE srv, cli;
+      srv = CreateThread(NULL, 0, Test_Srv[i], NULL, 0, NULL);
+      cli = CreateThread(NULL, 0, Test_Cli[i], NULL, 0, NULL);
+
+      WaitForSingleObject(srv, INFINITE);
+      WaitForSingleObject(cli, INFINITE);
+#endif
 
       UDT::cleanup();
 
       cout << "Test # " << i + 1 << " completed." << endl;
    }
-
 
    return 0;
 }
