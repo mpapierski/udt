@@ -808,7 +808,6 @@ int CUDTUnited::close(const UDTSOCKET u)
    m_Sockets.erase(s->m_SocketID);
    m_ClosedSockets.insert(pair<UDTSOCKET, CUDTSocket*>(s->m_SocketID, s));
 
-
    CTimer::triggerEvent();
 
    return 0;

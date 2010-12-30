@@ -1,8 +1,17 @@
+/*
+This is a UDT self-testing program.
+The code in the program may not be cleaned up yet.
+
+for performance testing, use appserver/appclient and sendfile/recvfile.
+*/
+
+
 #ifndef WIN32
    #include <unistd.h>
    #include <cstdlib>
    #include <cstring>
    #include <netdb.h>
+   #include <signal.h>
 #else
    #include <winsock2.h>
    #include <ws2tcpip.h>
@@ -64,6 +73,37 @@ int createUDTSocket(UDTSOCKET& usock, int version = AF_INET, int type = SOCK_STR
    return 0;
 }
 
+int createTCPSocket(SYSSOCKET& ssock, int version = AF_INET, int type = SOCK_STREAM, int port = 0, bool rendezvous = false)
+{
+   addrinfo hints;
+   addrinfo* res;
+
+   memset(&hints, 0, sizeof(struct addrinfo));
+
+   hints.ai_flags = AI_PASSIVE;
+   hints.ai_family = version;
+   hints.ai_socktype = type;
+
+   char service[16];
+   sprintf(service, "%d", port);
+
+   if (0 != getaddrinfo(NULL, service, &hints, &res))
+   {
+      cout << "illegal port number or port is busy.\n" << endl;
+      return -1;
+   }
+
+   ssock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+
+   if (bind(ssock, res->ai_addr, res->ai_addrlen) != 0)
+   {
+      return -1;
+   }
+
+   freeaddrinfo(res);
+   return 0;
+}
+
 int connect(UDTSOCKET& usock, int port, int version, int type)
 {
    addrinfo hints, *peer;
@@ -88,6 +128,32 @@ int connect(UDTSOCKET& usock, int port, int version, int type)
 
    return 0;
 }
+
+int tcp_connect(SYSSOCKET& ssock, int port, int version, int type)
+{
+   addrinfo hints, *peer;
+
+   memset(&hints, 0, sizeof(struct addrinfo));
+
+   hints.ai_flags = AI_PASSIVE;
+   hints.ai_family = version;
+   hints.ai_socktype = type;
+
+   char buffer[16];
+   sprintf(buffer, "%d", port);
+
+   if (0 != getaddrinfo("127.0.0.1", buffer, &hints, &peer))
+   {
+      return NULL;
+   }
+
+   connect(ssock, peer->ai_addr, peer->ai_addrlen);
+
+   freeaddrinfo(peer);
+
+   return 0;
+}
+
 
 #ifndef WIN32
 void* Test_1_Srv(void* param)
@@ -184,6 +250,15 @@ void* Test_2_Srv(void* param)
 DWORD WINAPI Test_2_Srv(LPVOID param)
 #endif
 {
+#ifndef WIN32
+   //ignore SIGPIPE
+   sigset_t ps;
+   sigemptyset(&ps);
+   sigaddset(&ps, SIGPIPE);
+   pthread_sigmask(SIG_BLOCK, &ps, NULL);
+#endif
+
+   // create 1000 UDT sockets
    UDTSOCKET serv;
    if (createUDTSocket(serv, AF_INET, SOCK_STREAM, 9000) < 0)
       return NULL;
@@ -210,17 +285,46 @@ DWORD WINAPI Test_2_Srv(LPVOID param)
       UDT::epoll_add_usock(eid, new_socks[i]);
    }
 
+
+   // create 10 TCP sockets
+   SYSSOCKET tcp_serv;
+   if (createTCPSocket(tcp_serv, AF_INET, SOCK_STREAM, 9001) < 0)
+      return NULL;
+
+   listen(tcp_serv, 10);
+
+   vector<SYSSOCKET> tcp_socks;
+   tcp_socks.resize(10);
+
+   for (int i = 0; i < 10; ++ i)
+   {
+      sockaddr_storage clientaddr;
+      socklen_t addrlen = sizeof(clientaddr);
+      tcp_socks[i] = accept(tcp_serv, (sockaddr*)&clientaddr, &addrlen);
+
+      UDT::epoll_add_ssock(eid, tcp_socks[i]);
+   }
+
+
+   // using epoll to retrieve both UDT and TCP sockets
    set<UDTSOCKET> readfds;
-   int count = 1000;
+   set<SYSSOCKET> tcpread;
+   int count = 1000 + 10;
    while (count > 0)
    {
-      UDT::epoll_wait(eid, &readfds, NULL, -1);
+      UDT::epoll_wait(eid, &readfds, NULL, -1, &tcpread);
       for (set<UDTSOCKET>::iterator i = readfds.begin(); i != readfds.end(); ++ i)
       {
          int32_t data;
          UDT::recv(*i, (char*)&data, 4, 0);
 
-         //TODO: check data value, should = i
+         -- count;
+      }
+
+      for (set<SYSSOCKET>::iterator i = tcpread.begin(); i != tcpread.end(); ++ i)
+      {
+         int32_t data;
+         recv(*i, (char*)&data, 4, 0);
 
          -- count;
       }
@@ -231,7 +335,21 @@ DWORD WINAPI Test_2_Srv(LPVOID param)
       UDT::close(*i);
    }
 
+   for (vector<SYSSOCKET>::iterator i = tcp_socks.begin(); i != tcp_socks.end(); ++ i)
+   {
+#ifndef WIN32
+      close(*i);
+#else
+      closesocket(*i);
+#endif
+   }
+
    UDT::close(serv);
+#ifndef WIN32
+   close(tcp_serv);
+#else
+   closesocket(tcp_serv);
+#endif
 
    return NULL;
 }
@@ -242,9 +360,17 @@ void* Test_2_Cli(void* param)
 DWORD WINAPI Test_2_Cli(LPVOID param)
 #endif
 {
+#ifndef WIN32
+   //ignore SIGPIPE
+   sigset_t ps;
+   sigemptyset(&ps);
+   sigaddset(&ps, SIGPIPE);
+   pthread_sigmask(SIG_BLOCK, &ps, NULL);
+#endif
+
+   // create 1000 UDT clients
    vector<UDTSOCKET> cli_socks;
    cli_socks.resize(1000);
-
 
    // 100 individual ports
    for (int i = 0; i < 100; ++ i)
@@ -292,6 +418,23 @@ DWORD WINAPI Test_2_Cli(LPVOID param)
       }
    }
 
+
+   // create 10 TCP clients
+   vector<SYSSOCKET> tcp_socks;
+   tcp_socks.resize(10);
+
+   for (int i = 0; i < 10; ++ i)
+   {
+      if (createTCPSocket(tcp_socks[i], AF_INET, SOCK_STREAM, 0) < 0)
+      {
+         return NULL;
+      }
+
+      tcp_connect(tcp_socks[i], 9001, AF_INET, SOCK_STREAM);
+   }
+
+
+   // send data from both UDT and TCP clients
    int32_t data = 0;
    for (vector<UDTSOCKET>::iterator i = cli_socks.begin(); i != cli_socks.end(); ++ i)
    {
@@ -299,9 +442,26 @@ DWORD WINAPI Test_2_Cli(LPVOID param)
       ++ data;
    }
 
+   for (vector<SYSSOCKET>::iterator i = tcp_socks.begin(); i != tcp_socks.end(); ++ i)
+   {
+      send(*i, (char*)&data, 4, 0);
+      ++ data;
+   }
+
+
+   // close all client sockets
    for (vector<UDTSOCKET>::iterator i = cli_socks.begin(); i != cli_socks.end(); ++ i)
    {
       UDT::close(*i);
+   }
+
+   for (vector<SYSSOCKET>::iterator i = tcp_socks.begin(); i != tcp_socks.end(); ++ i)
+   {
+#ifndef WIN32
+      close(*i);
+#else
+      closesocket(*i);
+#endif
    }
 
    return NULL;
