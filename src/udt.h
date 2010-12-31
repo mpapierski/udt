@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/14/2010
+   Yunhong Gu, last updated 12/31/2010
 *****************************************************************************/
 
 #ifndef __UDT_H__
@@ -97,20 +97,17 @@ written by
 #ifdef WIN32
    #ifndef __MINGW__
       typedef SOCKET UDPSOCKET;
+      typedef SOCKET SYSSOCKET;
    #else
       typedef int UDPSOCKET;
+      typedef int SYSSOCKET;
    #endif
 #else
    typedef int UDPSOCKET;
+   typedef int SYSSOCKET;
 #endif
 
 typedef int UDTSOCKET;
-
-#ifndef WIN32
-   typedef int SYSSOCKET;
-#else
-   typedef SOCKET SYSSOCKET;
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -129,6 +126,7 @@ enum EPOLLOpt
    UDT_EPOLL_ERR = 0x8
 };
 
+enum UDTSTATUS {INIT = 1, OPENED, LISTENING, CONNECTED, BROKEN, CLOSED, NONEXIST};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -331,6 +329,7 @@ UDT_API int epoll_wait(const int eid, std::set<UDTSOCKET>* readfds, std::set<UDT
 UDT_API int epoll_release(const int eid);
 UDT_API ERRORINFO& getlasterror();
 UDT_API int perfmon(UDTSOCKET u, TRACEINFO* perf, bool clear = true);
+UDT_API UDTSTATUS getsockstate(UDTSOCKET u);
 }
 
 #endif

@@ -105,6 +105,7 @@ public: //API
    static int epoll_release(const int eid);
    static CUDTException& getlasterror();
    static int perfmon(UDTSOCKET u, CPerfMon* perf, bool clear = true);
+   static UDTSTATUS getsockstate(UDTSOCKET u);
 
 public: // internal API
    static CUDT* getUDTHandle(UDTSOCKET u);

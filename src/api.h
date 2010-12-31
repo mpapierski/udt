@@ -58,7 +58,6 @@ public:
    CUDTSocket();
    ~CUDTSocket();
 
-   enum UDTSTATUS {INIT = 1, OPENED, LISTENING, CONNECTED, BROKEN, CLOSED};
    UDTSTATUS m_Status;                       // current socket state
 
    uint64_t m_TimeStamp;                     // time when the socket is closed
@@ -155,9 +154,9 @@ public:
       // Parameters:
       //    0) [in] u: the UDT socket ID.
       // Returned value:
-      //    UDT socket status, or INIT if not found.
+      //    UDT socket status, or NONEXIST if not found.
 
-   CUDTSocket::UDTSTATUS getStatus(const UDTSOCKET u);
+   UDTSTATUS getStatus(const UDTSOCKET u);
 
       // socket APIs
 
