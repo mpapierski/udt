@@ -1,4 +1,4 @@
-Copyright (c) 2001 - 2010, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
 All Rights Reserved.
 
 UDP-based Data Transfer (UDT) Library - version 4
@@ -17,7 +17,7 @@ CONTENT:
 ./src:     UDT source code 
 ./app:     Example programs 
 ./doc:     UDT documentation (HTML)
-./win:     VS.Net project files for the Windows version of UDT 
+./win:     Visual C++ project files for the Windows version of UDT 
 
 
 To make: 
@@ -29,7 +29,7 @@ YYY: [IA32(default), POWERPC, IA64, AMD64]
 For example, on OS X, you may need to do "make -e os=OSX arch=POWERPC"; 
 on 32-bit i386 Linux system, simply use "make".
 
-On Windows systems, use the Visual Studio .NET project files in ./win directory.
+On Windows systems, use the Visual C++ project files in ./win directory.
 
 
 To use UDT in your application:
@@ -38,4 +38,4 @@ browser to support JavaScript.
 
 
 Questions? please post to the UDT project forum:
-https://sourceforge.net/forum/?group_id=115059
+https://sourceforge.net/projects/udt/forums

@@ -1182,7 +1182,7 @@ void CUDTUnited::checkBrokenSockets()
       // timeout 1 second to destroy a socket AND it has been removed from RcvUList AND no linger data to send
       if ((CTimer::getTime() - j->second->m_TimeStamp > 1000000) && 
           ((NULL == j->second->m_pUDT->m_pRNode) || !j->second->m_pUDT->m_pRNode->m_bOnList) &&
-          ((0 == j->second->m_pUDT->m_pSndBuffer->getCurrBufSize()) || (j->second->m_pUDT->m_ullLingerExpiration < CTimer::getTime())))
+          ((NULL == j->second->m_pUDT->m_pSndBuffer) || (0 == j->second->m_pUDT->m_pSndBuffer->getCurrBufSize()) || (j->second->m_pUDT->m_ullLingerExpiration <= CTimer::getTime())))
       {
          tbr.push_back(j->first);
       }

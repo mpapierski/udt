@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 08/06/2010
+   Yunhong Gu, last updated 12/31/2010
 *****************************************************************************/
 
 #ifdef WIN32
@@ -782,6 +782,7 @@ void CRendezvousQueue::remove(const UDTSOCKET& id)
    CGuard vg(m_RIDVectorLock);
 
    for (vector<CRL>::iterator i = m_vRendezvousID.begin(); i != m_vRendezvousID.end(); ++ i)
+   {
       if (i->m_iID == id)
       {
          if (AF_INET == i->m_iIPversion)
@@ -793,6 +794,7 @@ void CRendezvousQueue::remove(const UDTSOCKET& id)
 
          return;
       }
+   }
 }
 
 bool CRendezvousQueue::retrieve(const sockaddr* addr, UDTSOCKET& id)

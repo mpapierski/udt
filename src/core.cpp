@@ -542,6 +542,7 @@ void CUDT::connect(const sockaddr* serv_addr)
       throw CUDTException(5, 2, 0);
 
    // register this socket in the rendezvous queue
+   // RendezevousQueue is used to temporarily store incoming handshake, non-rendezvous connections also require this function
    m_pRcvQueue->m_pRendezvousQueue->insert(m_SocketID, m_iIPversion, serv_addr);
 
    CPacket request;
@@ -670,6 +671,9 @@ void CUDT::connect(const sockaddr* serv_addr)
    delete [] reqdata;
    delete [] resdata;
 
+   // remove from rendezvous queue
+   m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
+
    if (e.getErrorCode() == 0)
    {
       if (m_bClosing)						// if the socket is closed before connection...
@@ -682,10 +686,6 @@ void CUDT::connect(const sockaddr* serv_addr)
 
    if (e.getErrorCode() != 0)
    {
-      // connection failure, clean up and throw exception
-      if (m_bRendezvous)
-         m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
-
       throw e;
    }
 
@@ -747,9 +747,6 @@ void CUDT::connect(const sockaddr* serv_addr)
    // register this socket for receiving data packets
    m_pRNode->m_bOnList = true;
    m_pRcvQueue->setNewEntry(this);
-
-   // remove from rendezvous queue
-   m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
 
    // acknowledde any waiting epolls to read/write
    s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
