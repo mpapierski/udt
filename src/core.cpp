@@ -553,7 +553,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    char* resdata = new char [m_iPayloadSize];
    CHandShake res;
 
-   // This is my current configurations.
+   // This is my current configurations
    req.m_iVersion = m_iVersion;
    req.m_iType = m_iSockType;
    req.m_iMSS = m_iMSS;

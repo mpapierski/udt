@@ -218,7 +218,7 @@ private:
 
 private:
    CUDTSocket* locate(const UDTSOCKET u);
-   CUDTSocket* locate(const UDTSOCKET u, const sockaddr* peer, const UDTSOCKET& id, const int32_t& isn);
+   CUDTSocket* locate(const sockaddr* peer, const UDTSOCKET& id, const int32_t& isn);
    void updateMux(CUDTSocket* s, const sockaddr* addr = NULL, const UDPSOCKET* = NULL);
    void updateMux(CUDTSocket* s, const CUDTSocket* ls);
 

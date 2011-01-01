@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2010, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 10/12/2010
+   Yunhong Gu, last updated 01/01/2011
 *****************************************************************************/
 
 #include "udt.h"
@@ -144,6 +144,8 @@ int CEPoll::remove_usock(const int eid, const UDTSOCKET& u, const int* /*events*
       throw CUDTException(5, 13);
 
    p->second.m_sUDTSocks.erase(u);
+   p->second.m_sUDTReads.erase(u);
+   p->second.m_sUDTWrites.erase(u);
 
    return 0;
 }
