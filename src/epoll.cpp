@@ -144,8 +144,11 @@ int CEPoll::remove_usock(const int eid, const UDTSOCKET& u, const int* /*events*
       throw CUDTException(5, 13);
 
    p->second.m_sUDTSocks.erase(u);
-   p->second.m_sUDTReads.erase(u);
-   p->second.m_sUDTWrites.erase(u);
+
+   //this socket SHOULD NOT be removed from the ready set; application may need to learn the status from these sets
+   //the ready sets can be cleared when the app calls epoll_wait
+   //p->second.m_sUDTReads.erase(u);
+   //p->second.m_sUDTWrites.erase(u);
 
    return 0;
 }

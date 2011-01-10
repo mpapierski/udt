@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2010, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/14/2010
+   Yunhong Gu, last updated 01/02/2011
 *****************************************************************************/
 
 
@@ -365,7 +365,7 @@ m_piPeerIP()
 {
 }
 
-int CHandShake::serialize(char* buf, const int& size)
+int CHandShake::serialize(char* buf, int& size)
 {
    if (size < m_iContentSize)
       return -1;
@@ -381,6 +381,8 @@ int CHandShake::serialize(char* buf, const int& size)
    *p++ = m_iCookie;
    for (int i = 0; i < 4; ++ i)
       *p++ = m_piPeerIP[i];
+
+   size = m_iContentSize;
 
    return 0;
 }
