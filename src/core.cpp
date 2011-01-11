@@ -1011,7 +1011,12 @@ int CUDT::send(const char* data, const int& len)
    }
 
    if (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())
-      return 0; 
+   {
+      if (m_iSndTimeOut >= 0)
+         throw CUDTException(6, 1, 0); 
+
+      return 0;
+   }
 
    int size = (m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize;
    if (size > len)
@@ -1117,6 +1122,9 @@ int CUDT::recv(char* data, const int& len)
       s_UDTUnited.m_EPoll.disable_read(m_SocketID, m_sPollID);
    }
 
+   if ((res <= 0) && (m_iRcvTimeOut >= 0))
+      throw CUDTException(6, 2, 0);
+
    return res;
 }
 
@@ -1189,7 +1197,12 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
    }
 
    if ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len)
+   {
+      if (m_iSndTimeOut >= 0)
+         throw CUDTException(6, 1, 0);
+
       return 0;
+   }
 
    // record total time used for sending
    if (0 == m_pSndBuffer->getCurrBufSize())
@@ -1300,6 +1313,9 @@ int CUDT::recvmsg(char* data, const int& len)
       // read is not available any more
       s_UDTUnited.m_EPoll.disable_read(m_SocketID, m_sPollID);
    }
+
+   if ((res <= 0) && (m_iRcvTimeOut >= 0))
+      throw CUDTException(6, 2, 0);
 
    return res;
 }
