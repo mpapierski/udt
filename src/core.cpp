@@ -893,6 +893,10 @@ void CUDT::close()
    if (m_bConnected)
       m_pSndQueue->m_pSndUList->remove(this);
 
+   // remove itself from all epoll monitoring
+   for (set<int>::iterator i = m_sPollID.begin(); i != m_sPollID.end(); ++ i)
+      s_UDTUnited.m_EPoll.remove_usock(*i, m_SocketID);
+
    CGuard cg(m_ConnectionLock);
 
    if (!m_bOpened)
@@ -927,14 +931,6 @@ void CUDT::close()
    // waiting all send and recv calls to stop
    CGuard sendguard(m_SendLock);
    CGuard recvguard(m_RecvLock);
-
-   // remove itself from all epoll monitoring
-   // however, if an epoll is mornitoring this socket, needs to acknowledge the app
-   s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
-   s_UDTUnited.m_EPoll.enable_write(m_SocketID, m_sPollID);
-   for (set<int>::iterator i = m_sPollID.begin(); i != m_sPollID.end(); ++ i)
-      s_UDTUnited.m_EPoll.remove_usock(*i, m_SocketID);
-
 
    // CLOSED.
    m_bOpened = false;
@@ -2569,6 +2565,9 @@ void CUDT::addEPoll(const int eid)
 
 void CUDT::removeEPoll(const int eid)
 {
+   s_UDTUnited.m_EPoll.disable_read(m_SocketID, m_sPollID);
+   s_UDTUnited.m_EPoll.disable_write(m_SocketID, m_sPollID);
+
    CGuard::enterCS(s_UDTUnited.m_EPoll.m_EPollLock);
    m_sPollID.erase(eid);
    CGuard::leaveCS(s_UDTUnited.m_EPoll.m_EPollLock);

@@ -145,10 +145,9 @@ int CEPoll::remove_usock(const int eid, const UDTSOCKET& u, const int* /*events*
 
    p->second.m_sUDTSocks.erase(u);
 
-   //this socket SHOULD NOT be removed from the ready set; application may need to learn the status from these sets
-   //the ready sets can be cleared when the app calls epoll_wait
-   //p->second.m_sUDTReads.erase(u);
-   //p->second.m_sUDTWrites.erase(u);
+   // when the socket is removed from a monitoring, it is not available anymore for any IO notification
+   p->second.m_sUDTReads.erase(u);
+   p->second.m_sUDTWrites.erase(u);
 
    return 0;
 }
@@ -188,6 +187,10 @@ int CEPoll::remove_ssock(const int eid, const SYSSOCKET& s, const int* events)
 
 int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<SYSSOCKET>* lrfds, set<SYSSOCKET>* lwfds)
 {
+   // if all fields is NULL and waiting time is infinite, then this would be a deadlock
+   if (!readfds && !writefds && !lrfds && lwfds && (msTimeOut < 0))
+      throw CUDTException(5, 3, 0);
+
    int total = 0;
 
    int64_t entertime = CTimer::getTime();
@@ -200,6 +203,13 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
       {
          CGuard::leaveCS(m_EPollLock);
          throw CUDTException(5, 13);
+      }
+
+      if (((readfds || writefds) && p->second.m_sUDTSocks.empty()) && ((lrfds || lwfds) && p->second.m_sLocals.empty()))
+      {
+         // no socket is being monitored, this may be a deadlock
+         CGuard::leaveCS(m_EPollLock);
+         throw CUDTException(5, 3);
       }
 
       if ((NULL != readfds) && !p->second.m_sUDTReads.empty())
