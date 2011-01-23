@@ -1849,8 +1849,12 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
    if ((CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck) || (2 == ctrlpkt.getType()) || (3 == ctrlpkt.getType()))
    {
-      CTimer::rdtsc(m_ullNextEXPTime);
-      m_ullNextEXPTime += m_ullEXPInt;
+      uint64_t currtime;
+      CTimer::rdtsc(currtime);
+      if (!m_pCC->m_bUserDefinedRTO)
+         m_ullNextEXPTime = currtime + m_ullEXPInt;
+      else
+         m_ullNextEXPTime = currtime + m_pCC->m_iRTO * m_ullCPUFrequency;
    }
 
    switch (ctrlpkt.getType())
@@ -1989,7 +1993,6 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
       // update RTT
       rtt = m_pACKWindow->acknowledge(ctrlpkt.getAckSeqNo(), ack);
-
       if (rtt <= 0)
          break;
 
@@ -2299,11 +2302,12 @@ int CUDT::processData(CUnit* unit)
 
    if (CSeqNo::incseq(m_iSndCurrSeqNo) == m_iSndLastAck)
    {
-      CTimer::rdtsc(m_ullNextEXPTime);
+      uint64_t currtime;
+      CTimer::rdtsc(currtime);
       if (!m_pCC->m_bUserDefinedRTO)
-         m_ullNextEXPTime += m_ullEXPInt;
+         m_ullNextEXPTime = currtime + m_ullEXPInt;
       else
-         m_ullNextEXPTime += m_pCC->m_iRTO * m_ullCPUFrequency;
+         m_ullNextEXPTime = currtime + m_pCC->m_iRTO * m_ullCPUFrequency;
    }
 
    m_pCC->onPktReceived(&packet);
@@ -2457,7 +2461,6 @@ void CUDT::checkTimers()
 
    uint64_t currtime;
    CTimer::rdtsc(currtime);
-   int32_t loss = m_pRcvLossList->getFirstLostSeq();
 
    if ((currtime > m_ullNextACKTime) || ((m_pCC->m_iACKInterval > 0) && (m_pCC->m_iACKInterval <= m_iPktCount)))
    {
@@ -2480,14 +2483,15 @@ void CUDT::checkTimers()
       ++ m_iLightACKCount;
    }
 
-   if ((loss >= 0) && (currtime > m_ullNextNAKTime))
-   {
-      // NAK timer expired, and there is loss to be reported.
-      sendCtrl(3);
-
-      CTimer::rdtsc(currtime);
-      m_ullNextNAKTime = currtime + m_ullNAKInt;
-   }
+   // we are not sending back repeated NAK anymore and rely on the sender's EXP for retransmission
+   //if ((m_pRcvLossList->getLossLength() > 0) && (currtime > m_ullNextNAKTime))
+   //{
+   //   // NAK timer expired, and there is loss to be reported.
+   //   sendCtrl(3);
+   //
+   //   CTimer::rdtsc(currtime);
+   //   m_ullNextNAKTime = currtime + m_ullNAKInt;
+   //}
 
    if (currtime > m_ullNextEXPTime)
    {

@@ -205,7 +205,7 @@ int CUDTUnited::startup()
       m_GCStopLock = CreateMutex(NULL, false, NULL);
       m_GCStopCond = CreateEvent(NULL, false, false, NULL);
       DWORD ThreadID;
-      m_GCThread = CreateThread(NULL, 0, garbageCollect, this, NULL, &ThreadID);
+      m_GCThread = CreateThread(NULL, 0, garbageCollect, this, 0, &ThreadID);
    #endif
 
    m_bGCStatus = true;

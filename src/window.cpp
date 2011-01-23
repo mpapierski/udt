@@ -126,6 +126,7 @@ int CACKWindow::acknowledge(const int32_t& seq, int32_t& ack)
 
    // Head has exceeded the physical window boundary, so it is behind tail
    for (int j = m_iTail, n = m_iHead + m_iSize; j < n; ++ j)
+   {
       // looking for indentical ACK seq. no.
       if (seq == m_piACKSeqNo[j % m_iSize])
       {
@@ -145,6 +146,7 @@ int CACKWindow::acknowledge(const int32_t& seq, int32_t& ack)
 
          return rtt;
       }
+   }
 
    // bad input, the ACK node has been overwritten
    return -1;
@@ -166,7 +168,9 @@ m_CurrArrTime(),
 m_ProbeTime()
 {
    m_piPktWindow = new int[m_iAWSize];
+   m_piPktReplica = new int[m_iAWSize];
    m_piProbeWindow = new int[m_iPWSize];
+   m_piProbeReplica = new int[m_iPWSize];
 
    m_LastArrTime = CTimer::getTime();
 
@@ -191,7 +195,9 @@ m_CurrArrTime(),
 m_ProbeTime()
 {
    m_piPktWindow = new int[m_iAWSize];
+   m_piPktReplica = new int[m_iAWSize];
    m_piProbeWindow = new int[m_iPWSize];
+   m_piProbeReplica = new int[m_iPWSize];
 
    m_LastArrTime = CTimer::getTime();
 
@@ -205,7 +211,9 @@ m_ProbeTime()
 CPktTimeWindow::~CPktTimeWindow()
 {
    delete [] m_piPktWindow;
+   delete [] m_piPktReplica;
    delete [] m_piProbeWindow;
+   delete [] m_piProbeReplica;
 }
 
 int CPktTimeWindow::getMinPktSndInt() const
@@ -216,11 +224,9 @@ int CPktTimeWindow::getMinPktSndInt() const
 int CPktTimeWindow::getPktRcvSpeed() const
 {
    // get median value, but cannot change the original value order in the window
-   int* replica = new int[m_iAWSize];
-   std::copy(m_piPktWindow, m_piPktWindow + m_iAWSize - 1, replica);
-   std::nth_element(replica, replica + (m_iAWSize / 2), replica + m_iAWSize - 1);
-   int median = replica[m_iAWSize / 2];
-   delete [] replica;
+   std::copy(m_piPktWindow, m_piPktWindow + m_iAWSize - 1, m_piPktReplica);
+   std::nth_element(m_piPktReplica, m_piPktReplica + (m_iAWSize / 2), m_piPktReplica + m_iAWSize - 1);
+   int median = m_piPktReplica[m_iAWSize / 2];
 
    int count = 0;
    int sum = 0;
@@ -249,11 +255,9 @@ int CPktTimeWindow::getPktRcvSpeed() const
 int CPktTimeWindow::getBandwidth() const
 {
    // get median value, but cannot change the original value order in the window
-   int* replica = new int[m_iPWSize];
-   std::copy(m_piProbeWindow, m_piProbeWindow + m_iPWSize - 1, replica);
-   std::nth_element(replica, replica + (m_iPWSize / 2), replica + m_iPWSize - 1);
-   int median = replica[m_iPWSize / 2];
-   delete [] replica;
+   std::copy(m_piProbeWindow, m_piProbeWindow + m_iPWSize - 1, m_piProbeReplica);
+   std::nth_element(m_piProbeReplica, m_piProbeReplica + (m_iPWSize / 2), m_piProbeReplica + m_iPWSize - 1);
+   int median = m_piProbeReplica[m_iPWSize / 2];
 
    int count = 1;
    int sum = median;

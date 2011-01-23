@@ -119,7 +119,7 @@ int connect(UDTSOCKET& usock, int port, int version, int type)
 
    if (0 != getaddrinfo("127.0.0.1", buffer, &hints, &peer))
    {
-      return NULL;
+      return 0;
    }
 
    UDT::connect(usock, peer->ai_addr, peer->ai_addrlen);
@@ -144,7 +144,7 @@ int tcp_connect(SYSSOCKET& ssock, int port, int version, int type)
 
    if (0 != getaddrinfo("127.0.0.1", buffer, &hints, &peer))
    {
-      return NULL;
+      return 0;
    }
 
    connect(ssock, peer->ai_addr, peer->ai_addrlen);

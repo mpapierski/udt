@@ -165,10 +165,12 @@ public:
 private:
    int m_iAWSize;               // size of the packet arrival history window
    int* m_piPktWindow;          // packet information window
+   int* m_piPktReplica;
    int m_iPktWindowPtr;         // position pointer of the packet info. window.
 
    int m_iPWSize;               // size of probe history window size
    int* m_piProbeWindow;        // record inter-packet time for probing packet pairs
+   int* m_piProbeReplica;
    int m_iProbeWindowPtr;       // position pointer to the probing window
 
    int m_iLastSentTime;         // last packet sending time
