@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,12 +35,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 07/09/2009
+   Yunhong Gu, last updated 01/22/2011
 *****************************************************************************/
 
 #include <cmath>
 #include "common.h"
 #include "window.h"
+#include <algorithm>
 
 
 CACKWindow::CACKWindow():
@@ -214,26 +215,13 @@ int CPktTimeWindow::getMinPktSndInt() const
 
 int CPktTimeWindow::getPktRcvSpeed() const
 {
-   // sorting
-   int* pi = m_piPktWindow;
-   for (int i = 0, n = (m_iAWSize >> 1) + 1; i < n; ++ i)
-   {
-      int* pj = pi;
-      for (int j = i, m = m_iAWSize; j < m; ++ j)
-      {
-         if (*pi > *pj)
-         {
-            int temp = *pi;
-            *pi = *pj;
-            *pj = temp;
-         }
-         ++ pj;
-      }
-      ++ pi;
-   }
+   // get median value, but cannot change the original value order in the window
+   int* replica = new int[m_iAWSize];
+   std::copy(m_piPktWindow, m_piPktWindow + m_iAWSize - 1, replica);
+   std::nth_element(replica, replica + (m_iAWSize / 2), replica + m_iAWSize - 1);
+   int median = replica[m_iAWSize / 2];
+   delete [] replica;
 
-   // read the median value
-   int median = (m_piPktWindow[(m_iAWSize >> 1) - 1] + m_piPktWindow[m_iAWSize >> 1]) >> 1;
    int count = 0;
    int sum = 0;
    int upper = median << 3;
@@ -260,26 +248,13 @@ int CPktTimeWindow::getPktRcvSpeed() const
 
 int CPktTimeWindow::getBandwidth() const
 {
-   // sorting
-   int* pi = m_piProbeWindow;
-   for (int i = 0, n = (m_iPWSize >> 1) + 1; i < n; ++ i)
-   {
-      int* pj = pi;
-      for (int j = i, m = m_iPWSize; j < m; ++ j)
-      {
-         if (*pi > *pj)
-         {
-            int temp = *pi;
-            *pi = *pj;
-            *pj = temp;
-         }
-         ++ pj;
-      }
-      ++ pi;
-   }
+   // get median value, but cannot change the original value order in the window
+   int* replica = new int[m_iPWSize];
+   std::copy(m_piProbeWindow, m_piProbeWindow + m_iPWSize - 1, replica);
+   std::nth_element(replica, replica + (m_iPWSize / 2), replica + m_iPWSize - 1);
+   int median = replica[m_iPWSize / 2];
+   delete [] replica;
 
-   // read the median value
-   int median = (m_piProbeWindow[(m_iPWSize >> 1) - 1] + m_piProbeWindow[m_iPWSize >> 1]) >> 1;
    int count = 1;
    int sum = median;
    int upper = median << 3;

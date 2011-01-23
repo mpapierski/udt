@@ -156,6 +156,7 @@ private:
       //    None.
 
    void close();
+
       // Functionality:
       //    Request UDT to send out a data block "data" with size of "len".
       // Parameters:
@@ -272,7 +273,7 @@ private: // Packet size and sequence number attributes
    int m_iPayloadSize;                          // Maximum/regular payload size, in bytes
 
 private: // Options
-   int m_iMSS;                                  // Maximum Segment Size
+   int m_iMSS;                                  // Maximum Segment Size, in bytes
    bool m_bSynSending;                          // Sending syncronization mode
    bool m_bSynRecving;                          // Receiving syncronization mode
    int m_iFlightFlagSize;                       // Maximum number of packets in flight from the peer side
@@ -304,8 +305,8 @@ private: // Status
    int m_iBrokenCounter;			// a counter (number of GC checks) to let the GC tag this socket as disconnected
 
    int m_iEXPCount;                             // Expiration counter
-   int m_iBandwidth;                            // Estimated bandwidth
-   int m_iRTT;                                  // RTT
+   int m_iBandwidth;                            // Estimated bandwidth, number of packets per second
+   int m_iRTT;                                  // RTT, in microseconds
    int m_iRTTVar;                               // RTT variance
    int m_iDeliveryRate;				// Packet arrival rate at the receiver side
 
@@ -399,12 +400,12 @@ private: // Trace
    int64_t m_llSndDurationCounter;		// timers to record the sending duration
 
 private: // Timers
-   uint64_t m_ullCPUFrequency;                  // CPU clock frequency, used for Timer
+   uint64_t m_ullCPUFrequency;                  // CPU clock frequency, used for Timer, ticks per microsecond
 
-   static const int m_iSYNInterval;             // Periodical Rate Control Interval, 10 ms
+   static const int m_iSYNInterval;             // Periodical Rate Control Interval, 10000 microsecond
    static const int m_iSelfClockInterval;       // ACK interval for self-clocking
 
-   uint64_t m_ullNextACKTime;			// Next ACK time, in CPU clock cycles
+   uint64_t m_ullNextACKTime;			// Next ACK time, in CPU clock cycles, same below
    uint64_t m_ullNextNAKTime;			// Next NAK time
    uint64_t m_ullNextEXPTime;			// Next timeout
 
@@ -414,12 +415,13 @@ private: // Timers
    volatile uint64_t m_ullEXPInt;		// EXP interval
    volatile int64_t m_llLastRspTime;		// time stamp of last response from the peer
 
+   uint64_t m_ullMinNakInt;			// NAK timeout lower bound; too small value can cause unnecessary retransmission
    uint64_t m_ullMinExpInt;			// timeout lower bound threshold: too small timeout can cause problem
 
    int m_iPktCount;				// packet counter for ACK
    int m_iLightACKCount;			// light ACK counter
 
-   uint64_t m_ullTargetTime;			// target time of next packet sending
+   uint64_t m_ullTargetTime;			// scheduled time of next packet sending
 
    void checkTimers();
 

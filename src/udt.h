@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2010, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/31/2010
+   Yunhong Gu, last updated 01/18/2011
 *****************************************************************************/
 
 #ifndef __UDT_H__
@@ -49,6 +49,7 @@ written by
 #else
    #include <windows.h>
    #ifdef __MINGW__
+      #include <sdtint.h>
       #include <ws2tcpip.h>
    #endif
 #endif

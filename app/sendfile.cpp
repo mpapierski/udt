@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
    // use this function to release the UDT library
    UDT::cleanup();
 
-   return 1;
+   return 0;
 }
 
 #ifndef WIN32
