@@ -49,7 +49,7 @@ written by
 class CSndLossList
 {
 public:
-   CSndLossList(const int& size);
+   CSndLossList(const int& size = 1024);
    ~CSndLossList();
 
       // Functionality:
@@ -111,7 +111,7 @@ private:
 class CRcvLossList
 {
 public:
-   CRcvLossList(const int& size);
+   CRcvLossList(const int& size = 1024);
    ~CRcvLossList();
 
       // Functionality:

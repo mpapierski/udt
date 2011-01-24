@@ -52,8 +52,7 @@ written by
 class CACKWindow
 {
 public:
-   CACKWindow();
-   CACKWindow(const int& size);
+   CACKWindow(const int& size = 1024);
    ~CACKWindow();
 
       // Functionality:
@@ -95,8 +94,7 @@ private:
 class CPktTimeWindow
 {
 public:
-   CPktTimeWindow();
-   CPktTimeWindow(const int& asize, const int& psize);
+   CPktTimeWindow(const int& asize = 16, const int& psize = 16);
    ~CPktTimeWindow();
 
       // Functionality:

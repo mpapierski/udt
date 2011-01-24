@@ -706,11 +706,11 @@ void CUDT::connect(const sockaddr* serv_addr)
    try
    {
       m_pSndBuffer = new CSndBuffer(32, m_iPayloadSize);
-      m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
+      m_pRcvBuffer = new CRcvBuffer(&(m_pRcvQueue->m_UnitQueue), m_iRcvBufSize);
       // after introducing lite ACK, the sndlosslist may not be cleared in time, so it requires twice space.
       m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
       m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
-      m_pACKWindow = new CACKWindow(4096);
+      m_pACKWindow = new CACKWindow(1024);
       m_pRcvTimeWindow = new CPktTimeWindow(16, 64);
       m_pSndTimeWindow = new CPktTimeWindow();
    }
@@ -725,7 +725,9 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_dCongestionWindow = m_pCC->m_dCWndSize;
 
    CInfoBlock ib;
-   if (m_pCache->lookup(serv_addr, m_iIPversion, &ib) >= 0)
+   ib.m_iIPversion = m_iIPversion;
+   CInfoBlock::convert(serv_addr, m_iIPversion, ib.m_piIP);
+   if (m_pCache->lookup(&ib) >= 0)
    {
       m_iRTT = ib.m_iRTT;
       m_iBandwidth = ib.m_iBandwidth;
@@ -802,10 +804,10 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    try
    {
       m_pSndBuffer = new CSndBuffer(32, m_iPayloadSize);
-      m_pRcvBuffer = new CRcvBuffer(m_iRcvBufSize, &(m_pRcvQueue->m_UnitQueue));
+      m_pRcvBuffer = new CRcvBuffer(&(m_pRcvQueue->m_UnitQueue), m_iRcvBufSize);
       m_pSndLossList = new CSndLossList(m_iFlowWindowSize * 2);
       m_pRcvLossList = new CRcvLossList(m_iFlightFlagSize);
-      m_pACKWindow = new CACKWindow(4096);
+      m_pACKWindow = new CACKWindow(1024);
       m_pRcvTimeWindow = new CPktTimeWindow(16, 64);
       m_pSndTimeWindow = new CPktTimeWindow();
    }
@@ -820,7 +822,9 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_dCongestionWindow = m_pCC->m_dCWndSize;
 
    CInfoBlock ib;
-   if (m_pCache->lookup(peer, m_iIPversion, &ib) >= 0)
+   ib.m_iIPversion = m_iIPversion;
+   CInfoBlock::convert(peer, m_iIPversion, ib.m_piIP);
+   if (m_pCache->lookup(&ib) >= 0)
    {
       m_iRTT = ib.m_iRTT;
       m_iBandwidth = ib.m_iBandwidth;
@@ -923,9 +927,11 @@ void CUDT::close()
       m_pCC->close();
 
       CInfoBlock ib;
+      ib.m_iIPversion = m_iIPversion;
+      CInfoBlock::convert(m_pPeerAddr, m_iIPversion, ib.m_piIP);
       ib.m_iRTT = m_iRTT;
       ib.m_iBandwidth = m_iBandwidth;
-      m_pCache->update(m_pPeerAddr, m_iIPversion, &ib);
+      m_pCache->update(&ib);
 
       m_bConnected = false;
    }
@@ -2251,11 +2257,11 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
    }
 
    packet.m_iTimeStamp = int(CTimer::getTime() - m_StartTime);
-   //m_pSndTimeWindow->onPktSent(packet.m_iTimeStamp);
-
    packet.m_iID = m_PeerID;
+   packet.setLength(payload);
 
    m_pCC->onPktSent(&packet);
+   //m_pSndTimeWindow->onPktSent(packet.m_iTimeStamp);
 
    ++ m_llTraceSent;
    ++ m_llSentTotal;
@@ -2285,9 +2291,6 @@ int CUDT::packData(CPacket& packet, uint64_t& ts)
    }
 
    m_ullTargetTime = ts;
-
-   packet.m_iID = m_PeerID;
-   packet.setLength(payload);
 
    return payload;
 }

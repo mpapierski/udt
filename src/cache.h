@@ -43,14 +43,51 @@ written by
 
 #include "udt.h"
 #include "common.h"
-#include <set>
-#include <map>
+#include <list>
+#include <vector>
 
 
-class CUDT;
-
-struct CInfoBlock
+class CCacheItem
 {
+public:
+   virtual ~CCacheItem() {}
+
+public:
+   virtual CCacheItem& operator=(CCacheItem&) {return *this;}
+   virtual bool operator==(CCacheItem&) {return false;}
+   virtual CCacheItem* clone() {return NULL;}
+   virtual int getKey() {return 0;}
+};
+
+class CCache
+{
+public:
+   CCache(const int& size = 1024);
+   ~CCache();
+
+public:
+   int lookup(CCacheItem* data);
+   int update(CCacheItem* data);
+
+private:
+   std::list<CCacheItem*> m_StorageList;
+   std::vector< std::list<std::list<CCacheItem*>::iterator> > m_vHashPtr;
+
+   int m_iMaxSize;
+   int m_iHashSize;
+   int m_iCurrSize;
+
+   pthread_mutex_t m_Lock;
+
+private:
+   CCache(const CCache&);
+   CCache& operator=(const CCache&);
+};
+
+
+class CInfoBlock: public CCacheItem
+{
+public:
    uint32_t m_piIP[4];
    int m_iIPversion;
    uint64_t m_ullTimeStamp;
@@ -60,42 +97,16 @@ struct CInfoBlock
    int m_iReorderDistance;
    double m_dInterval;
    double m_dCWnd;
-};
-
-struct CIPComp
-{
-   bool operator()(const CInfoBlock* ib1, const CInfoBlock* ib2) const;
-};
-
-struct CTSComp
-{
-   bool operator()(const CInfoBlock* ib1, const CInfoBlock* ib2) const;
-};
-
-class CCache
-{
-public:
-   CCache();
-   CCache(const unsigned int& size);
-   ~CCache();
 
 public:
-   int lookup(const sockaddr* addr, const int& ver, CInfoBlock* hb);
-   void update(const sockaddr* addr, const int& ver, CInfoBlock* hb);
+   virtual CInfoBlock& operator=(CCacheItem& obj);
+   virtual bool operator==(CCacheItem& obj);
+   virtual CInfoBlock* clone();
+   virtual int getKey();
 
-private:
-   void convert(const sockaddr* addr, const int& ver, uint32_t* ip);
-
-private:
-   unsigned int m_uiSize;
-   std::set<CInfoBlock*, CIPComp> m_sIPIndex;
-   std::set<CInfoBlock*, CTSComp> m_sTSIndex;
-
-   pthread_mutex_t m_Lock;
-
-private:
-   CCache(const CCache&);
-   CCache& operator=(const CCache&);
+public:
+   static void convert(const sockaddr* addr, const int& ver, uint32_t ip[]);
 };
+
 
 #endif

@@ -43,21 +43,7 @@ written by
 #include "window.h"
 #include <algorithm>
 
-
-CACKWindow::CACKWindow():
-m_piACKSeqNo(NULL),
-m_piACK(NULL),
-m_pTimeStamp(NULL),
-m_iSize(1024),
-m_iHead(0),
-m_iTail(0)
-{
-   m_piACKSeqNo = new int32_t[m_iSize];
-   m_piACK = new int32_t[m_iSize];
-   m_pTimeStamp = new uint64_t[m_iSize];
-
-   m_piACKSeqNo[0] = -1;
-}
+using namespace std;
 
 CACKWindow::CACKWindow(const int& size):
 m_piACKSeqNo(NULL),
@@ -101,6 +87,7 @@ int CACKWindow::acknowledge(const int32_t& seq, int32_t& ack)
       // Head has not exceeded the physical boundary of the window
 
       for (int i = m_iTail, n = m_iHead; i < n; ++ i)
+      {
          // looking for indentical ACK Seq. No.
          if (seq == m_piACKSeqNo[i])
          {
@@ -109,6 +96,7 @@ int CACKWindow::acknowledge(const int32_t& seq, int32_t& ack)
 
             // calculate RTT
             int rtt = int(CTimer::getTime() - m_pTimeStamp[i]);
+
             if (i + 1 == m_iHead)
             {
                m_iTail = m_iHead = 0;
@@ -119,6 +107,7 @@ int CACKWindow::acknowledge(const int32_t& seq, int32_t& ack)
 
             return rtt;
          }
+      }
 
       // Bad input, the ACK node has been overwritten
       return -1;
@@ -136,6 +125,7 @@ int CACKWindow::acknowledge(const int32_t& seq, int32_t& ack)
 
          // calculate RTT
          int rtt = int(CTimer::getTime() - m_pTimeStamp[j]);
+
          if (j == m_iHead)
          {
             m_iTail = m_iHead = 0;
@@ -153,33 +143,6 @@ int CACKWindow::acknowledge(const int32_t& seq, int32_t& ack)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-CPktTimeWindow::CPktTimeWindow():
-m_iAWSize(16),
-m_piPktWindow(NULL),
-m_iPktWindowPtr(0),
-m_iPWSize(16),
-m_piProbeWindow(NULL),
-m_iProbeWindowPtr(0),
-m_iLastSentTime(0),
-m_iMinPktSndInt(1000000),
-m_LastArrTime(),
-m_CurrArrTime(),
-m_ProbeTime()
-{
-   m_piPktWindow = new int[m_iAWSize];
-   m_piPktReplica = new int[m_iAWSize];
-   m_piProbeWindow = new int[m_iPWSize];
-   m_piProbeReplica = new int[m_iPWSize];
-
-   m_LastArrTime = CTimer::getTime();
-
-   for (int i = 0; i < m_iAWSize; ++ i)
-      m_piPktWindow[i] = 1000000;
-
-   for (int k = 0; k < m_iPWSize; ++ k)
-      m_piProbeWindow[k] = 1000;
-}
 
 CPktTimeWindow::CPktTimeWindow(const int& asize, const int& psize):
 m_iAWSize(asize),
@@ -234,15 +197,15 @@ int CPktTimeWindow::getPktRcvSpeed() const
    int lower = median >> 3;
 
    // median filtering
-   int* pk = m_piPktWindow;
-   for (int k = 0, l = m_iAWSize; k < l; ++ k)
+   int* p = m_piPktWindow;
+   for (int i = 0, n = m_iAWSize; i < n; ++ i)
    {
-      if ((*pk < upper) && (*pk > lower))
+      if ((*p < upper) && (*p > lower))
       {
          ++ count;
-         sum += *pk;
+         sum += *p;
       }
-      ++ pk;
+      ++ p;
    }
 
    // claculate speed, or return 0 if not enough valid value
@@ -265,15 +228,15 @@ int CPktTimeWindow::getBandwidth() const
    int lower = median >> 3;
 
    // median filtering
-   int* pk = m_piProbeWindow;
-   for (int k = 0, l = m_iPWSize; k < l; ++ k)
+   int* p = m_piProbeWindow;
+   for (int i = 0, n = m_iPWSize; i < n; ++ i)
    {
-      if ((*pk < upper) && (*pk > lower))
+      if ((*p < upper) && (*p > lower))
       {
          ++ count;
-         sum += *pk;
+         sum += *p;
       }
-      ++ pk;
+      ++ p;
    }
 
    return (int)ceil(1000000.0 / (double(sum) / double(count)));

@@ -517,7 +517,7 @@ void CSndQueue::init(const CChannel* c, const CTimer* t)
          if (currtime < ts)
             self->m_pTimer->sleepto(ts);
 
-         // it is time to process it, pop it out/remove from the list
+         // it is time to send the next pkt
          sockaddr* addr;
          CPacket pkt;
          if (self->m_pSndUList->pop(addr, pkt) < 0)

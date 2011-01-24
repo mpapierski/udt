@@ -163,7 +163,7 @@ DWORD WINAPI monitor(LPVOID s)
            << perf.pktCongestionWindow << "\t" 
            << perf.usPktSndPeriod << "\t\t\t" 
            << perf.pktRecvACK << "\t" 
-           << perf.pktRecvNAK << " " << perf.mbpsBandwidth << endl;
+           << perf.pktRecvNAK << endl;
    }
 
    #ifndef WIN32

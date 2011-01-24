@@ -48,7 +48,7 @@ written by
    #include <netinet/in.h>
 #else
    #ifdef __MINGW__
-      #include <sdtint.h>
+      #include <stdint.h>
       #include <ws2tcpip.h>
    #endif
    #include <windows.h>
