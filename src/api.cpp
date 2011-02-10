@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2010, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 12/28/2010
+   Yunhong Gu, last updated 01/31/2011
 *****************************************************************************/
 
 #ifdef WIN32
@@ -741,14 +741,14 @@ int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, const int& name
    else if (OPENED != s->m_Status)
       throw CUDTException(5, 2, 0);
 
+   s->m_pUDT->connect(name);
+   s->m_Status = CONNECTED;
+
    // copy address information of local node
    // the local port must be correctly assigned BEFORE CUDT::connect(),
    // otherwise if connect() fails, the multiplexer cannot be located by garbage collection and will cause leak
    s->m_pUDT->m_pSndQueue->m_pChannel->getSockAddr(s->m_pSelfAddr);
    CIPAddress::pton(s->m_pSelfAddr, s->m_pUDT->m_piSelfIP, s->m_iIPversion);
-
-   s->m_pUDT->connect(name);
-   s->m_Status = CONNECTED;
 
    // record peer address
    if (AF_INET == s->m_iIPversion)

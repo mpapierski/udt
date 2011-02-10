@@ -960,8 +960,8 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
 
       unit->m_Packet.setLength(self->m_iPayloadSize);
 
-      // reading next incoming packet
-      if (self->m_pChannel->recvfrom(addr, unit->m_Packet) <= 0)
+      // reading next incoming packet, recvfrom returns -1 is nothing has been received
+      if (self->m_pChannel->recvfrom(addr, unit->m_Packet) < 0)
          goto TIMER_CHECK;
 
       id = unit->m_Packet.m_iID;

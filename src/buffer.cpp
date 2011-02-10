@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2010, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 10/02/2010
+   Yunhong Gu, last updated 02/03/2011
 *****************************************************************************/
 
 #include <cstring>
@@ -188,17 +188,28 @@ int CSndBuffer::addBufferFromFile(fstream& ifs, const int& len)
       if ((pktlen = ifs.gcount()) <= 0)
          break;
 
+      // currently file transfer is only available in streaming mode, message is always in order, ttl = infinite
+      s->m_iMsgNo = m_iNextMsgNo | 0x20000000;
+      if (i == 0)
+         s->m_iMsgNo |= 0x80000000;
+      if (i == size - 1)
+         s->m_iMsgNo |= 0x40000000;
+
       s->m_iLength = pktlen;
       s->m_iTTL = -1;
       s = s->m_pNext;
 
       total += pktlen;
    }
+   m_pLastBlock = s;
 
    CGuard::enterCS(m_BufLock);
-   m_pLastBlock = s;
    m_iCount += size;
    CGuard::leaveCS(m_BufLock);
+
+   m_iNextMsgNo ++;
+   if (m_iNextMsgNo == CMsgNo::m_iMaxMsgNo)
+      m_iNextMsgNo = 1;
 
    return total;
 }

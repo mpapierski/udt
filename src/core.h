@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2001 - 2009, The Board of Trustees of the University of Illinois.
+Copyright (c) 2001 - 2011, The Board of Trustees of the University of Illinois.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 06/10/2009
+   Yunhong Gu, last updated 01/27/2011
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -268,7 +268,7 @@ private: // Identification
    UDTSOCKET m_PeerID;				// peer id, for multiplexer
    static const int m_iVersion;                 // UDT version, for compatibility use
 
-private: // Packet size and sequence number attributes
+private: // Packet sizes
    int m_iPktSize;                              // Maximum/regular packet size, in bytes
    int m_iPayloadSize;                          // Maximum/regular payload size, in bytes
 
