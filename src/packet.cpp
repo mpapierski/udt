@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/02/2011
+   Yunhong Gu, last updated 02/12/2011
 *****************************************************************************/
 
 
@@ -269,6 +269,8 @@ void CPacket::pack(const int& pkttype, void* lparam, void* rparam, const int& si
       // but "writev" does not allow this
       m_PacketVector[1].iov_base = (char *)&__pad; //NULL;
       m_PacketVector[1].iov_len = 4; //0;
+
+      break;
 
    case 32767: //0x7FFF - Reserved for user defined control packets
       // for extended control packet
