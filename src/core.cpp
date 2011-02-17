@@ -484,8 +484,8 @@ void CUDT::open()
    m_ullSYNInt = m_iSYNInterval * m_ullCPUFrequency;
   
    // set minimum NAK and EXP timeout to 100ms
-   m_ullMinNakInt = 100000 * m_ullCPUFrequency;
-   m_ullMinExpInt = 100000 * m_ullCPUFrequency;
+   m_ullMinNakInt = 300000 * m_ullCPUFrequency;
+   m_ullMinExpInt = 300000 * m_ullCPUFrequency;
 
    m_ullACKInt = m_ullSYNInt;
    m_ullNAKInt = m_ullMinNakInt;
@@ -960,6 +960,14 @@ int CUDT::send(const char* data, const int& len)
 
    CGuard sendguard(m_SendLock);
 
+   if (m_pSndBuffer->getCurrBufSize() == 0)
+   {
+      // delay the EXP timer to avoid mis-fired timeout
+      uint64_t currtime;
+      CTimer::rdtsc(currtime);
+      m_ullNextEXPTime = currtime + m_ullEXPInt;
+   }
+
    if (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())
    {
       if (!m_bSynSending)
@@ -1151,6 +1159,14 @@ int CUDT::sendmsg(const char* data, const int& len, const int& msttl, const bool
 
    CGuard sendguard(m_SendLock);
 
+   if (m_pSndBuffer->getCurrBufSize() == 0)
+   {
+      // delay the EXP timer to avoid mis-fired timeout
+      uint64_t currtime;
+      CTimer::rdtsc(currtime);
+      m_ullNextEXPTime = currtime + m_ullEXPInt;
+   }
+
    if ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len)
    {
       if (!m_bSynSending)
@@ -1338,6 +1354,14 @@ int64_t CUDT::sendfile(fstream& ifs, int64_t& offset, const int64_t& size, const
       return 0;
 
    CGuard sendguard(m_SendLock);
+
+   if (m_pSndBuffer->getCurrBufSize() == 0)
+   {
+      // delay the EXP timer to avoid mis-fired timeout
+      uint64_t currtime;
+      CTimer::rdtsc(currtime);
+      m_ullNextEXPTime = currtime + m_ullEXPInt;
+   }
 
    int64_t tosend = size;
    int unitsize;

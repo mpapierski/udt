@@ -44,7 +44,6 @@ written by
 #include <cmath>
 #include <cstring>
 
-
 CCC::CCC():
 m_iSYNInterval(CUDT::m_iSYNInterval),
 m_dPktSndPeriod(1.0),
