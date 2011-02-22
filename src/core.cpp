@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/22/2011
+   Yunhong Gu, last updated 02/22/2011
 *****************************************************************************/
 
 #ifndef WIN32
@@ -719,11 +719,6 @@ void CUDT::connect(const sockaddr* serv_addr)
       throw CUDTException(3, 2, 0);
    }
 
-   m_pCC = m_pCCFactory->create();
-   m_pCC->m_UDT = m_SocketID;
-   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-   m_dCongestionWindow = m_pCC->m_dCWndSize;
-
    CInfoBlock ib;
    ib.m_iIPversion = m_iIPversion;
    CInfoBlock::convert(serv_addr, m_iIPversion, ib.m_piIP);
@@ -733,6 +728,8 @@ void CUDT::connect(const sockaddr* serv_addr)
       m_iBandwidth = ib.m_iBandwidth;
    }
 
+   m_pCC = m_pCCFactory->create();
+   m_pCC->m_UDT = m_SocketID;
    m_pCC->setMSS(m_iMSS);
    m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
    m_pCC->setSndCurrSeqNo((int32_t&)m_iSndCurrSeqNo);
@@ -741,6 +738,9 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pCC->setBandwidth(m_iBandwidth);
    if (m_llMaxBW > 0) m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
    m_pCC->init();
+
+   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+   m_dCongestionWindow = m_pCC->m_dCWndSize;
 
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
    memcpy(m_pPeerAddr, serv_addr, (AF_INET == m_iIPversion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
@@ -816,11 +816,6 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
       throw CUDTException(3, 2, 0);
    }
 
-   m_pCC = m_pCCFactory->create();
-   m_pCC->m_UDT = m_SocketID;
-   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-   m_dCongestionWindow = m_pCC->m_dCWndSize;
-
    CInfoBlock ib;
    ib.m_iIPversion = m_iIPversion;
    CInfoBlock::convert(peer, m_iIPversion, ib.m_piIP);
@@ -830,6 +825,8 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
       m_iBandwidth = ib.m_iBandwidth;
    }
 
+   m_pCC = m_pCCFactory->create();
+   m_pCC->m_UDT = m_SocketID;
    m_pCC->setMSS(m_iMSS);
    m_pCC->setMaxCWndSize((int&)m_iFlowWindowSize);
    m_pCC->setSndCurrSeqNo((int32_t&)m_iSndCurrSeqNo);
@@ -838,6 +835,9 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pCC->setBandwidth(m_iBandwidth);
    if (m_llMaxBW > 0) m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
    m_pCC->init();
+
+   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+   m_dCongestionWindow = m_pCC->m_dCWndSize;
 
    m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
    memcpy(m_pPeerAddr, peer, (AF_INET == m_iIPversion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
