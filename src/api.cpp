@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/31/2011
+   Yunhong Gu, last updated 03/07/2011
 *****************************************************************************/
 
 #ifdef WIN32
@@ -1073,10 +1073,10 @@ int CUDTUnited::epoll_remove_usock(const int eid, const UDTSOCKET u, const int* 
    {
       s->m_pUDT->removeEPoll(eid);
    }
-   else
-   {
-      throw CUDTException(5, 4);
-   }
+   //else
+   //{
+   //   throw CUDTException(5, 4);
+   //}
 
    return m_EPoll.remove_usock(eid, u, events);
 }
@@ -1179,10 +1179,19 @@ void CUDTUnited::checkBrokenSockets()
 
    for (map<UDTSOCKET, CUDTSocket*>::iterator j = m_ClosedSockets.begin(); j != m_ClosedSockets.end(); ++ j)
    {
-      // timeout 1 second to destroy a socket AND it has been removed from RcvUList AND no linger data to send
-      if ((CTimer::getTime() - j->second->m_TimeStamp > 1000000) && 
-          ((NULL == j->second->m_pUDT->m_pRNode) || !j->second->m_pUDT->m_pRNode->m_bOnList) &&
-          ((NULL == j->second->m_pUDT->m_pSndBuffer) || (0 == j->second->m_pUDT->m_pSndBuffer->getCurrBufSize()) || (j->second->m_pUDT->m_ullLingerExpiration <= CTimer::getTime())))
+      if (j->second->m_pUDT->m_ullLingerExpiration > 0)
+      {
+         // asynchronous close: 
+         if ((NULL == j->second->m_pUDT->m_pSndBuffer) || (0 == j->second->m_pUDT->m_pSndBuffer->getCurrBufSize()) || (j->second->m_pUDT->m_ullLingerExpiration <= CTimer::getTime()))
+         {
+            j->second->m_pUDT->m_ullLingerExpiration = 0;
+            j->second->m_pUDT->m_bClosing = true;
+            j->second->m_TimeStamp = CTimer::getTime();
+         }
+      }
+
+      // timeout 1 second to destroy a socket AND it has been removed from RcvUList
+      if ((CTimer::getTime() - j->second->m_TimeStamp > 1000000) && ((NULL == j->second->m_pUDT->m_pRNode) || !j->second->m_pUDT->m_pRNode->m_bOnList))
       {
          tbr.push_back(j->first);
       }

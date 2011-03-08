@@ -1,5 +1,6 @@
 version 4.9
 
+some bug fixes
 improved cache code
 removed unnecessary NAK (reduced loss retransmission)
 receiver side error can unblock a blocked sender

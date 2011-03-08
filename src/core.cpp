@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/22/2011
+   Yunhong Gu, last updated 03/07/2011
 *****************************************************************************/
 
 #ifndef WIN32
@@ -2540,7 +2540,8 @@ void CUDT::checkTimers()
 
          releaseSynch();
 
-         // a broken socket can be "write" to learn the error
+         // app can call any UDT API to learn the connection_broken error
+         s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
          s_UDTUnited.m_EPoll.enable_write(m_SocketID, m_sPollID);
 
          CTimer::triggerEvent();
@@ -2603,10 +2604,12 @@ void CUDT::addEPoll(const int eid)
 
 void CUDT::removeEPoll(const int eid)
 {
-   s_UDTUnited.m_EPoll.disable_read(m_SocketID, m_sPollID);
-   s_UDTUnited.m_EPoll.disable_write(m_SocketID, m_sPollID);
-
    CGuard::enterCS(s_UDTUnited.m_EPoll.m_EPollLock);
    m_sPollID.erase(eid);
    CGuard::leaveCS(s_UDTUnited.m_EPoll.m_EPollLock);
+
+   // clear IO events notifications;
+   // since this happens after the epoll ID has been removed, they cannot be set again
+   s_UDTUnited.m_EPoll.disable_read(m_SocketID, m_sPollID);
+   s_UDTUnited.m_EPoll.disable_write(m_SocketID, m_sPollID);
 }
