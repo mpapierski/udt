@@ -53,6 +53,7 @@ written by
    #endif
 #endif
 #include <cmath>
+#include <sstream>
 #include "queue.h"
 #include "core.h"
 
@@ -903,13 +904,13 @@ void CUDT::close()
    for (set<int>::iterator i = m_sPollID.begin(); i != m_sPollID.end(); ++ i)
       s_UDTUnited.m_EPoll.remove_usock(*i, m_SocketID);
 
-   CGuard cg(m_ConnectionLock);
-
    if (!m_bOpened)
       return;
 
    // Inform the threads handler to stop.
    m_bClosing = true;
+
+   CGuard cg(m_ConnectionLock);
 
    // Signal the sender and recver if they are waiting for data.
    releaseSynch();
@@ -919,6 +920,7 @@ void CUDT::close()
       m_bListening = false;
       m_pRcvQueue->removeListener(this);
    }
+
    if (m_bConnected)
    {
       if (!m_bShutdown)
@@ -2410,10 +2412,10 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
    char clientport[NI_MAXSERV];
    getnameinfo(addr, (AF_INET == m_iVersion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6), clienthost, sizeof(clienthost), clientport, sizeof(clientport), NI_NUMERICHOST|NI_NUMERICSERV);
    int64_t timestamp = (CTimer::getTime() - m_StartTime) / 60000000; // secret changes every one minute
-   char cookiestr[1024];
-   sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, (long long int)timestamp);
+   stringstream cookiestr;
+   cookiestr << clienthost << ":" << clientport << ":" << timestamp;
    unsigned char cookie[16];
-   CMD5::compute(cookiestr, cookie);
+   CMD5::compute(cookiestr.str().c_str(), cookie);
 
    if (1 == hs.m_iReqType)
    {
@@ -2429,8 +2431,8 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
       if (hs.m_iCookie != *(int*)cookie)
       {
          timestamp --;
-         sprintf(cookiestr, "%s:%s:%lld", clienthost, clientport, (long long int)timestamp);
-         CMD5::compute(cookiestr, cookie);
+         cookiestr << clienthost << ":" << clientport << ":" << timestamp;
+         CMD5::compute(cookiestr.str().c_str(), cookie);
 
          if (hs.m_iCookie != *(int*)cookie)
             return -1;
