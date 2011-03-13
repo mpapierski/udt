@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 02/03/2011
+   Yunhong Gu, last updated 03/12/2011
 *****************************************************************************/
 
 #include <cstring>
@@ -349,7 +349,7 @@ m_iSize(bufsize),
 m_pUnitQueue(queue),
 m_iStartPos(0),
 m_iLastAckPos(0),
-m_iMaxPos(-1),
+m_iMaxPos(0),
 m_iNotch(0)
 {
    m_pUnit = new CUnit* [m_iSize];
