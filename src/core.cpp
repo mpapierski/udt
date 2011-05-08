@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 03/07/2011
+   Yunhong Gu, last updated 05/07/2011
 *****************************************************************************/
 
 #ifndef WIN32
@@ -435,6 +435,13 @@ void CUDT::getOpt(UDTOpt optName, void* optval, int& optlen)
 
    case UDT_MAXBW:
       *(int64_t*)optval = m_llMaxBW;
+      optlen = sizeof(int64_t);
+      break;
+
+   case UDT_STATE:
+      break;
+
+   case UDT_EVENT:
       break;
 
    default:
@@ -544,122 +551,88 @@ void CUDT::connect(const sockaddr* serv_addr)
    if (m_bConnected)
       throw CUDTException(5, 2, 0);
 
+   // record peer/server address
+   delete m_pPeerAddr;
+   m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
+   memcpy(m_pPeerAddr, serv_addr, (AF_INET == m_iIPversion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
+
    // register this socket in the rendezvous queue
    // RendezevousQueue is used to temporarily store incoming handshake, non-rendezvous connections also require this function
    m_pRcvQueue->m_pRendezvousQueue->insert(m_SocketID, m_iIPversion, serv_addr);
 
-   CPacket request;
-   char* reqdata = new char [m_iPayloadSize];
-   CHandShake req;
-
-   CPacket response;
-   char* resdata = new char [m_iPayloadSize];
-   CHandShake res;
-
    // This is my current configurations
-   req.m_iVersion = m_iVersion;
-   req.m_iType = m_iSockType;
-   req.m_iMSS = m_iMSS;
-   req.m_iFlightFlagSize = (m_iRcvBufSize < m_iFlightFlagSize)? m_iRcvBufSize : m_iFlightFlagSize;
-   req.m_iReqType = (!m_bRendezvous) ? 1 : 0;
-   req.m_iID = m_SocketID;
-   CIPAddress::ntop(serv_addr, req.m_piPeerIP, m_iIPversion);
+   m_ConnReq.m_iVersion = m_iVersion;
+   m_ConnReq.m_iType = m_iSockType;
+   m_ConnReq.m_iMSS = m_iMSS;
+   m_ConnReq.m_iFlightFlagSize = (m_iRcvBufSize < m_iFlightFlagSize)? m_iRcvBufSize : m_iFlightFlagSize;
+   m_ConnReq.m_iReqType = (!m_bRendezvous) ? 1 : 0;
+   m_ConnReq.m_iID = m_SocketID;
+   CIPAddress::ntop(serv_addr, m_ConnReq.m_piPeerIP, m_iIPversion);
 
    // Random Initial Sequence Number
    srand((unsigned int)CTimer::getTime());
-   m_iISN = req.m_iISN = (int32_t)(CSeqNo::m_iMaxSeqNo * (double(rand()) / RAND_MAX));
+   m_iISN = m_ConnReq.m_iISN = (int32_t)(CSeqNo::m_iMaxSeqNo * (double(rand()) / RAND_MAX));
 
-   m_iLastDecSeq = req.m_iISN - 1;
-   m_iSndLastAck = req.m_iISN;
-   m_iSndLastDataAck = req.m_iISN;
-   m_iSndCurrSeqNo = req.m_iISN - 1;
-   m_iSndLastAck2 = req.m_iISN;
+   m_iLastDecSeq = m_iISN - 1;
+   m_iSndLastAck = m_iISN;
+   m_iSndLastDataAck = m_iISN;
+   m_iSndCurrSeqNo = m_iISN - 1;
+   m_iSndLastAck2 = m_iISN;
    m_ullSndLastAck2Time = CTimer::getTime();
 
    // Inform the server my configurations.
+   CPacket request;
+   char* reqdata = new char [m_iPayloadSize];
    request.pack(0, NULL, reqdata, m_iPayloadSize);
    // ID = 0, connection request
    request.m_iID = 0;
 
+   int hs_size = m_iPayloadSize;
+   m_ConnReq.serialize(reqdata, hs_size);
+   request.setLength(hs_size);
+   m_pSndQueue->sendto(serv_addr, request);
+   m_llLastReqTime = CTimer::getTime();
+
+   // asynchronous connect, return immediately
+   if (!m_bSynRecving)
+   {
+      delete [] reqdata;
+      return;
+   }
+
    // Wait for the negotiated configurations from the peer side.
+   CPacket response;
+   char* resdata = new char [m_iPayloadSize];
    response.pack(0, NULL, resdata, m_iPayloadSize);
 
    uint64_t timeo = 3000000;
    if (m_bRendezvous)
       timeo *= 10;
    uint64_t entertime = CTimer::getTime();
-   uint64_t last_req_time = 0;
 
    CUDTException e(0, 0);
-   char* tmp = NULL;
 
    while (!m_bClosing)
    {
       // avoid sending too many requests, at most 1 request per 250ms
-      if (CTimer::getTime() - last_req_time > 250000)
+      if (CTimer::getTime() - m_llLastReqTime > 250000)
       {
-         req.serialize(reqdata, m_iPayloadSize);
-         request.setLength(CHandShake::m_iContentSize);
+         m_ConnReq.serialize(reqdata, hs_size);
+         request.setLength(hs_size);
+         if (m_bRendezvous)
+            request.m_iID = m_ConnRes.m_iID;
          m_pSndQueue->sendto(serv_addr, request);
-
-         last_req_time = CTimer::getTime();
+         m_llLastReqTime = CTimer::getTime();
       }
 
       response.setLength(m_iPayloadSize);
       if (m_pRcvQueue->recvfrom(m_SocketID, response) > 0)
       {
-         if (m_bRendezvous && ((0 == response.getFlag()) || (1 == response.getType())) && (NULL != tmp))
-         {
-            // a data packet or a keep-alive packet comes, which means the peer side is already connected
-            // in this situation, a previously recorded response (tmp) will be used
-            res.deserialize(tmp, CHandShake::m_iContentSize);
-            memcpy(m_piSelfIP, res.m_piPeerIP, 16);
+         if (connect(response) <= 0)
             break;
-         }
-
-         if ((1 != response.getFlag()) || (0 != response.getType()))
-            response.setLength(-1);
-         else
-         {
-            res.deserialize(response.m_pcData, response.getLength());
-
-            if (m_bRendezvous)
-            {
-               // regular connect should NOT communicate with rendezvous connect
-               // rendezvous connect require 3-way handshake
-               if (1 == res.m_iReqType)
-                  response.setLength(-1);
-               else if ((0 == res.m_iReqType) || (0 == req.m_iReqType))
-               {
-                  if (NULL == tmp)
-                     tmp = new char [m_iPayloadSize];
-                  res.serialize(tmp, m_iPayloadSize);
-
-                  req.m_iReqType = -1;
-                  request.m_iID = res.m_iID;
-                  response.setLength(-1);
-               }
-            }
-            else
-            {
-               // set cookie
-               if (1 == res.m_iReqType)
-               {
-                  req.m_iReqType = -1;
-                  req.m_iCookie = res.m_iCookie;
-                  response.setLength(-1);
-               }
-            }
-         }
 
          // new request/response should be sent out immediately on receving a response
-         last_req_time = 0;
-      }
-
-      if (response.getLength() > 0)
-      {
-         memcpy(m_piSelfIP, res.m_piPeerIP, 16);
-         break;
+         m_llLastReqTime = 0;
       }
 
       if (CTimer::getTime() > entertime + timeo)
@@ -670,38 +643,76 @@ void CUDT::connect(const sockaddr* serv_addr)
       }
    }
 
-   delete [] tmp;
    delete [] reqdata;
    delete [] resdata;
 
-   // remove from rendezvous queue
-   m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
-
    if (e.getErrorCode() == 0)
    {
-      if (m_bClosing)						// if the socket is closed before connection...
+      if (m_bClosing)                                                 // if the socket is closed before connection...
          e = CUDTException(1);
-      else if (1002 == res.m_iReqType)				// connection request rejected
+      else if (1002 == m_ConnRes.m_iReqType)                          // connection request rejected
          e = CUDTException(1, 2, 0);
-      else if ((!m_bRendezvous) && (m_iISN != res.m_iISN))	// secuity check
+      else if ((!m_bRendezvous) && (m_iISN != m_ConnRes.m_iISN))      // secuity check
          e = CUDTException(1, 4, 0);
    }
 
    if (e.getErrorCode() != 0)
-   {
       throw e;
+}
+
+int CUDT::connect(const CPacket& response)
+{
+   if (m_bRendezvous && ((0 == response.getFlag()) || (1 == response.getType())) && (0 != m_ConnRes.m_iType))
+   {
+      //a data packet or a keep-alive packet comes, which means the peer side is already connected
+      // in this situation, the previously recorded response will be used
+      goto POST_CONNECT;
    }
 
-   // Got it. Re-configure according to the negotiated values.
-   m_iMSS = res.m_iMSS;
-   m_iFlowWindowSize = res.m_iFlightFlagSize;
+   if ((1 != response.getFlag()) || (0 != response.getType()))
+      return -1;
+
+   m_ConnRes.deserialize(response.m_pcData, response.getLength());
+
+   if (m_bRendezvous)
+   {
+      // regular connect should NOT communicate with rendezvous connect
+      // rendezvous connect require 3-way handshake
+      if (1 == m_ConnRes.m_iReqType)
+         return -1;
+
+      if ((0 == m_ConnReq.m_iReqType) || (0 == m_ConnRes.m_iReqType))
+      {
+         m_ConnReq.m_iReqType = -1;
+         return 1;
+      }
+   }
+   else
+   {
+      // set cookie
+      if (1 == m_ConnRes.m_iReqType)
+      {
+         m_ConnReq.m_iReqType = -1;
+         m_ConnReq.m_iCookie = m_ConnRes.m_iCookie;
+         return 1;
+      }
+   }
+
+POST_CONNECT:
+   // Remove from rendezvous queue
+   m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
+
+   // Re-configure according to the negotiated values.
+   m_iMSS = m_ConnRes.m_iMSS;
+   m_iFlowWindowSize = m_ConnRes.m_iFlightFlagSize;
    m_iPktSize = m_iMSS - 28;
    m_iPayloadSize = m_iPktSize - CPacket::m_iPktHdrSize;
-   m_iPeerISN = res.m_iISN;
-   m_iRcvLastAck = res.m_iISN;
-   m_iRcvLastAckAck = res.m_iISN;
-   m_iRcvCurrSeqNo = res.m_iISN - 1;
-   m_PeerID = res.m_iID;
+   m_iPeerISN = m_ConnRes.m_iISN;
+   m_iRcvLastAck = m_ConnRes.m_iISN;
+   m_iRcvLastAckAck = m_ConnRes.m_iISN;
+   m_iRcvCurrSeqNo = m_ConnRes.m_iISN - 1;
+   m_PeerID = m_ConnRes.m_iID;
+   memcpy(m_piSelfIP, m_ConnRes.m_piPeerIP, 16);
 
    // Prepare all data structures
    try
@@ -722,7 +733,7 @@ void CUDT::connect(const sockaddr* serv_addr)
 
    CInfoBlock ib;
    ib.m_iIPversion = m_iIPversion;
-   CInfoBlock::convert(serv_addr, m_iIPversion, ib.m_piIP);
+   CInfoBlock::convert(m_pPeerAddr, m_iIPversion, ib.m_piIP);
    if (m_pCache->lookup(&ib) >= 0)
    {
       m_iRTT = ib.m_iRTT;
@@ -737,14 +748,12 @@ void CUDT::connect(const sockaddr* serv_addr)
    m_pCC->setRcvRate(m_iDeliveryRate);
    m_pCC->setRTT(m_iRTT);
    m_pCC->setBandwidth(m_iBandwidth);
-   if (m_llMaxBW > 0) m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
+   if (m_llMaxBW > 0)
+      m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
    m_pCC->init();
 
    m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
    m_dCongestionWindow = m_pCC->m_dCWndSize;
-
-   m_pPeerAddr = (AF_INET == m_iIPversion) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
-   memcpy(m_pPeerAddr, serv_addr, (AF_INET == m_iIPversion) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
 
    // And, I am connected too.
    m_bConnected = true;
@@ -756,6 +765,8 @@ void CUDT::connect(const sockaddr* serv_addr)
    // acknowledde any waiting epolls to read/write
    s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
    s_UDTUnited.m_EPoll.enable_write(m_SocketID, m_sPollID);
+
+   return 0;
 }
 
 void CUDT::connect(const sockaddr* peer, CHandShake* hs)
@@ -2129,7 +2140,10 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       break;
 
    case 0: //000 - Handshake
-      if ((((CHandShake*)(ctrlpkt.m_pcData))->m_iReqType > 0) || (m_bRendezvous && (((CHandShake*)(ctrlpkt.m_pcData))->m_iReqType != -2)))
+      {
+      CHandShake req;
+      req.deserialize(ctrlpkt.m_pcData, ctrlpkt.getLength());
+      if ((req.m_iReqType > 0) || (m_bRendezvous && (req.m_iReqType != -2)))
       {
          // The peer side has not received the handshake message, so it keeps querying
          // resend the handshake packet
@@ -2141,13 +2155,15 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
          initdata.m_iReqType = (!m_bRendezvous) ? -1 : -2;
          initdata.m_iID = m_SocketID;
 
-         char buffer[1500];
-         int size = 1500;
-         initdata.serialize(buffer, size);
-         sendCtrl(0, NULL, buffer, size);
+         char* hs = new char [m_iPayloadSize];
+         int hs_size = m_iPayloadSize;
+         initdata.serialize(hs, hs_size);
+         sendCtrl(0, NULL, hs, hs_size);
+         delete [] hs;
       }
 
       break;
+      }
 
    case 5: //101 - Shutdown
       m_bShutdown = true;

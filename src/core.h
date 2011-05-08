@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/27/2011
+   Yunhong Gu, last updated 05/07/2011
 *****************************************************************************/
 
 #ifndef __UDT_CORE_H__
@@ -137,6 +137,15 @@ private:
       //    None.
 
    void connect(const sockaddr* peer);
+
+      // Functionality:
+      //    Process the response handshake packet.
+      // Parameters:
+      //    0) [in] pkt: handshake packet.
+      // Returned value:
+      //    Return 0 if connected, positive value if connection is in progress, otherwise error code.
+
+   int connect(const CPacket& pkt);
 
       // Functionality:
       //    Connect to a UDT entity listening at address "peer", which has sent "hs" request.
@@ -310,7 +319,11 @@ private: // Status
    int m_iRTTVar;                               // RTT variance
    int m_iDeliveryRate;				// Packet arrival rate at the receiver side
 
-   uint64_t m_ullLingerExpiration;		// Linger expiration time (for GC to close a socket with data in sending buffer) 
+   uint64_t m_ullLingerExpiration;		// Linger expiration time (for GC to close a socket with data in sending buffer)
+
+   CHandShake m_ConnReq;			// connection request
+   CHandShake m_ConnRes;			// connection response
+   int64_t m_llLastReqTime;			// last time when a connection request is sent
 
 private: // Sending related data
    CSndBuffer* m_pSndBuffer;                    // Sender buffer

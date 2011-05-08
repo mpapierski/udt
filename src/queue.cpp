@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 01/02/2011
+   Yunhong Gu, last updated 05/05/2011
 *****************************************************************************/
 
 #ifdef WIN32
@@ -310,6 +310,12 @@ int CSndUList::pop(sockaddr*& addr, CPacket& pkt)
    if (-1 == m_iLastEntry)
       return -1;
 
+   // no pop until the next schedulled time
+   uint64_t ts;
+   CTimer::rdtsc(ts);
+   if (ts < m_pHeap[0]->m_llTimeStamp)
+      return -1;
+
    CUDT* u = m_pHeap[0]->m_pUDT;
    remove_(u);
 
@@ -317,7 +323,6 @@ int CSndUList::pop(sockaddr*& addr, CPacket& pkt)
       return -1;
 
    // pack a packet from the socket
-   uint64_t ts;
    if (u->packData(pkt, ts) <= 0)
       return -1;
 
@@ -378,6 +383,10 @@ void CSndUList::insert_(const int64_t& ts, const CUDT* u)
 
    n->m_iHeapLoc = q;
 
+   // an earlier event has been inserted, wake up sending worker
+   if (n->m_iHeapLoc == 0)
+      m_pTimer->interrupt();
+
    // first entry, activate the sending queue
    if (0 == m_iLastEntry)
    {
@@ -426,6 +435,10 @@ void CSndUList::remove_(const CUDT* u)
 
       n->m_iHeapLoc = -1;
    }
+
+   // the only event has been deleted, wake up immediately
+   if (0 == m_iLastEntry)
+      m_pTimer->interrupt();
 }
 
 //
@@ -972,7 +985,14 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
          if (NULL != self->m_pListener)
             ((CUDT*)self->m_pListener)->listen(addr, unit->m_Packet);
          else if (self->m_pRendezvousQueue->retrieve(addr, id))
-            self->storePkt(id, unit->m_Packet.clone());
+         {
+            // asynchronous connect: call connect here
+            // otherwise wait for the UDT socket to retrieve this packet
+            //if (...)
+            //   connect(unit->m_Packet);
+            //else
+               self->storePkt(id, unit->m_Packet.clone());
+         }
       }
       else if (id > 0)
       {
@@ -993,7 +1013,9 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
             }
          }
          else if (self->m_pRendezvousQueue->retrieve(addr, id))
+         {
             self->storePkt(id, unit->m_Packet.clone());
+         }
       }
 
 TIMER_CHECK:
