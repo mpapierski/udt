@@ -777,17 +777,18 @@ CRendezvousQueue::~CRendezvousQueue()
    m_vRendezvousID.clear();
 }
 
-void CRendezvousQueue::insert(const UDTSOCKET& id, const int& ipv, const sockaddr* addr)
+void CRendezvousQueue::insert(const UDTSOCKET& id, CUDT* u, const int& ipv, const sockaddr* addr)
 {
    CGuard vg(m_RIDVectorLock);
 
    CRL r;
    r.m_iID = id;
+   r.m_pUDT = u;
    r.m_iIPversion = ipv;
    r.m_pPeerAddr = (AF_INET == ipv) ? (sockaddr*)new sockaddr_in : (sockaddr*)new sockaddr_in6;
    memcpy(r.m_pPeerAddr, addr, (AF_INET == ipv) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
 
-   m_vRendezvousID.insert(m_vRendezvousID.end(), r);
+   m_vRendezvousID.push_back(r);
 }
 
 void CRendezvousQueue::remove(const UDTSOCKET& id)
@@ -810,7 +811,7 @@ void CRendezvousQueue::remove(const UDTSOCKET& id)
    }
 }
 
-bool CRendezvousQueue::retrieve(const sockaddr* addr, UDTSOCKET& id)
+CUDT* CRendezvousQueue::retrieve(const sockaddr* addr, UDTSOCKET& id)
 {
    CGuard vg(m_RIDVectorLock);
 
@@ -819,11 +820,11 @@ bool CRendezvousQueue::retrieve(const sockaddr* addr, UDTSOCKET& id)
       if (CIPAddress::ipcmp(addr, i->m_pPeerAddr, i->m_iIPversion) && ((0 == id) || (id == i->m_iID)))
       {
          id = i->m_iID;
-         return true;
+         return i->m_pUDT;
       }
    }
 
-   return false;
+   return NULL;
 }
 
 
@@ -984,13 +985,13 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
       {
          if (NULL != self->m_pListener)
             ((CUDT*)self->m_pListener)->listen(addr, unit->m_Packet);
-         else if (self->m_pRendezvousQueue->retrieve(addr, id))
+         else if (NULL != (u = self->m_pRendezvousQueue->retrieve(addr, id)))
          {
             // asynchronous connect: call connect here
             // otherwise wait for the UDT socket to retrieve this packet
-            //if (...)
-            //   connect(unit->m_Packet);
-            //else
+            if (!u->m_bSynRecving)
+               u->connect(unit->m_Packet);
+            else
                self->storePkt(id, unit->m_Packet.clone());
          }
       }
@@ -1012,9 +1013,12 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
                }
             }
          }
-         else if (self->m_pRendezvousQueue->retrieve(addr, id))
+         else if (NULL != (u = self->m_pRendezvousQueue->retrieve(addr, id)))
          {
-            self->storePkt(id, unit->m_Packet.clone());
+            if (!u->m_bSynRecving)
+               u->connect(unit->m_Packet);
+            else
+               self->storePkt(id, unit->m_Packet.clone());
          }
       }
 
@@ -1124,7 +1128,7 @@ int CRcvQueue::setListener(const CUDT* u)
       return -1;
 
    m_pListener = (CUDT*)u;
-   return 1;
+   return 0;
 }
 
 void CRcvQueue::removeListener(const CUDT* u)
@@ -1133,6 +1137,30 @@ void CRcvQueue::removeListener(const CUDT* u)
 
    if (u == m_pListener)
       m_pListener = NULL;
+}
+
+void CRcvQueue::registerConnector(const UDTSOCKET& id, CUDT* u, const int& ipv, const sockaddr* addr)
+{
+   m_pRendezvousQueue->insert(id, u, ipv, addr);
+}
+
+void CRcvQueue::removeConnector(const UDTSOCKET& id)
+{
+   m_pRendezvousQueue->remove(id);
+
+   CGuard bufferlock(m_PassLock);
+
+   map<int32_t, queue<CPacket*> >::iterator i = m_mBuffer.find(id);
+   if (i != m_mBuffer.end())
+   {
+      while (!i->second.empty())
+      {
+         delete [] i->second.front()->m_pcData;
+         delete i->second.front();
+         i->second.pop();
+      }
+      m_mBuffer.erase(i);
+   }
 }
 
 void CRcvQueue::setNewEntry(CUDT* u)

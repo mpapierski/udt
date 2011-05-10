@@ -558,7 +558,7 @@ void CUDT::connect(const sockaddr* serv_addr)
 
    // register this socket in the rendezvous queue
    // RendezevousQueue is used to temporarily store incoming handshake, non-rendezvous connections also require this function
-   m_pRcvQueue->m_pRendezvousQueue->insert(m_SocketID, m_iIPversion, serv_addr);
+   m_pRcvQueue->registerConnector(m_SocketID, this, m_iIPversion, serv_addr);
 
    // This is my current configurations
    m_ConnReq.m_iVersion = m_iVersion;
@@ -700,7 +700,7 @@ int CUDT::connect(const CPacket& response)
 
 POST_CONNECT:
    // Remove from rendezvous queue
-   m_pRcvQueue->m_pRendezvousQueue->remove(m_SocketID);
+   m_pRcvQueue->removeConnector(m_SocketID);
 
    // Re-configure according to the negotiated values.
    m_iMSS = m_ConnRes.m_iMSS;
@@ -930,6 +930,10 @@ void CUDT::close()
    {
       m_bListening = false;
       m_pRcvQueue->removeListener(this);
+   }
+   else
+   {
+      m_pRcvQueue->removeConnector(m_SocketID);
    }
 
    if (m_bConnected)
