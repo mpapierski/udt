@@ -84,6 +84,8 @@ public:
 
    int m_iMuxID;                             // multiplexer ID
 
+   pthread_mutex_t m_ControlLock;            // lock this socket exclusively for control APIs: bind/listen/connect
+
 private:
    CUDTSocket(const CUDTSocket&);
    CUDTSocket& operator=(const CUDTSocket&);

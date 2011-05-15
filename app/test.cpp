@@ -49,15 +49,16 @@ int createUDTSocket(UDTSOCKET& usock, int version = AF_INET, int type = SOCK_STR
 
    usock = UDT::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
+   // since we will start a lot of connections, we set the buffer size to smaller value.
    int snd_buf = 64000;
-   int rcv_buf = 100000;
+   int rcv_buf = 64000;
    UDT::setsockopt(usock, 0, UDT_SNDBUF, &snd_buf, sizeof(int));
    UDT::setsockopt(usock, 0, UDT_RCVBUF, &rcv_buf, sizeof(int));
    snd_buf = 64000;
-   rcv_buf = 100000;
+   rcv_buf = 64000;
    UDT::setsockopt(usock, 0, UDP_SNDBUF, &snd_buf, sizeof(int));
    UDT::setsockopt(usock, 0, UDP_RCVBUF, &rcv_buf, sizeof(int));
-   int fc = 256;
+   int fc = 64;
    UDT::setsockopt(usock, 0, UDT_FC, &fc, sizeof(int));
    bool reuse = true;
    UDT::setsockopt(usock, 0, UDT_REUSEADDR, &reuse, sizeof(bool));

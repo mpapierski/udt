@@ -74,9 +74,11 @@ m_iMuxID(-1)
    #ifndef WIN32
       pthread_mutex_init(&m_AcceptLock, NULL);
       pthread_cond_init(&m_AcceptCond, NULL);
+      pthread_mutex_init(&m_ControlLock, NULL);
    #else
       m_AcceptLock = CreateMutex(NULL, false, NULL);
       m_AcceptCond = CreateEvent(NULL, false, false, NULL);
+      m_ControlLock = CreateMutex(NULL, false, NULL);
    #endif
 }
 
@@ -102,9 +104,11 @@ CUDTSocket::~CUDTSocket()
    #ifndef WIN32
       pthread_mutex_destroy(&m_AcceptLock);
       pthread_cond_destroy(&m_AcceptCond);
+      pthread_mutex_destroy(&m_ControlLock);
    #else
       CloseHandle(m_AcceptLock);
       CloseHandle(m_AcceptCond);
+      CloseHandle(m_ControlLock);
    #endif
 }
 
@@ -492,9 +496,10 @@ UDTSTATUS CUDTUnited::getStatus(const UDTSOCKET u)
 int CUDTUnited::bind(const UDTSOCKET u, const sockaddr* name, const int& namelen)
 {
    CUDTSocket* s = locate(u);
-
    if (NULL == s)
       throw CUDTException(5, 4, 0);
+
+   CGuard cg(s->m_ControlLock);
 
    // cannot bind a socket more than once
    if (INIT != s->m_Status)
@@ -525,9 +530,10 @@ int CUDTUnited::bind(const UDTSOCKET u, const sockaddr* name, const int& namelen
 int CUDTUnited::bind(UDTSOCKET u, UDPSOCKET udpsock)
 {
    CUDTSocket* s = locate(u);
-
    if (NULL == s)
       throw CUDTException(5, 4, 0);
+
+   CGuard cg(s->m_ControlLock);
 
    // cannot bind a socket more than once
    if (INIT != s->m_Status)
@@ -565,9 +571,10 @@ int CUDTUnited::bind(UDTSOCKET u, UDPSOCKET udpsock)
 int CUDTUnited::listen(const UDTSOCKET u, const int& backlog)
 {
    CUDTSocket* s = locate(u);
-
    if (NULL == s)
       throw CUDTException(5, 4, 0);
+
+   CGuard cg(s->m_ControlLock);
 
    // do nothing if the socket is already listening
    if (LISTENING == s->m_Status)
@@ -594,6 +601,7 @@ int CUDTUnited::listen(const UDTSOCKET u, const int& backlog)
    catch (...)
    {
       delete s->m_pQueuedSockets;
+      delete s->m_pAcceptSockets;
       throw CUDTException(3, 2, 0);
    }
 
@@ -710,9 +718,10 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
 int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, const int& namelen)
 {
    CUDTSocket* s = locate(u);
-
    if (NULL == s)
       throw CUDTException(5, 4, 0);
+
+   CGuard cg(s->m_ControlLock);
 
    // check the size of SOCKADDR structure
    if (AF_INET == s->m_iIPversion)
@@ -768,9 +777,10 @@ int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, const int& name
 int CUDTUnited::close(const UDTSOCKET u)
 {
    CUDTSocket* s = locate(u);
-
    if (NULL == s)
       throw CUDTException(5, 4, 0);
+
+   CGuard socket_cg(s->m_ControlLock);
 
    if (s->m_Status == LISTENING)
    {
@@ -795,7 +805,7 @@ int CUDTUnited::close(const UDTSOCKET u)
    s->m_pUDT->close();
 
    // synchronize with garbage collection.
-   CGuard cg(m_ControlLock);
+   CGuard manager_cg(m_ControlLock);
 
    // since "s" is located before m_ControlLock, locate it again in case it became invalid
    map<UDTSOCKET, CUDTSocket*>::iterator i = m_Sockets.find(u);
