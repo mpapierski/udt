@@ -63,6 +63,7 @@ friend class CUDTUnited;
 friend class CCC;
 friend struct CUDTComp;
 friend class CCache;
+friend class CRendezvousQueue;
 friend class CSndQueue;
 friend class CRcvQueue;
 friend class CSndUList;

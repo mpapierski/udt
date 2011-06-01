@@ -558,7 +558,11 @@ void CUDT::connect(const sockaddr* serv_addr)
 
    // register this socket in the rendezvous queue
    // RendezevousQueue is used to temporarily store incoming handshake, non-rendezvous connections also require this function
-   m_pRcvQueue->registerConnector(m_SocketID, this, m_iIPversion, serv_addr);
+   uint64_t ttl = 3000000;
+   if (m_bRendezvous)
+      ttl *= 10;
+   ttl += CTimer::getTime();
+   m_pRcvQueue->registerConnector(m_SocketID, this, m_iIPversion, serv_addr, ttl);
 
    // This is my current configurations
    m_ConnReq.m_iVersion = m_iVersion;
@@ -605,11 +609,6 @@ void CUDT::connect(const sockaddr* serv_addr)
    char* resdata = new char [m_iPayloadSize];
    response.pack(0, NULL, resdata, m_iPayloadSize);
 
-   uint64_t timeo = 3000000;
-   if (m_bRendezvous)
-      timeo *= 10;
-   uint64_t entertime = CTimer::getTime();
-
    CUDTException e(0, 0);
 
    while (!m_bClosing)
@@ -635,7 +634,7 @@ void CUDT::connect(const sockaddr* serv_addr)
          m_llLastReqTime = 0;
       }
 
-      if (CTimer::getTime() > entertime + timeo)
+      if (CTimer::getTime() > ttl)
       {
          // timeout
          e = CUDTException(1, 1, 0);
@@ -662,6 +661,10 @@ void CUDT::connect(const sockaddr* serv_addr)
 
 int CUDT::connect(const CPacket& response)
 {
+   // this is the 2nd half of a connection request. If the connection is setup successfully this returns 0.
+   // returning -1 means there is an error.
+   // returning 1 or 2 means the connection is in process and needs more handshake
+
    if (m_bRendezvous && ((0 == response.getFlag()) || (1 == response.getType())) && (0 != m_ConnRes.m_iType))
    {
       //a data packet or a keep-alive packet comes, which means the peer side is already connected
@@ -684,6 +687,8 @@ int CUDT::connect(const CPacket& response)
       if ((0 == m_ConnReq.m_iReqType) || (0 == m_ConnRes.m_iReqType))
       {
          m_ConnReq.m_iReqType = -1;
+         // the request time must be updated so that the next handshake can be sent out immediately.
+         m_llLastReqTime = 0;
          return 1;
       }
    }
@@ -694,6 +699,7 @@ int CUDT::connect(const CPacket& response)
       {
          m_ConnReq.m_iReqType = -1;
          m_ConnReq.m_iCookie = m_ConnRes.m_iCookie;
+         m_llLastReqTime = 0;
          return 1;
       }
    }
