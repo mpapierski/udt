@@ -768,8 +768,7 @@ POST_CONNECT:
    m_pRNode->m_bOnList = true;
    m_pRcvQueue->setNewEntry(this);
 
-   // acknowledde any waiting epolls to read/write
-   s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
+   // acknowledde any waiting epolls to write
    s_UDTUnited.m_EPoll.enable_write(m_SocketID, m_sPollID);
 
    return 0;
@@ -2496,8 +2495,8 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
          }
          else
          {
-            // a mew connection has been created, enable epoll for read 
-            s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
+            // a mew connection has been created, enable epoll for write 
+            s_UDTUnited.m_EPoll.enable_write(m_SocketID, m_sPollID);
          }
       }
    }

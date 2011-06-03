@@ -904,7 +904,7 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
          else if (NULL == (s = locate(*i1)))
             throw CUDTException(5, 4, 0);
          else
-            ru.insert(ru.end(), s);
+            ru.push_back(s);
       }
    if (NULL != writefds)
       for (set<UDTSOCKET>::iterator i2 = writefds->begin(); i2 != writefds->end(); ++ i2)
@@ -917,7 +917,7 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
          else if (NULL == (s = locate(*i2)))
             throw CUDTException(5, 4, 0);
          else
-            wu.insert(wu.end(), s);
+            wu.push_back(s);
       }
    if (NULL != exceptfds)
       for (set<UDTSOCKET>::iterator i3 = exceptfds->begin(); i3 != exceptfds->end(); ++ i3)
@@ -930,7 +930,7 @@ int CUDTUnited::select(ud_set* readfds, ud_set* writefds, ud_set* exceptfds, con
          else if (NULL == (s = locate(*i3)))
             throw CUDTException(5, 4, 0);
          else
-            eu.insert(eu.end(), s);
+            eu.push_back(s);
       }
 
    do
@@ -1159,7 +1159,7 @@ void CUDTUnited::checkBrokenSockets()
             if (CTimer::getTime() - i->second->m_TimeStamp < 3000000)
                continue;
          }
-         else if ((i->second->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && (i->second->m_pUDT->m_iBrokenCounter -- > 0))
+         else if ((i->second->m_pUDT->m_pRcvBuffer != NULL) && (i->second->m_pUDT->m_pRcvBuffer->getRcvDataSize() > 0) && (i->second->m_pUDT->m_iBrokenCounter -- > 0))
          {
             // if there is still data in the receiver buffer, wait longer
             continue;
@@ -1321,13 +1321,13 @@ void CUDTUnited::checkTLSValue()
       HANDLE h = OpenThread(THREAD_QUERY_INFORMATION, FALSE, i->first);
       if (NULL == h)
       {
-         tbr.insert(tbr.end(), i->first);
+         tbr.push_back(i->first);
          break;
       }
       if (WAIT_OBJECT_0 == WaitForSingleObject(h, 0))
       {
          delete i->second;
-         tbr.insert(tbr.end(), i->first);
+         tbr.push_back(i->first);
       }
       CloseHandle(h);
    }

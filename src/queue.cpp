@@ -1203,7 +1203,7 @@ void CRcvQueue::removeConnector(const UDTSOCKET& id)
 void CRcvQueue::setNewEntry(CUDT* u)
 {
    CGuard listguard(m_IDLock);
-   m_vNewEntry.insert(m_vNewEntry.end(), u);
+   m_vNewEntry.push_back(u);
 }
 
 bool CRcvQueue::ifNewEntry()
