@@ -146,7 +146,7 @@ private:
       // Returned value:
       //    Return 0 if connected, positive value if connection is in progress, otherwise error code.
 
-   int connect(const CPacket& pkt);
+   int connect(const CPacket& pkt) throw ();
 
       // Functionality:
       //    Connect to a UDT entity listening at address "peer", which has sent "hs" request.
@@ -306,6 +306,7 @@ private: // congestion control
 
 private: // Status
    volatile bool m_bListening;                  // If the UDT entit is listening to connection
+   volatile bool m_bConnecting;			// The short phase when connect() is called but not yet completed
    volatile bool m_bConnected;                  // Whether the connection is on or off
    volatile bool m_bClosing;                    // If the UDT entity is closing
    volatile bool m_bShutdown;                   // If the peer side has shutdown the connection

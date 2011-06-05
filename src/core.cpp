@@ -124,6 +124,7 @@ CUDT::CUDT()
    // Initial status
    m_bOpened = false;
    m_bListening = false;
+   m_bConnecting = false;
    m_bConnected = false;
    m_bClosing = false;
    m_bShutdown = false;
@@ -176,6 +177,7 @@ CUDT::CUDT(const CUDT& ancestor)
    // Initial status
    m_bOpened = false;
    m_bListening = false;
+   m_bConnecting = false;
    m_bConnected = false;
    m_bClosing = false;
    m_bShutdown = false;
@@ -241,7 +243,7 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
       break;
 
    case UDT_CC:
-      if (m_bConnected)
+      if (m_bConnecting || m_bConnected)
          throw CUDTException(5, 1, 0);
       if (NULL != m_pCCFactory)
          delete m_pCCFactory;
@@ -250,7 +252,7 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
       break;
 
    case UDT_FC:
-      if (m_bConnected)
+      if (m_bConnecting || m_bConnected)
          throw CUDTException(5, 2, 0);
 
       if (*(int*)optval < 1)
@@ -321,7 +323,7 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
       break;
 
    case UDT_RENDEZVOUS:
-      if (m_bConnected)
+      if (m_bConnecting || m_bConnected)
          throw CUDTException(5, 1, 0);
       m_bRendezvous = *(bool *)optval;
       break;
@@ -341,7 +343,7 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, const int&)
       break;
 
    case UDT_MAXBW:
-      if (m_bConnected)
+      if (m_bConnecting || m_bConnected)
          throw CUDTException(5, 1, 0);
       m_llMaxBW = *(int64_t*)optval;
       break;
@@ -439,10 +441,26 @@ void CUDT::getOpt(UDTOpt optName, void* optval, int& optlen)
       break;
 
    case UDT_STATE:
+      *(int32_t*)optval = s_UDTUnited.getStatus(m_SocketID);
+      optlen = sizeof(int32_t);
       break;
 
    case UDT_EVENT:
+   {
+      int32_t event = 0;
+      if (m_bBroken)
+         event |= UDT_EPOLL_ERR;
+      else
+      {
+         if (m_pRcvBuffer->getRcvDataSize() > 0)
+            event |= UDT_EPOLL_IN;
+         if (m_iSndBufSize > m_pSndBuffer->getCurrBufSize())
+            event |= UDT_EPOLL_OUT;
+      }
+      *(int32_t*)optval = event;
+      optlen = sizeof(int32_t);
       break;
+   }
 
    default:
       throw CUDTException(5, 0, 0);
@@ -524,7 +542,7 @@ void CUDT::listen()
    if (!m_bOpened)
       throw CUDTException(5, 0, 0);
 
-   if (m_bConnected)
+   if (m_bConnecting || m_bConnected)
       throw CUDTException(5, 2, 0);
 
    // listen can be called more than once
@@ -548,7 +566,7 @@ void CUDT::connect(const sockaddr* serv_addr)
    if (m_bListening)
       throw CUDTException(5, 2, 0);
 
-   if (m_bConnected)
+   if (m_bConnecting || m_bConnected)
       throw CUDTException(5, 2, 0);
 
    // record peer/server address
@@ -596,6 +614,8 @@ void CUDT::connect(const sockaddr* serv_addr)
    request.setLength(hs_size);
    m_pSndQueue->sendto(serv_addr, request);
    m_llLastReqTime = CTimer::getTime();
+
+   m_bConnecting = true;
 
    // asynchronous connect, return immediately
    if (!m_bSynRecving)
@@ -659,11 +679,14 @@ void CUDT::connect(const sockaddr* serv_addr)
       throw e;
 }
 
-int CUDT::connect(const CPacket& response)
+int CUDT::connect(const CPacket& response) throw ()
 {
    // this is the 2nd half of a connection request. If the connection is setup successfully this returns 0.
    // returning -1 means there is an error.
    // returning 1 or 2 means the connection is in process and needs more handshake
+
+   if (!m_bConnecting)
+      return -1;
 
    if (m_bRendezvous && ((0 == response.getFlag()) || (1 == response.getType())) && (0 != m_ConnRes.m_iType))
    {
@@ -762,6 +785,7 @@ POST_CONNECT:
    m_dCongestionWindow = m_pCC->m_dCWndSize;
 
    // And, I am connected too.
+   m_bConnecting = false;
    m_bConnected = true;
 
    // register this socket for receiving data packets
@@ -770,6 +794,9 @@ POST_CONNECT:
 
    // acknowledde any waiting epolls to write
    s_UDTUnited.m_EPoll.enable_write(m_SocketID, m_sPollID);
+
+   // acknowledge the management module.
+   s_UDTUnited.connect_complete(m_SocketID);
 
    return 0;
 }

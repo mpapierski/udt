@@ -127,7 +127,7 @@ enum EPOLLOpt
    UDT_EPOLL_ERR = 0x8
 };
 
-enum UDTSTATUS {INIT = 1, OPENED, LISTENING, CONNECTED, BROKEN, CLOSED, NONEXIST};
+enum UDTSTATUS {INIT = 1, OPENED, LISTENING, CONNECTING, CONNECTED, BROKEN, CLOSING, CLOSED, NONEXIST};
 
 ////////////////////////////////////////////////////////////////////////////////
 
