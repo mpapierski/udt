@@ -843,8 +843,7 @@ void CRendezvousQueue::updateConnStatus()
       {
          if (CTimer::getTime() >= i->m_ullTTL)
          {
-            // connection timer expired, set the socket to broken state, and acknowledge app via epoll
-            i->m_pUDT->m_bBroken = true;
+            // connection timer expired, acknowledge app via epoll (UDT send will return error so that apps know this connection has failed)
             i->m_pUDT->m_bConnecting = false;
             CUDT::s_UDTUnited.m_EPoll.enable_write(i->m_iID, i->m_pUDT->m_sPollID);
             continue;

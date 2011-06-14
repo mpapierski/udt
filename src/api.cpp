@@ -435,6 +435,9 @@ int CUDTUnited::newConnection(const UDTSOCKET listen, const sockaddr* peer, CHan
    }
    CGuard::leaveCS(ls->m_AcceptLock);
 
+   // acknowledge users waiting for new connections on the listening socket
+   m_EPoll.enable_read(listen, ls->m_pUDT->m_sPollID);
+
    CTimer::triggerEvent();
 
    ERR_ROLLBACK:
@@ -754,6 +757,7 @@ int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, const int& name
    s->m_Status = CONNECTING;
 
    // record peer address
+   delete s->m_pPeerAddr;
    if (AF_INET == s->m_iIPversion)
    {
       s->m_pPeerAddr = (sockaddr*)(new sockaddr_in);
