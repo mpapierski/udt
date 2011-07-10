@@ -82,7 +82,6 @@ public:
    ~CCache();
 
 public:
-
       // Functionality:
       //    find the matching item in the cache.
       // Parameters:
@@ -93,7 +92,7 @@ public:
    int lookup(CCacheItem* data);
 
       // Functionality:
-      //    update an item in the cache, or insert on if it doesn't exist; oldest item may be removed
+      //    update an item in the cache, or insert one if it doesn't exist; oldest item may be removed
       // Parameters:
       //    0) [in] data: the new item to updated/inserted to the cache
       // Returned value:

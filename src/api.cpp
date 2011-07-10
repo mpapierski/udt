@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 03/07/2011
+   Yunhong Gu, last updated 07/09/2011
 *****************************************************************************/
 
 #ifdef WIN32
@@ -753,8 +753,19 @@ int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, const int& name
    else if (OPENED != s->m_Status)
       throw CUDTException(5, 2, 0);
 
-   s->m_pUDT->connect(name);
+   // connect_complete() may be called before connect() returns.
+   // So we need to update the status before connect() is called,
+   // otherwise the status may be overwritten with wrong value (CONNECTED vs. CONNECTING).
    s->m_Status = CONNECTING;
+   try
+   {
+      s->m_pUDT->connect(name);
+   }
+   catch (CUDTException e)
+   {
+      s->m_Status = OPENED;
+      throw e;
+   }
 
    // record peer address
    delete s->m_pPeerAddr;

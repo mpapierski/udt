@@ -2652,7 +2652,7 @@ void CUDT::addEPoll(const int eid)
    else if ((UDT_DGRAM == m_iSockType) && (m_pRcvBuffer->getRcvMsgNum() > 0))
       s_UDTUnited.m_EPoll.enable_read(m_SocketID, m_sPollID);
 
-   if (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())
+   if (m_iSndBufSize > m_pSndBuffer->getCurrBufSize())
       s_UDTUnited.m_EPoll.enable_write(m_SocketID, m_sPollID);
 }
 
