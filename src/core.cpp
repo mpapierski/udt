@@ -944,8 +944,14 @@ void CUDT::close()
       m_pSndQueue->m_pSndUList->remove(this);
 
    // remove itself from all epoll monitoring
-   for (set<int>::iterator i = m_sPollID.begin(); i != m_sPollID.end(); ++ i)
-      s_UDTUnited.m_EPoll.remove_usock(*i, m_SocketID);
+   try
+   {
+      for (set<int>::iterator i = m_sPollID.begin(); i != m_sPollID.end(); ++ i)
+         s_UDTUnited.m_EPoll.remove_usock(*i, m_SocketID);
+   }
+   catch (...)
+   {
+   }
 
    if (!m_bOpened)
       return;
@@ -1309,13 +1315,15 @@ int CUDT::recvmsg(char* data, const int& len)
    if (m_bBroken || m_bClosing)
    {
       int res = m_pRcvBuffer->readMsg(data, len);
-      if (0 == res)
-      {
-         // read is not available
-         s_UDTUnited.m_EPoll.disable_read(m_SocketID, m_sPollID);
 
-         throw CUDTException(2, 1, 0);
+      if (m_pRcvBuffer->getRcvMsgNum() <= 0)
+      {
+         // read is not available any more
+         s_UDTUnited.m_EPoll.disable_read(m_SocketID, m_sPollID);
       }
+
+      if (0 == res)
+         throw CUDTException(2, 1, 0);
       else
          return res;
    }
