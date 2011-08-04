@@ -62,7 +62,7 @@ friend class CUDTSocket;
 friend class CUDTUnited;
 friend class CCC;
 friend struct CUDTComp;
-friend class CCache;
+friend class CCache<CInfoBlock>;
 friend class CRendezvousQueue;
 friend class CSndQueue;
 friend class CRcvQueue;
@@ -302,7 +302,7 @@ private: // Options
 private: // congestion control
    CCCVirtualFactory* m_pCCFactory;             // Factory class to create a specific CC instance
    CCC* m_pCC;                                  // congestion control class
-   CCache* m_pCache;				// network information cache
+   CCache<CInfoBlock>* m_pCache;		// network information cache
 
 private: // Status
    volatile bool m_bListening;                  // If the UDT entit is listening to connection

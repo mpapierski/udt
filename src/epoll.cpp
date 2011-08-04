@@ -38,16 +38,18 @@ written by
    Yunhong Gu, last updated 01/01/2011
 *****************************************************************************/
 
-#include "udt.h"
-#include "common.h"
-#include "epoll.h"
-#include <errno.h>
-#include <algorithm>
-#include <iterator>
 #ifdef LINUX
    #include <sys/epoll.h>
    #include <unistd.h>
 #endif
+#include <algorithm>
+#include <cerrno>
+#include <cstring>
+#include <iterator>
+
+#include "common.h"
+#include "epoll.h"
+#include "udt.h"
 
 using namespace std;
 

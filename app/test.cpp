@@ -23,8 +23,8 @@ for performance testing, use appserver/appclient and sendfile/recvfile.
 
 using namespace std;
 
-int g_IP_Version = AF_INET;
-int g_Socket_Type = SOCK_STREAM;
+const int g_IP_Version = AF_INET;
+const int g_Socket_Type = SOCK_STREAM;
 
 
 int createUDTSocket(UDTSOCKET& usock, int version = AF_INET, int type = SOCK_STREAM, int port = 0, bool rendezvous = false)
@@ -166,7 +166,7 @@ DWORD WINAPI Test_1_Srv(LPVOID param)
    if (createUDTSocket(serv, AF_INET, SOCK_STREAM, 9000) < 0)
       return NULL;
 
-   UDT::listen(serv, 10);
+   UDT::listen(serv, 1024);
 
    sockaddr_storage clientaddr;
    int addrlen = sizeof(clientaddr);
@@ -264,7 +264,7 @@ DWORD WINAPI Test_2_Srv(LPVOID param)
    if (createUDTSocket(serv, AF_INET, SOCK_STREAM, 9000) < 0)
       return NULL;
 
-   UDT::listen(serv, 10);
+   UDT::listen(serv, 1024);
 
    vector<UDTSOCKET> new_socks;
    new_socks.resize(1000);
@@ -292,7 +292,7 @@ DWORD WINAPI Test_2_Srv(LPVOID param)
    if (createTCPSocket(tcp_serv, AF_INET, SOCK_STREAM, 9001) < 0)
       return NULL;
 
-   listen(tcp_serv, 10);
+   listen(tcp_serv, 1024);
 
    vector<SYSSOCKET> tcp_socks;
    tcp_socks.resize(10);
@@ -559,7 +559,7 @@ DWORD WINAPI Test_4_Srv(LPVOID param)
    if (createUDTSocket(serv, AF_INET, SOCK_STREAM, 9000) < 0)
       return NULL;
 
-   UDT::listen(serv, 10);
+   UDT::listen(serv, 1024);
 
    const int total = 1000;
 

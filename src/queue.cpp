@@ -45,11 +45,11 @@ written by
       #include <wspiapi.h>
    #endif
 #endif
-
 #include <cstring>
+
 #include "common.h"
-#include "queue.h"
 #include "core.h"
+#include "queue.h"
 
 using namespace std;
 
@@ -925,7 +925,7 @@ CRcvQueue::~CRcvQueue()
    delete m_pRendezvousQueue;
 
    // remove all queued messages
-   for (map<int32_t, queue<CPacket*> >::iterator i = m_mBuffer.begin(); i != m_mBuffer.end(); ++ i)
+   for (map<int32_t, std::queue<CPacket*> >::iterator i = m_mBuffer.begin(); i != m_mBuffer.end(); ++ i)
    {
       while (!i->second.empty())
       {
@@ -1107,7 +1107,7 @@ int CRcvQueue::recvfrom(const int32_t& id, CPacket& packet)
 {
    CGuard bufferlock(m_PassLock);
 
-   map<int32_t, queue<CPacket*> >::iterator i = m_mBuffer.find(id);
+   map<int32_t, std::queue<CPacket*> >::iterator i = m_mBuffer.find(id);
 
    if (i == m_mBuffer.end())
    {
@@ -1189,7 +1189,7 @@ void CRcvQueue::removeConnector(const UDTSOCKET& id)
 
    CGuard bufferlock(m_PassLock);
 
-   map<int32_t, queue<CPacket*> >::iterator i = m_mBuffer.find(id);
+   map<int32_t, std::queue<CPacket*> >::iterator i = m_mBuffer.find(id);
    if (i != m_mBuffer.end())
    {
       while (!i->second.empty())
@@ -1230,7 +1230,7 @@ void CRcvQueue::storePkt(const int32_t& id, CPacket* pkt)
 {
    CGuard bufferlock(m_PassLock);   
 
-   map<int32_t, queue<CPacket*> >::iterator i = m_mBuffer.find(id);
+   map<int32_t, std::queue<CPacket*> >::iterator i = m_mBuffer.find(id);
 
    if (i == m_mBuffer.end())
    {

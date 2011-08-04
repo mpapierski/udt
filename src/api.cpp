@@ -153,7 +153,7 @@ m_ClosedSockets()
       m_TLSLock = CreateMutex(NULL, false, NULL);
    #endif
 
-   m_pCache = new CCache;
+   m_pCache = new CCache<CInfoBlock>;
 }
 
 CUDTUnited::~CUDTUnited()
