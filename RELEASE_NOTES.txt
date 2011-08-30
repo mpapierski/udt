@@ -1,6 +1,6 @@
 version 4.9
 
-some bug fixes
+some bug fixes, especially on EPOLL
 improved cache code
 removed unnecessary NAK (reduced loss retransmission)
 receiver side error can unblock a blocked sender

@@ -97,17 +97,15 @@ written by
 
 #ifdef WIN32
    #ifndef __MINGW__
-      typedef SOCKET UDPSOCKET;
       typedef SOCKET SYSSOCKET;
    #else
-      typedef int UDPSOCKET;
       typedef int SYSSOCKET;
    #endif
 #else
-   typedef int UDPSOCKET;
    typedef int SYSSOCKET;
 #endif
 
+typedef SYSSOCKET UDPSOCKET;
 typedef int UDTSOCKET;
 
 ////////////////////////////////////////////////////////////////////////////////
