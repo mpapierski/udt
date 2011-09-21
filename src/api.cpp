@@ -642,7 +642,12 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
       {
          pthread_mutex_lock(&(ls->m_AcceptLock));
 
-         if (ls->m_pQueuedSockets->size() > 0)
+         if ((LISTENING != ls->m_Status) || ls->m_pUDT->m_bBroken)
+         {
+            // This socket has been closed.
+            accepted = true;
+         }
+         else if (ls->m_pQueuedSockets->size() > 0)
          {
             u = *(ls->m_pQueuedSockets->begin());
             ls->m_pAcceptSockets->insert(ls->m_pAcceptSockets->end(), u);
@@ -650,12 +655,12 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
             accepted = true;
          }
          else if (!ls->m_pUDT->m_bSynRecving)
+         {
             accepted = true;
-         else if (LISTENING == ls->m_Status)
-            pthread_cond_wait(&(ls->m_AcceptCond), &(ls->m_AcceptLock));
+         }
 
-         if ((LISTENING != ls->m_Status) || ls->m_pUDT->m_bBroken)
-            accepted = true;
+         if (!accepted && (LISTENING == ls->m_Status))
+            pthread_cond_wait(&(ls->m_AcceptCond), &(ls->m_AcceptLock));
 
          if (ls->m_pQueuedSockets->empty())
             m_EPoll.disable_read(listen, ls->m_pUDT->m_sPollID);
@@ -685,6 +690,7 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
 
          if ((LISTENING != ls->m_Status) || ls->m_pUDT->m_bBroken)
          {
+            // Send signal to other threads that are waiting to accept.
             SetEvent(ls->m_AcceptCond);
             accepted = true;
          }
