@@ -2280,7 +2280,7 @@ int epoll_remove_usock(const int eid, const UDTSOCKET u, const int* events)
 
 int epoll_remove_ssock(const int eid, const SYSSOCKET s, const int* events)
 {
-   return CUDT::epoll_remove_usock(eid, s, events);
+   return CUDT::epoll_remove_ssock(eid, s, events);
 }
 
 int epoll_wait(const int eid, set<int>* readfds, set<int>* writefds, int64_t msTimeOut, set<SYSSOCKET>* lrfds, set<SYSSOCKET>* lwfds)
