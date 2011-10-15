@@ -422,13 +422,11 @@ private: // Timers
 
    uint64_t m_ullNextACKTime;			// Next ACK time, in CPU clock cycles, same below
    uint64_t m_ullNextNAKTime;			// Next NAK time
-   uint64_t m_ullNextEXPTime;			// Next timeout
 
    volatile uint64_t m_ullSYNInt;		// SYN interval
    volatile uint64_t m_ullACKInt;		// ACK interval
    volatile uint64_t m_ullNAKInt;		// NAK interval
-   volatile uint64_t m_ullEXPInt;		// EXP interval
-   volatile int64_t m_llLastRspTime;		// time stamp of last response from the peer
+   volatile uint64_t m_ullLastRspTime;		// time stamp of last response from the peer
 
    uint64_t m_ullMinNakInt;			// NAK timeout lower bound; too small value can cause unnecessary retransmission
    uint64_t m_ullMinExpInt;			// timeout lower bound threshold: too small timeout can cause problem
