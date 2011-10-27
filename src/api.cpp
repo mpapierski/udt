@@ -1089,8 +1089,10 @@ int CUDTUnited::epoll_create()
 int CUDTUnited::epoll_add_usock(const int eid, const UDTSOCKET u, const int* events)
 {
    CUDTSocket* s = locate(u);
+   int ret = -1;
    if (NULL != s)
    {
+      ret = m_EPoll.add_usock(eid, u, events);
       s->m_pUDT->addEPoll(eid);
    }
    else
@@ -1098,7 +1100,7 @@ int CUDTUnited::epoll_add_usock(const int eid, const UDTSOCKET u, const int* eve
       throw CUDTException(5, 4);
    }
 
-   return m_EPoll.add_usock(eid, u, events);
+   return -1;
 }
 
 int CUDTUnited::epoll_add_ssock(const int eid, const SYSSOCKET s, const int* events)
