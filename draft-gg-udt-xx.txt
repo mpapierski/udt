@@ -652,10 +652,10 @@ Yunhong Gu            Expires - October 12, 2010             [Page 11]
       in this section) and reset the associated time variables. For 
       ACK, also check the ACK packet interval. 
    2) Start time bounded UDP receiving. If no packet arrives, go to 1). 
-   1) Reset the ExpCount to 1. If there is no unacknowledged data 
+   3) Reset the ExpCount to 1. If there is no unacknowledged data 
       packet, or if this is an ACK or NAK control packet, reset the EXP 
       timer. 
-   3) Check the flag bit of the packet header. If it is a control 
+   4) Check the flag bit of the packet header. If it is a control 
  
  
 Yunhong Gu            Expires - October 12, 2010             [Page 12] 
@@ -663,18 +663,18 @@ Yunhong Gu            Expires - October 12, 2010             [Page 12]
  
  
       packet, process it according to its type and go to 1). 
-   4) If the sequence number of the current data packet is 16n + 1, 
+   5) If the sequence number of the current data packet is 16n + 1, 
       where n is an integer, record the time interval between this 
       packet and the last data packet in the Packet Pair Window. 
-   5) Record the packet arrival time in PKT History Window. 
-   6)  
+   6) Record the packet arrival time in PKT History Window. 
+   7)  
         a. If the sequence number of the current data packet is greater 
            than LRSN + 1, put all the sequence numbers between (but 
            excluding) these two values into the receiver's loss list and 
            send them to the sender in an NAK packet. 
         b. If the sequence number is less than LRSN, remove it from the 
            receiver's loss list. 
-   7) Update LRSN. Go to 1). 
+   8) Update LRSN. Go to 1). 
     
    ACK Event Processing: 
    1) Find the sequence number prior to which all the packets have been 
