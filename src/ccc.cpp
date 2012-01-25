@@ -193,6 +193,11 @@ void CUDTCC::onACK(const int32_t& ack)
 {
    int64_t B = 0;
    double inc = 0;
+   // Note: 1/24/2012
+   // The minimum increase parameter is increased from "1.0 / m_iMSS" to 0.01
+   // because the original was too small and caused sending rate to stay at low level
+   // for long time.
+   const double min_inc = 0.01;
 
    uint64_t currtime = CTimer::getTime();
    if (currtime - m_LastRCTime < (uint64_t)m_iRCInterval)
@@ -231,7 +236,7 @@ void CUDTCC::onACK(const int32_t& ack)
    if ((m_dPktSndPeriod > m_dLastDecPeriod) && ((m_iBandwidth / 9) < B))
       B = m_iBandwidth / 9;
    if (B <= 0)
-      inc = 1.0 / m_iMSS;
+      inc = min_inc;
    else
    {
       // inc = max(10 ^ ceil(log10( B * MSS * 8 ) * Beta / MSS, 1/MSS)
@@ -239,8 +244,8 @@ void CUDTCC::onACK(const int32_t& ack)
 
       inc = pow(10.0, ceil(log10(B * m_iMSS * 8.0))) * 0.0000015 / m_iMSS;
 
-      if (inc < 1.0/m_iMSS)
-         inc = 1.0/m_iMSS;
+      if (inc < min_inc)
+         inc = min_inc;
    }
 
    m_dPktSndPeriod = (m_dPktSndPeriod * m_iRCInterval) / (m_dPktSndPeriod * inc + m_iRCInterval);
