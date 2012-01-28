@@ -76,7 +76,7 @@ m_iRcvBufSize(65536)
 {
 }
 
-CChannel::CChannel(const int& version):
+CChannel::CChannel(int version):
 m_iIPversion(version),
 m_iSocket(),
 m_iSndBufSize(65536),
@@ -208,12 +208,12 @@ int CChannel::getRcvBufSize()
    return m_iRcvBufSize;
 }
 
-void CChannel::setSndBufSize(const int& size)
+void CChannel::setSndBufSize(int size)
 {
    m_iSndBufSize = size;
 }
 
-void CChannel::setRcvBufSize(const int& size)
+void CChannel::setRcvBufSize(int size)
 {
    m_iRcvBufSize = size;
 }

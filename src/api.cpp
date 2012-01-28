@@ -253,7 +253,7 @@ int CUDTUnited::cleanup()
    return 0;
 }
 
-UDTSOCKET CUDTUnited::newSocket(const int& af, const int& type)
+UDTSOCKET CUDTUnited::newSocket(int af, int type)
 {
    if ((type != SOCK_STREAM) && (type != SOCK_DGRAM))
       throw CUDTException(5, 3, 0);
@@ -496,7 +496,7 @@ UDTSTATUS CUDTUnited::getStatus(const UDTSOCKET u)
    return i->second->m_Status;   
 }
 
-int CUDTUnited::bind(const UDTSOCKET u, const sockaddr* name, const int& namelen)
+int CUDTUnited::bind(const UDTSOCKET u, const sockaddr* name, int namelen)
 {
    CUDTSocket* s = locate(u);
    if (NULL == s)
@@ -571,7 +571,7 @@ int CUDTUnited::bind(UDTSOCKET u, UDPSOCKET udpsock)
    return 0;
 }
 
-int CUDTUnited::listen(const UDTSOCKET u, const int& backlog)
+int CUDTUnited::listen(const UDTSOCKET u, int backlog)
 {
    CUDTSocket* s = locate(u);
    if (NULL == s)
@@ -724,7 +724,7 @@ UDTSOCKET CUDTUnited::accept(const UDTSOCKET listen, sockaddr* addr, int* addrle
    return u;
 }
 
-int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, const int& namelen)
+int CUDTUnited::connect(const UDTSOCKET u, const sockaddr* name, int namelen)
 {
    CUDTSocket* s = locate(u);
    if (NULL == s)
@@ -1150,7 +1150,7 @@ CUDTSocket* CUDTUnited::locate(const UDTSOCKET u)
    return i->second;
 }
 
-CUDTSocket* CUDTUnited::locate(const sockaddr* peer, const UDTSOCKET& id, const int32_t& isn)
+CUDTSocket* CUDTUnited::locate(const sockaddr* peer, const UDTSOCKET id, int32_t isn)
 {
    CGuard cg(m_ControlLock);
 
@@ -1791,7 +1791,7 @@ int CUDT::send(UDTSOCKET u, const char* buf, int len, int)
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-      return udt->send((char*)buf, len);
+      return udt->send(buf, len);
    }
    catch (CUDTException e)
    {
@@ -1834,7 +1834,7 @@ int CUDT::sendmsg(UDTSOCKET u, const char* buf, int len, int ttl, bool inorder)
    try
    {
       CUDT* udt = s_UDTUnited.lookup(u);
-      return udt->sendmsg((char*)buf, len, ttl, inorder);
+      return udt->sendmsg(buf, len, ttl, inorder);
    }
    catch (CUDTException e)
    {
@@ -1872,7 +1872,7 @@ int CUDT::recvmsg(UDTSOCKET u, char* buf, int len)
    }
 }
 
-int64_t CUDT::sendfile(UDTSOCKET u, fstream& ifs, int64_t& offset, const int64_t& size, const int& block)
+int64_t CUDT::sendfile(UDTSOCKET u, fstream& ifs, int64_t& offset, int64_t size, int block)
 {
    try
    {
@@ -1896,7 +1896,7 @@ int64_t CUDT::sendfile(UDTSOCKET u, fstream& ifs, int64_t& offset, const int64_t
    }
 }
 
-int64_t CUDT::recvfile(UDTSOCKET u, fstream& ofs, int64_t& offset, const int64_t& size, const int& block)
+int64_t CUDT::recvfile(UDTSOCKET u, fstream& ofs, int64_t& offset, int64_t size, int block)
 {
    try
    {

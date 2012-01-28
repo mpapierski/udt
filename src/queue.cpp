@@ -82,7 +82,7 @@ CUnitQueue::~CUnitQueue()
    }
 }
 
-int CUnitQueue::init(const int& size, const int& mss, const int& version)
+int CUnitQueue::init(int size, int mss, int version)
 {
    CQEntry* tempq = NULL;
    CUnit* tempu = NULL;
@@ -252,7 +252,7 @@ CSndUList::~CSndUList()
    #endif
 }
 
-void CSndUList::insert(const int64_t& ts, const CUDT* u)
+void CSndUList::insert(int64_t ts, const CUDT* u)
 {
    CGuard listguard(m_ListLock);
 
@@ -279,7 +279,7 @@ void CSndUList::insert(const int64_t& ts, const CUDT* u)
    insert_(ts, u);
 }
 
-void CSndUList::update(const CUDT* u, const bool& reschedule)
+void CSndUList::update(const CUDT* u, bool reschedule)
 {
    CGuard listguard(m_ListLock);
 
@@ -352,7 +352,7 @@ uint64_t CSndUList::getNextProcTime()
    return m_pHeap[0]->m_llTimeStamp;
 }
 
-void CSndUList::insert_(const int64_t& ts, const CUDT* u)
+void CSndUList::insert_(int64_t ts, const CUDT* u)
 {
    CSNode* n = u->m_pSNode;
 
@@ -684,7 +684,7 @@ CHash::~CHash()
    delete [] m_pBucket;
 }
 
-void CHash::init(const int& size)
+void CHash::init(int size)
 {
    m_pBucket = new CBucket* [size];
 
@@ -694,7 +694,7 @@ void CHash::init(const int& size)
    m_iHashSize = size;
 }
 
-CUDT* CHash::lookup(const int32_t& id)
+CUDT* CHash::lookup(int32_t id)
 {
    // simple hash function (% hash table size); suitable for socket descriptors
    CBucket* b = m_pBucket[id % m_iHashSize];
@@ -721,7 +721,7 @@ void CHash::insert(const int32_t& id, const CUDT* u)
    m_pBucket[id % m_iHashSize] = n;
 }
 
-void CHash::remove(const int32_t& id)
+void CHash::remove(int32_t id)
 {
    CBucket* b = m_pBucket[id % m_iHashSize];
    CBucket* p = NULL;
@@ -777,7 +777,7 @@ CRendezvousQueue::~CRendezvousQueue()
    m_lRendezvousID.clear();
 }
 
-void CRendezvousQueue::insert(const UDTSOCKET& id, CUDT* u, const int& ipv, const sockaddr* addr, const uint64_t& ttl)
+void CRendezvousQueue::insert(const UDTSOCKET& id, CUDT* u, int ipv, const sockaddr* addr, uint64_t ttl)
 {
    CGuard vg(m_RIDVectorLock);
 
@@ -1103,7 +1103,7 @@ TIMER_CHECK:
    #endif
 }
 
-int CRcvQueue::recvfrom(const int32_t& id, CPacket& packet)
+int CRcvQueue::recvfrom(int32_t id, CPacket& packet)
 {
    CGuard bufferlock(m_PassLock);
 
@@ -1178,7 +1178,7 @@ void CRcvQueue::removeListener(const CUDT* u)
       m_pListener = NULL;
 }
 
-void CRcvQueue::registerConnector(const UDTSOCKET& id, CUDT* u, const int& ipv, const sockaddr* addr, const uint64_t& ttl)
+void CRcvQueue::registerConnector(const UDTSOCKET& id, CUDT* u, int ipv, const sockaddr* addr, uint64_t ttl)
 {
    m_pRendezvousQueue->insert(id, u, ipv, addr, ttl);
 }
@@ -1226,7 +1226,7 @@ CUDT* CRcvQueue::getNewEntry()
    return u;
 }
 
-void CRcvQueue::storePkt(const int32_t& id, CPacket* pkt)
+void CRcvQueue::storePkt(int32_t id, CPacket* pkt)
 {
    CGuard bufferlock(m_PassLock);   
 
