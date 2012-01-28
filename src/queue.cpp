@@ -487,10 +487,10 @@ CSndQueue::~CSndQueue()
    delete m_pSndUList;
 }
 
-void CSndQueue::init(const CChannel* c, const CTimer* t)
+void CSndQueue::init(CChannel* c, CTimer* t)
 {
-   m_pChannel = (CChannel*)c;
-   m_pTimer = (CTimer*)t;
+   m_pChannel = c;
+   m_pTimer = t;
    m_pSndUList = new CSndUList;
    m_pSndUList->m_pWindowLock = &m_WindowLock;
    m_pSndUList->m_pWindowCond = &m_WindowCond;
@@ -709,13 +709,13 @@ CUDT* CHash::lookup(int32_t id)
    return NULL;
 }
 
-void CHash::insert(const int32_t& id, const CUDT* u)
+void CHash::insert(int32_t id, CUDT* u)
 {
    CBucket* b = m_pBucket[id % m_iHashSize];
 
    CBucket* n = new CBucket;
    n->m_iID = id;
-   n->m_pUDT = (CUDT*)u;
+   n->m_pUDT = u;
    n->m_pNext = b;
 
    m_pBucket[id % m_iHashSize] = n;
@@ -937,7 +937,7 @@ CRcvQueue::~CRcvQueue()
    }
 }
 
-void CRcvQueue::init(const int& qsize, const int& payload, const int& version, const int& hsize, const CChannel* cc, const CTimer* t)
+void CRcvQueue::init(int qsize, int payload, int version, int hsize, CChannel* cc, CTimer* t)
 {
    m_iPayloadSize = payload;
 
@@ -946,8 +946,8 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
    m_pHash = new CHash;
    m_pHash->init(hsize);
 
-   m_pChannel = (CChannel*)cc;
-   m_pTimer = (CTimer*)t;
+   m_pChannel = cc;
+   m_pTimer = t;
 
    m_pRcvUList = new CRcvUList;
    m_pRendezvousQueue = new CRendezvousQueue;
@@ -1020,7 +1020,7 @@ void CRcvQueue::init(const int& qsize, const int& payload, const int& version, c
       if (0 == id)
       {
          if (NULL != self->m_pListener)
-            ((CUDT*)self->m_pListener)->listen(addr, unit->m_Packet);
+            self->m_pListener->listen(addr, unit->m_Packet);
          else if (NULL != (u = self->m_pRendezvousQueue->retrieve(addr, id)))
          {
             // asynchronous connect: call connect here
@@ -1159,14 +1159,14 @@ int CRcvQueue::recvfrom(int32_t id, CPacket& packet)
    return packet.getLength();
 }
 
-int CRcvQueue::setListener(const CUDT* u)
+int CRcvQueue::setListener(CUDT* u)
 {
    CGuard lslock(m_LSLock);
 
    if (NULL != m_pListener)
       return -1;
 
-   m_pListener = (CUDT*)u;
+   m_pListener = u;
    return 0;
 }
 

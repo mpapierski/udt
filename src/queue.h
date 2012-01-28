@@ -311,7 +311,7 @@ public:
       // Returned value:
       //    None.
 
-   void insert(const int32_t& id, const CUDT* u);
+   void insert(int32_t id, CUDT* u);
 
       // Functionality:
       //    Remove an entry from the hash table.
@@ -384,7 +384,7 @@ public:
       // Returned value:
       //    None.
 
-   void init(const CChannel* c, const CTimer* t);
+   void init(CChannel* c, CTimer* t);
 
       // Functionality:
       //    Send out a packet to a given address.
@@ -444,7 +444,7 @@ public:
       // Returned value:
       //    None.
 
-   void init(const int& size, const int& payload, const int& version, const int& hsize, const CChannel* c, const CTimer* t);
+   void init(int size, int payload, int version, int hsize, CChannel* c, CTimer* t);
 
       // Functionality:
       //    Read a packet for a specific UDT socket id.
@@ -479,7 +479,7 @@ private:
    pthread_cond_t m_ExitCond;
 
 private:
-   int setListener(const CUDT* u);
+   int setListener(CUDT* u);
    void removeListener(const CUDT* u);
 
    void registerConnector(const UDTSOCKET& id, CUDT* u, int ipv, const sockaddr* addr, uint64_t ttl);
@@ -493,7 +493,7 @@ private:
 
 private:
    pthread_mutex_t m_LSLock;
-   volatile CUDT* m_pListener;                          // pointer to the (unique, if any) listening UDT entity
+   CUDT* m_pListener;                                   // pointer to the (unique, if any) listening UDT entity
    CRendezvousQueue* m_pRendezvousQueue;                // The list of sockets in rendezvous mode
 
    std::vector<CUDT*> m_vNewEntry;                      // newly added entries, to be inserted
