@@ -301,6 +301,7 @@ UDTSOCKET CUDTUnited::newSocket(int af, int type)
    catch (...)
    {
       //failure and rollback
+      CGuard::leaveCS(m_ControlLock);
       delete ns;
       ns = NULL;
    }
@@ -2175,7 +2176,7 @@ int bind(UDTSOCKET u, const struct sockaddr* name, int namelen)
    return CUDT::bind(u, name, namelen);
 }
 
-int bind(UDTSOCKET u, UDPSOCKET udpsock)
+int bind2(UDTSOCKET u, UDPSOCKET udpsock)
 {
    return CUDT::bind(u, udpsock);
 }
@@ -2250,6 +2251,22 @@ int64_t recvfile(UDTSOCKET u, fstream& ofs, int64_t& offset, int64_t size, int b
    return CUDT::recvfile(u, ofs, offset, size, block);
 }
 
+int64_t sendfile2(UDTSOCKET u, const char* path, int64_t& offset, int64_t size, int block)
+{
+   fstream ifs(path, ios::binary | ios::in);
+   int64_t ret = CUDT::sendfile(u, ifs, offset, size, block);
+   ifs.close();
+   return ret;
+}
+
+int64_t recvfile2(UDTSOCKET u, const char* path, int64_t& offset, int64_t size, int block)
+{
+   fstream ofs(path, ios::binary | ios::out);
+   int64_t ret = CUDT::sendfile(u, ofs, offset, size, block);
+   ofs.close();
+   return ret;
+}
+
 int select(int nfds, UDSET* readfds, UDSET* writefds, UDSET* exceptfds, const struct timeval* timeout)
 {
    return CUDT::select(nfds, readfds, writefds, exceptfds, timeout);
@@ -2265,32 +2282,77 @@ int epoll_create()
    return CUDT::epoll_create();
 }
 
-int epoll_add_usock(const int eid, const UDTSOCKET u, const int* events)
+int epoll_add_usock(int eid, UDTSOCKET u, const int* events)
 {
    return CUDT::epoll_add_usock(eid, u, events);
 }
 
-int epoll_add_ssock(const int eid, const SYSSOCKET s, const int* events)
+int epoll_add_ssock(int eid, SYSSOCKET s, const int* events)
 {
    return CUDT::epoll_add_ssock(eid, s, events);
 }
 
-int epoll_remove_usock(const int eid, const UDTSOCKET u)
+int epoll_remove_usock(int eid, UDTSOCKET u)
 {
    return CUDT::epoll_remove_usock(eid, u);
 }
 
-int epoll_remove_ssock(const int eid, const SYSSOCKET s)
+int epoll_remove_ssock(int eid, SYSSOCKET s)
 {
    return CUDT::epoll_remove_ssock(eid, s);
 }
 
-int epoll_wait(const int eid, set<int>* readfds, set<int>* writefds, int64_t msTimeOut, set<SYSSOCKET>* lrfds, set<SYSSOCKET>* lwfds)
+int epoll_wait(int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64_t msTimeOut, set<SYSSOCKET>* lrfds, set<SYSSOCKET>* lwfds)
 {
    return CUDT::epoll_wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
 }
 
-int epoll_release(const int eid)
+#define SET_UDT_RESULT(val, num, fds) \
+   if ((val != NULL) && !val->empty()) \
+   { \
+      num = val->size(); \
+      fds = new UDTSOCKET[num]; \
+   }
+#define SET_SYS_RESULT(val, num, fds) \
+   if ((val != NULL) && !val->empty()) \
+   { \
+      num = val->size(); \
+      fds = new SYSSOCKET[num]; \
+   }
+int epoll_wait2(int eid, UDTSOCKET** readfds, int* rnum, UDTSOCKET** writefds, int* wnum, int64_t msTimeOut,
+                SYSSOCKET** lrfds, int* lrnum, SYSSOCKET** lwfds, int* lwnum)
+{
+   // This API is an alternative format for the one above, create for compatability with other languages.
+
+   set<UDTSOCKET> readset;
+   set<UDTSOCKET> writeset;
+   set<SYSSOCKET> lrset;
+   set<SYSSOCKET> lwset;
+   set<UDTSOCKET>* rval = NULL;
+   set<UDTSOCKET>* wval = NULL;
+   set<SYSSOCKET>* lrval = NULL;
+   set<SYSSOCKET>* lwval = NULL;
+   if ((readfds != NULL) && (rnum != NULL))
+      rval = &readset;
+   if ((writefds != NULL) && (wnum != NULL))
+      wval = &writeset;
+   if ((lrfds != NULL) && (lrnum != NULL))
+      lrval = &lrset;
+   if ((lwfds != NULL) && (lwnum != NULL))
+      wval = &lwset;
+
+   int ret = CUDT::epoll_wait(eid, rval, wval, msTimeOut, lrval, lwval);
+   if (ret > 0)
+   {
+      SET_UDT_RESULT(rval, *rnum, *readfds);
+      SET_UDT_RESULT(wval, *wnum, *writefds);
+      SET_SYS_RESULT(lrval, *lrnum, *lrfds);
+      SET_SYS_RESULT(lwval, *lwnum, *lwfds);
+   }
+   return ret;
+}
+
+int epoll_release(int eid)
 {
    return CUDT::epoll_release(eid);
 }
@@ -2298,6 +2360,16 @@ int epoll_release(const int eid)
 ERRORINFO& getlasterror()
 {
    return CUDT::getlasterror();
+}
+
+int getlasterror_code()
+{
+   return CUDT::getlasterror().getErrorCode();
+}
+
+const char* getlasterror_desc()
+{
+   return CUDT::getlasterror().getErrorMessage();
 }
 
 int perfmon(UDTSOCKET u, TRACEINFO* perf, bool clear)
@@ -2310,4 +2382,4 @@ UDTSTATUS getsockstate(UDTSOCKET u)
    return CUDT::getsockstate(u);
 }
 
-}
+}  // namespace UDT

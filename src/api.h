@@ -200,6 +200,9 @@ public:
    CUDTException* getError();
 
 private:
+//   void init();
+
+private:
    std::map<UDTSOCKET, CUDTSocket*> m_Sockets;       // stores all the socket structures
 
    pthread_mutex_t m_ControlLock;                    // used to synchronize UDT API
