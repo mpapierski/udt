@@ -327,8 +327,8 @@ UDT_API int sendmsg(UDTSOCKET u, const char* buf, int len, int ttl = -1, bool in
 UDT_API int recvmsg(UDTSOCKET u, char* buf, int len);
 UDT_API int64_t sendfile(UDTSOCKET u, std::fstream& ifs, int64_t& offset, int64_t size, int block = 364000);
 UDT_API int64_t recvfile(UDTSOCKET u, std::fstream& ofs, int64_t& offset, int64_t size, int block = 7280000);
-UDT_API int64_t sendfile2(UDTSOCKET u, const char* path, int64_t& offset, int64_t size, int block = 364000);
-UDT_API int64_t recvfile2(UDTSOCKET u, const char* path, int64_t& offset, int64_t size, int block = 7280000);
+UDT_API int64_t sendfile2(UDTSOCKET u, const char* path, int64_t* offset, int64_t size, int block = 364000);
+UDT_API int64_t recvfile2(UDTSOCKET u, const char* path, int64_t* offset, int64_t size, int block = 7280000);
 
 // select and selectEX are DEPRECATED; please use epoll. 
 UDT_API int select(int nfds, UDSET* readfds, UDSET* writefds, UDSET* exceptfds, const struct timeval* timeout);
@@ -342,7 +342,7 @@ UDT_API int epoll_remove_usock(int eid, UDTSOCKET u);
 UDT_API int epoll_remove_ssock(int eid, SYSSOCKET s);
 UDT_API int epoll_wait(int eid, std::set<UDTSOCKET>* readfds, std::set<UDTSOCKET>* writefds, int64_t msTimeOut,
                        std::set<SYSSOCKET>* lrfds = NULL, std::set<SYSSOCKET>* wrfds = NULL);
-UDT_API int epoll_wait2(int eid, UDTSOCKET** readfds, int* rnum, UDTSOCKET** writefds, int* wnum, int64_t msTimeOut,
+UDT_API int epoll_wait2(int eid, UDTSOCKET* readfds, int* rnum, UDTSOCKET* writefds, int* wnum, int64_t msTimeOut,
                         SYSSOCKET* lrfds = NULL, int* lrnum = NULL, SYSSOCKET* lwfds = NULL, int* lwnum = NULL);
 UDT_API int epoll_release(int eid);
 UDT_API ERRORINFO& getlasterror();

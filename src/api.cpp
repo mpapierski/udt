@@ -2251,18 +2251,18 @@ int64_t recvfile(UDTSOCKET u, fstream& ofs, int64_t& offset, int64_t size, int b
    return CUDT::recvfile(u, ofs, offset, size, block);
 }
 
-int64_t sendfile2(UDTSOCKET u, const char* path, int64_t& offset, int64_t size, int block)
+int64_t sendfile2(UDTSOCKET u, const char* path, int64_t* offset, int64_t size, int block)
 {
    fstream ifs(path, ios::binary | ios::in);
-   int64_t ret = CUDT::sendfile(u, ifs, offset, size, block);
+   int64_t ret = CUDT::sendfile(u, ifs, *offset, size, block);
    ifs.close();
    return ret;
 }
 
-int64_t recvfile2(UDTSOCKET u, const char* path, int64_t& offset, int64_t size, int block)
+int64_t recvfile2(UDTSOCKET u, const char* path, int64_t* offset, int64_t size, int block)
 {
    fstream ofs(path, ios::binary | ios::out);
-   int64_t ret = CUDT::sendfile(u, ofs, offset, size, block);
+   int64_t ret = CUDT::sendfile(u, ofs, *offset, size, block);
    ofs.close();
    return ret;
 }
@@ -2307,22 +2307,25 @@ int epoll_wait(int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefds, int64
    return CUDT::epoll_wait(eid, readfds, writefds, msTimeOut, lrfds, lwfds);
 }
 
-#define SET_UDT_RESULT(val, num, fds) \
+#define SET_RESULT(val, num, fds, it) \
    if ((val != NULL) && !val->empty()) \
    { \
-      num = val->size(); \
-      fds = new UDTSOCKET[num]; \
+      if (*num > static_cast<int>(val->size())) \
+         *num = val->size(); \
+      int count = 0; \
+      for (it = val->begin(); it != val->end(); ++ it) \
+      { \
+         if (count >= *num) \
+            break; \
+         fds[count ++] = *it; \
+      } \
    }
-#define SET_SYS_RESULT(val, num, fds) \
-   if ((val != NULL) && !val->empty()) \
-   { \
-      num = val->size(); \
-      fds = new SYSSOCKET[num]; \
-   }
-int epoll_wait2(int eid, UDTSOCKET** readfds, int* rnum, UDTSOCKET** writefds, int* wnum, int64_t msTimeOut,
-                SYSSOCKET** lrfds, int* lrnum, SYSSOCKET** lwfds, int* lwnum)
+int epoll_wait2(int eid, UDTSOCKET* readfds, int* rnum, UDTSOCKET* writefds, int* wnum, int64_t msTimeOut,
+                SYSSOCKET* lrfds, int* lrnum, SYSSOCKET* lwfds, int* lwnum)
 {
-   // This API is an alternative format for the one above, create for compatability with other languages.
+   // This API is an alternative format for epoll_wait, created for compatability with other languages.
+   // Users need to pass in an array for holding the returned sockets, with the maximum array length
+   // stored in *rnum, etc., which will be updated with returned number of sockets.
 
    set<UDTSOCKET> readset;
    set<UDTSOCKET> writeset;
@@ -2344,10 +2347,12 @@ int epoll_wait2(int eid, UDTSOCKET** readfds, int* rnum, UDTSOCKET** writefds, i
    int ret = CUDT::epoll_wait(eid, rval, wval, msTimeOut, lrval, lwval);
    if (ret > 0)
    {
-      SET_UDT_RESULT(rval, *rnum, *readfds);
-      SET_UDT_RESULT(wval, *wnum, *writefds);
-      SET_SYS_RESULT(lrval, *lrnum, *lrfds);
-      SET_SYS_RESULT(lwval, *lwnum, *lwfds);
+      set<UDTSOCKET>::const_iterator i;
+      SET_RESULT(rval, rnum, readfds, i);
+      SET_RESULT(wval, wnum, writefds, i);
+      set<SYSSOCKET>::const_iterator j;
+      SET_RESULT(lrval, lrnum, lrfds, j);
+      SET_RESULT(lwval, lwnum, lwfds, j);
    }
    return ret;
 }
