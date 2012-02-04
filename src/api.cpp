@@ -2342,7 +2342,7 @@ int epoll_wait2(int eid, UDTSOCKET* readfds, int* rnum, UDTSOCKET* writefds, int
    if ((lrfds != NULL) && (lrnum != NULL))
       lrval = &lrset;
    if ((lwfds != NULL) && (lwnum != NULL))
-      wval = &lwset;
+      lwval = &lwset;
 
    int ret = CUDT::epoll_wait(eid, rval, wval, msTimeOut, lrval, lwval);
    if (ret > 0)
