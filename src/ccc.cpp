@@ -269,9 +269,15 @@ void CUDTCC::onLoss(const int32_t* losslist, int)
    {
       m_bSlowStart = false;
       if (m_iRcvRate > 0)
+      {
+         // Set the sending rate to the receiving rate.
          m_dPktSndPeriod = 1000000.0 / m_iRcvRate;
-      else
-         m_dPktSndPeriod = m_dCWndSize / (m_iRTT + m_iRCInterval);
+         return;
+      }
+      // If no receiving rate is observed, we have to compute the sending
+      // rate according to the current window size, and decrease it
+      // using the method below.
+      m_dPktSndPeriod = m_dCWndSize / (m_iRTT + m_iRCInterval);
    }
 
    m_bLoss = true;
