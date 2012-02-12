@@ -162,6 +162,8 @@ void* Test_1_Srv(void* param)
 DWORD WINAPI Test_1_Srv(LPVOID param)
 #endif
 {
+   cout << "Testing simple data transfer.\n";
+
    UDTSOCKET serv;
    if (createUDTSocket(serv, g_Server_Port) < 0)
       return NULL;
@@ -205,7 +207,13 @@ DWORD WINAPI Test_1_Srv(LPVOID param)
       }
    }
 
-   UDT::close(new_sock);
+   int eid = UDT::epoll_create();
+   UDT::epoll_add_usock(eid, new_sock);
+   set<UDTSOCKET> readfds;
+   if (UDT::epoll_wait(eid, &readfds, NULL, -1) > 0)
+   {
+      UDT::close(new_sock);
+   }
 
    return NULL;
 }
@@ -246,7 +254,7 @@ DWORD WINAPI Test_1_Cli(LPVOID param)
 
 // Test parallel UDT and TCP connections, over shared and dedicated ports.
 
-const int g_UDTNum = 1000;
+const int g_UDTNum = 200;
 const int g_IndUDTNum = 100;  // must < g_UDTNum.
 const int g_TCPNum = 10;
 int g_ActualUDTNum = 0;
@@ -257,6 +265,8 @@ void* Test_2_Srv(void* param)
 DWORD WINAPI Test_2_Srv(LPVOID param)
 #endif
 {
+   cout << "Test parallel UDT and TCP connections.\n";
+
 #ifndef WIN32
    //ignore SIGPIPE
    sigset_t ps;
@@ -265,7 +275,7 @@ DWORD WINAPI Test_2_Srv(LPVOID param)
    pthread_sigmask(SIG_BLOCK, &ps, NULL);
 #endif
 
-   // create 1000 UDT sockets
+   // create concurrent UDT sockets
    UDTSOCKET serv;
    if (createUDTSocket(serv, g_Server_Port) < 0)
       return NULL;
@@ -273,7 +283,7 @@ DWORD WINAPI Test_2_Srv(LPVOID param)
    UDT::listen(serv, 1024);
 
    vector<UDTSOCKET> new_socks;
-   new_socks.resize(1000);
+   new_socks.resize(g_UDTNum);
 
    int eid = UDT::epoll_create();
 
@@ -288,7 +298,7 @@ DWORD WINAPI Test_2_Srv(LPVOID param)
          cout << "accept: " << UDT::getlasterror().getErrorMessage() << endl;
          return NULL;
       }
-cout << "UDT # " << i << endl;
+
       UDT::epoll_add_usock(eid, new_socks[i]);
    }
 
@@ -308,7 +318,6 @@ cout << "UDT # " << i << endl;
       sockaddr_storage clientaddr;
       socklen_t addrlen = sizeof(clientaddr);
       tcp_socks[i] = accept(tcp_serv, (sockaddr*)&clientaddr, &addrlen);
-cout << "add TCP # " << i << endl;
       UDT::epoll_add_ssock(eid, tcp_socks[i]);
    }
 
@@ -324,7 +333,6 @@ cout << "add TCP # " << i << endl;
       {
          int32_t data;
          UDT::recv(*i, (char*)&data, 4, 0);
-cout << "RECV # " << count << endl;
          -- count;
       }
 
@@ -468,18 +476,22 @@ DWORD WINAPI Test_2_Cli(LPVOID param)
 
 // Test concurrent rendezvous connections.
 
+const int g_UDTNum3 = 50;
+
 #ifndef WIN32
 void* Test_3_Srv(void* param)
 #else
 DWORD WINAPI Test_3_Srv(LPVOID param)
 #endif
 {
+   cout << "Test rendezvous connections.\n";
+
    vector<UDTSOCKET> srv_socks;
-   srv_socks.resize(50);
+   srv_socks.resize(g_UDTNum3);
 
    int port = 61000;
 
-   for (int i = 0; i < 50; ++ i)
+   for (int i = 0; i < g_UDTNum3; ++ i)
    {
       if (createUDTSocket(srv_socks[i], port ++, true) < 0)
       {
@@ -515,11 +527,11 @@ DWORD WINAPI Test_3_Cli(LPVOID param)
 #endif
 {
    vector<UDTSOCKET> cli_socks;
-   cli_socks.resize(50);
+   cli_socks.resize(g_UDTNum3);
 
    int port = 51000;
 
-   for (int i = 0; i < 50; ++ i)
+   for (int i = 0; i < g_UDTNum3; ++ i)
    {
       if (createUDTSocket(cli_socks[i], port ++, true) < 0)
       {
@@ -552,24 +564,28 @@ DWORD WINAPI Test_3_Cli(LPVOID param)
 
 // Test concurrent UDT connections in multiple threads.
 
+const int g_UDTNum4 = 1000;
+const int g_UDTThreads = 40;
+const int g_UDTPerThread = 25;
+
 #ifndef WIN32
 void* Test_4_Srv(void* param)
 #else
 DWORD WINAPI Test_4_Srv(LPVOID param)
 #endif
 {
+   cout << "Test UDT in multiple threads.\n";
+
    UDTSOCKET serv;
    if (createUDTSocket(serv, g_Server_Port) < 0)
       return NULL;
 
    UDT::listen(serv, 1024);
 
-   const int total = 1000;
-
    vector<UDTSOCKET> new_socks;
-   new_socks.resize(total);
+   new_socks.resize(g_UDTNum4);
 
-   for (int i = 0; i < total; ++ i)
+   for (int i = 0; i < g_UDTNum4; ++ i)
    {
       sockaddr_storage clientaddr;
       int addrlen = sizeof(clientaddr);
@@ -599,10 +615,8 @@ void* start_and_destroy_clients(void* param)
 DWORD WINAPI start_and_destroy_clients(LPVOID param)
 #endif
 {
-   const int total = 25;
-
    vector<UDTSOCKET> cli_socks;
-   cli_socks.resize(total);
+   cli_socks.resize(g_UDTPerThread);
 
    if (createUDTSocket(cli_socks[0], 0) < 0)
    {
@@ -620,7 +634,7 @@ DWORD WINAPI start_and_destroy_clients(LPVOID param)
    char sharedport[NI_MAXSERV];
    getnameinfo(addr, size, NULL, 0, sharedport, sizeof(sharedport), NI_NUMERICSERV);
 
-   for (int i = 1; i < total; ++ i)
+   for (int i = 1; i < g_UDTPerThread; ++ i)
    {
       if (createUDTSocket(cli_socks[i], atoi(sharedport)) < 0)
       {
@@ -652,11 +666,9 @@ void* Test_4_Cli(void*)
 DWORD WINAPI Test_4_Cli(LPVOID)
 #endif
 {
-   const int total_threads = 40;  // 40 * 25 = 1000
-
 #ifndef WIN32
    vector<pthread_t> cli_threads;
-   cli_threads.resize(total_threads);
+   cli_threads.resize(g_UDTThreads);
 
    for (vector<pthread_t>::iterator i = cli_threads.begin(); i != cli_threads.end(); ++ i)
    {
@@ -669,7 +681,7 @@ DWORD WINAPI Test_4_Cli(LPVOID)
    }
 #else
    vector<HANDLE> cli_threads;
-   cli_threads.resize(total_threads);
+   cli_threads.resize(g_UDTThreads);
 
    for (vector<HANDLE>::iterator i = cli_threads.begin(); i != cli_threads.end(); ++ i)
    {
