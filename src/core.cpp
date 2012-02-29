@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*****************************************************************************
 written by
-   Yunhong Gu, last updated 05/07/2011
+   Yunhong Gu, last updated 02/28/2012
 *****************************************************************************/
 
 #ifndef WIN32
@@ -343,8 +343,6 @@ void CUDT::setOpt(UDTOpt optName, const void* optval, int)
       break;
 
    case UDT_MAXBW:
-      if (m_bConnecting || m_bConnected)
-         throw CUDTException(5, 1, 0);
       m_llMaxBW = *(int64_t*)optval;
       break;
     
@@ -790,8 +788,6 @@ POST_CONNECT:
    m_pCC->setRcvRate(m_iDeliveryRate);
    m_pCC->setRTT(m_iRTT);
    m_pCC->setBandwidth(m_iBandwidth);
-   if (m_llMaxBW > 0)
-      m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
    m_pCC->init();
 
    m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
@@ -890,7 +886,6 @@ void CUDT::connect(const sockaddr* peer, CHandShake* hs)
    m_pCC->setRcvRate(m_iDeliveryRate);
    m_pCC->setRTT(m_iRTT);
    m_pCC->setBandwidth(m_iBandwidth);
-   if (m_llMaxBW > 0) m_pCC->setUserParam((char*)&(m_llMaxBW), 8);
    m_pCC->init();
 
    m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
@@ -1651,6 +1646,18 @@ void CUDT::sample(CPerfMon* perf, bool clear)
    }
 }
 
+void CUDT::CCUpdate()
+{
+   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
+   m_dCongestionWindow = m_pCC->m_dCWndSize;
+
+   if (m_llMaxBW <= 0)
+      return;
+   const double minSP = 1000000.0 / (double(m_llMaxBW) / m_iMSS) * m_ullCPUFrequency;
+   if (m_ullInterval < minSP)
+       m_ullInterval = minSP;
+}
+
 void CUDT::initSynch()
 {
    #ifndef WIN32
@@ -2064,9 +2071,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       }
 
       m_pCC->onACK(ack);
-      // update CC parameters
-      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-      m_dCongestionWindow = m_pCC->m_dCWndSize;
+      CCUpdate();
 
       ++ m_iRecvACK;
       ++ m_iRecvACKTotal;
@@ -2105,9 +2110,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
       int32_t* losslist = (int32_t *)(ctrlpkt.m_pcData);
 
       m_pCC->onLoss(losslist, ctrlpkt.getLength() / 4);
-      // update CC parameters
-      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-      m_dCongestionWindow = m_pCC->m_dCWndSize;
+      CCUpdate();
 
       bool secure = true;
 
@@ -2245,9 +2248,7 @@ void CUDT::processCtrl(CPacket& ctrlpkt)
 
    case 32767: //0x7FFF - reserved and user defined messages
       m_pCC->processCustomMsg(&ctrlpkt);
-      // update CC parameters
-      m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-      m_dCongestionWindow = m_pCC->m_dCWndSize;
+      CCUpdate();
 
       break;
 
@@ -2529,8 +2530,7 @@ int CUDT::listen(sockaddr* addr, CPacket& packet)
 void CUDT::checkTimers()
 {
    // update CC parameters
-   m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-   m_dCongestionWindow = m_pCC->m_dCWndSize;
+   CCUpdate();
    //uint64_t minint = (uint64_t)(m_ullCPUFrequency * m_pSndTimeWindow->getMinPktSndInt() * 0.9);
    //if (m_ullInterval < minint)
    //   m_ullInterval = minint;
@@ -2623,9 +2623,7 @@ void CUDT::checkTimers()
          }
 
          m_pCC->onTimeout();
-         // update CC parameters
-         m_ullInterval = (uint64_t)(m_pCC->m_dPktSndPeriod * m_ullCPUFrequency);
-         m_dCongestionWindow = m_pCC->m_dCWndSize;
+         CCUpdate();
 
          // immediately restart transmission
          m_pSndQueue->m_pSndUList->update(this);
