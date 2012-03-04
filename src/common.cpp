@@ -668,6 +668,7 @@ const int CUDTException::EINVPOLLID = 5013;
 const int CUDTException::EASYNCFAIL = 6000;
 const int CUDTException::EASYNCSND = 6001;
 const int CUDTException::EASYNCRCV = 6002;
+const int CUDTException::ETIMEOUT = 6003;
 const int CUDTException::EPEERERR = 7000;
 const int CUDTException::EUNKNOWN = -1;
 

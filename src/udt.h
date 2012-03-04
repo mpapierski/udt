@@ -285,6 +285,7 @@ public: // Error Code
    static const int EASYNCFAIL;
    static const int EASYNCSND;
    static const int EASYNCRCV;
+   static const int ETIMEOUT;
    static const int EPEERERR;
    static const int EUNKNOWN;
 };

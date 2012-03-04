@@ -290,7 +290,7 @@ int CEPoll::wait(const int eid, set<UDTSOCKET>* readfds, set<UDTSOCKET>* writefd
          return total;
 
       if ((msTimeOut >= 0) && (int64_t(CTimer::getTime() - entertime) >= msTimeOut * 1000LL))
-         break;
+         throw CUDTException(6, 3, 0);
 
       CTimer::waitForEvent();
    }

@@ -1088,7 +1088,7 @@ int CUDT::send(const char* data, int len)
    if (m_iSndBufSize <= m_pSndBuffer->getCurrBufSize())
    {
       if (m_iSndTimeOut >= 0)
-         throw CUDTException(6, 1, 0); 
+         throw CUDTException(6, 3, 0); 
 
       return 0;
    }
@@ -1198,7 +1198,7 @@ int CUDT::recv(char* data, int len)
    }
 
    if ((res <= 0) && (m_iRcvTimeOut >= 0))
-      throw CUDTException(6, 2, 0);
+      throw CUDTException(6, 3, 0);
 
    return res;
 }
@@ -1282,7 +1282,7 @@ int CUDT::sendmsg(const char* data, int len, int msttl, bool inorder)
    if ((m_iSndBufSize - m_pSndBuffer->getCurrBufSize()) * m_iPayloadSize < len)
    {
       if (m_iSndTimeOut >= 0)
-         throw CUDTException(6, 1, 0);
+         throw CUDTException(6, 3, 0);
 
       return 0;
    }
@@ -1400,7 +1400,7 @@ int CUDT::recvmsg(char* data, int len)
    }
 
    if ((res <= 0) && (m_iRcvTimeOut >= 0))
-      throw CUDTException(6, 2, 0);
+      throw CUDTException(6, 3, 0);
 
    return res;
 }
