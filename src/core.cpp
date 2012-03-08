@@ -977,7 +977,7 @@ void CUDT::close()
       m_bListening = false;
       m_pRcvQueue->removeListener(this);
    }
-   else
+   else if (m_bConnecting)
    {
       m_pRcvQueue->removeConnector(m_SocketID);
    }
@@ -989,6 +989,7 @@ void CUDT::close()
 
       m_pCC->close();
 
+      // Store current connection information.
       CInfoBlock ib;
       ib.m_iIPversion = m_iIPversion;
       CInfoBlock::convert(m_pPeerAddr, m_iIPversion, ib.m_piIP);
