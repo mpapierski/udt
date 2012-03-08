@@ -94,16 +94,7 @@ CTimer::~CTimer()
 
 void CTimer::rdtsc(uint64_t &x)
 {
-   #ifdef WIN32
-      //HANDLE hCurThread = ::GetCurrentThread(); 
-      //DWORD_PTR dwOldMask = ::SetThreadAffinityMask(hCurThread, 1); 
-      BOOL ret = QueryPerformanceCounter((LARGE_INTEGER *)&x);
-      //SetThreadAffinityMask(hCurThread, dwOldMask);
-      if (!ret)
-         x = getTime() * s_ullCPUFrequency;
-   #elif OSX
-      x = mach_absolute_time();
-   #elif IA32
+   #ifdef IA32
       uint32_t lval, hval;
       //asm volatile ("push %eax; push %ebx; push %ecx; push %edx");
       //asm volatile ("xor %eax, %eax; cpuid");
@@ -111,13 +102,22 @@ void CTimer::rdtsc(uint64_t &x)
       //asm volatile ("pop %edx; pop %ecx; pop %ebx; pop %eax");
       x = hval;
       x = (x << 32) | lval;
-   #elif IA64
+   #elif defined(IA64)
       asm ("mov %0=ar.itc" : "=r"(x) :: "memory");
-   #elif AMD64
+   #elif defined(AMD64)
       uint32_t lval, hval;
       asm ("rdtsc" : "=a" (lval), "=d" (hval));
       x = hval;
       x = (x << 32) | lval;
+   #elif defined(WIN32)
+      //HANDLE hCurThread = ::GetCurrentThread(); 
+      //DWORD_PTR dwOldMask = ::SetThreadAffinityMask(hCurThread, 1); 
+      BOOL ret = QueryPerformanceCounter((LARGE_INTEGER *)&x);
+      //SetThreadAffinityMask(hCurThread, dwOldMask);
+      if (!ret)
+         x = getTime() * s_ullCPUFrequency;
+   #elif defined(OSX)
+      x = mach_absolute_time();
    #else
       // use system call to read time clock for other archs
       timeval t;
@@ -128,13 +128,7 @@ void CTimer::rdtsc(uint64_t &x)
 
 uint64_t CTimer::readCPUFrequency()
 {
-   #ifdef WIN32
-      int64_t ccf;
-      if (QueryPerformanceFrequency((LARGE_INTEGER *)&ccf))
-         return ccf / 1000000;
-      else
-         return 1;
-   #elif IA32 || IA64 || AMD64
+   #if defined(IA32) || defined(IA64) || defined(AMD64)
       uint64_t t1, t2;
 
       rdtsc(t1);
@@ -146,6 +140,16 @@ uint64_t CTimer::readCPUFrequency()
 
       // CPU clocks per microsecond
       return (t2 - t1) / 100000;
+   #elif defined(WIN32)
+      int64_t ccf;
+      if (QueryPerformanceFrequency((LARGE_INTEGER *)&ccf))
+         return ccf / 1000000;
+      else
+         return 1;
+   #elif defined(OSX)
+      mach_timebase_info_data_t info;
+      mach_timebase_info(&info);
+      return info.denom * 1000 / info.numer;
    #else
       return 1;
    #endif
