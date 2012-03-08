@@ -58,6 +58,7 @@ written by
 #include "md5.h"
 #include "common.h"
 
+bool CTimer::m_bUseMicroSecond = false;
 uint64_t CTimer::s_ullCPUFrequency = CTimer::readCPUFrequency();
 #ifndef WIN32
    pthread_mutex_t CTimer::m_EventLock = PTHREAD_MUTEX_INITIALIZER;
@@ -94,6 +95,12 @@ CTimer::~CTimer()
 
 void CTimer::rdtsc(uint64_t &x)
 {
+   if (m_bUseMicroSecond)
+   {
+      x = getTime();
+      return;
+   }
+
    #ifdef IA32
       uint32_t lval, hval;
       //asm volatile ("push %eax; push %ebx; push %ecx; push %edx");
@@ -120,14 +127,14 @@ void CTimer::rdtsc(uint64_t &x)
       x = mach_absolute_time();
    #else
       // use system call to read time clock for other archs
-      timeval t;
-      gettimeofday(&t, 0);
-      x = (uint64_t)t.tv_sec * (uint64_t)1000000 + (uint64_t)t.tv_usec;
+      x = getTime();
    #endif
 }
 
 uint64_t CTimer::readCPUFrequency()
 {
+   uint64_t frequency = 1;  // 1 tick per microsecond.
+
    #if defined(IA32) || defined(IA64) || defined(AMD64)
       uint64_t t1, t2;
 
@@ -139,20 +146,24 @@ uint64_t CTimer::readCPUFrequency()
       rdtsc(t2);
 
       // CPU clocks per microsecond
-      return (t2 - t1) / 100000;
+      frequency = (t2 - t1) / 100000;
    #elif defined(WIN32)
       int64_t ccf;
       if (QueryPerformanceFrequency((LARGE_INTEGER *)&ccf))
-         return ccf / 1000000;
-      else
-         return 1;
+         frequency = ccf / 1000000;
    #elif defined(OSX)
       mach_timebase_info_data_t info;
       mach_timebase_info(&info);
-      return info.denom * 1000 / info.numer;
-   #else
-      return 1;
+      frequency = info.denom * 1000 / info.denom;
    #endif
+
+   // Fall back to microsecond if the resolution is not high enough.
+   if (frequency < 10)
+   {
+      frequency = 1;
+      m_bUseMicroSecond = true;
+   }
+   return frequency;
 }
 
 uint64_t CTimer::getCPUFrequency()
@@ -218,7 +229,6 @@ void CTimer::interrupt()
 {
    // schedule the sleepto time to the current CCs, so that it will stop
    rdtsc(m_ullSchedTime);
-
    tick();
 }
 
@@ -237,6 +247,7 @@ uint64_t CTimer::getTime()
    //uint64_t x;
    //rdtsc(x);
    //return x / s_ullCPUFrequency;
+   //Specific fix may be necessary if rdtsc is not available either.
 
    #ifndef WIN32
       timeval t;
