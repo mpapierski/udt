@@ -154,7 +154,7 @@ uint64_t CTimer::readCPUFrequency()
    #elif defined(OSX)
       mach_timebase_info_data_t info;
       mach_timebase_info(&info);
-      frequency = info.denom * 1000 / info.denom;
+      frequency = info.denom * 1000ULL / info.numer;
    #endif
 
    // Fall back to microsecond if the resolution is not high enough.
