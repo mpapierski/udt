@@ -90,7 +90,7 @@ written by
       #define UDT_API
    #endif
 #else
-   #define UDT_API
+   #define UDT_API __attribute__ ((visibility("default")))
 #endif
 
 #define NO_BUSY_WAITING

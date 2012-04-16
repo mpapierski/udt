@@ -358,7 +358,7 @@ int CEPoll::update_events(const UDTSOCKET& uid, std::set<int>& eids, int events,
          if ((events & UDT_EPOLL_OUT) != 0)
             update_epoll_sets(uid, p->second.m_sUDTSocksOut, p->second.m_sUDTWrites, enable);
          if ((events & UDT_EPOLL_ERR) != 0)
-            update_epoll_sets(uid, p->second.m_sUDTSocksIn, p->second.m_sUDTExcepts, enable);
+            update_epoll_sets(uid, p->second.m_sUDTSocksEx, p->second.m_sUDTExcepts, enable);
       }
    }
 
