@@ -11,6 +11,7 @@
 #include <iostream>
 #include <udt.h>
 #include "cc.h"
+#include "test_util.h"
 
 using namespace std;
 
@@ -28,8 +29,8 @@ int main(int argc, char* argv[])
       return 0;
    }
 
-   // use this function to initialize the UDT library
-   UDT::startup();
+   // Automatically start up and clean up UDT module.
+   UDTUpDown _udt_;
 
    struct addrinfo hints, *local, *peer;
 
@@ -124,13 +125,8 @@ int main(int argc, char* argv[])
    }
 
    UDT::close(client);
-
    delete [] data;
-
-   // use this function to release the UDT library
-   UDT::cleanup();
-
-   return 1;
+   return 0;
 }
 
 #ifndef WIN32
